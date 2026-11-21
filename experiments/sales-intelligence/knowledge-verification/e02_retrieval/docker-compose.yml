@@ -1,0 +1,20 @@
+# Container PostgreSQL 16 + pgvector phục vụ riêng thí nghiệm P05-E02 (local PoC).
+# Lưu ý: Thông tin kết nối dưới đây CHỈ dùng cục bộ cho benchmark, không dùng cho production.
+
+services:
+  postgres-p05:
+    image: pgvector/pgvector:pg16
+    container_name: hostra-p05-postgres
+    environment:
+      POSTGRES_USER: hostra_poc
+      POSTGRES_PASSWORD: hostra_poc_local
+      POSTGRES_DB: hostra_p05
+    ports:
+      - "5439:5432"
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hostra_poc -d hostra_p05"]
+      interval: 3s
+      timeout: 3s
+      retries: 10

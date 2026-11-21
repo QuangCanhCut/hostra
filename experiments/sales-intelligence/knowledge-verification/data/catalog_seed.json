@@ -1,0 +1,328 @@
+{
+  "dataset_meta": {
+    "dataset_id": "p05-synthetic-catalog-v0.1",
+    "data_origin": "synthetic_for_poc_validation",
+    "is_synthetic": true,
+    "note": "Dữ liệu tổng hợp mô phỏng 3 SKU thực phẩm đóng gói OCOP phục vụ thử nghiệm P05-E02..E04. Không phải hồ sơ OCOP thật."
+  },
+  "product_facts": [
+    {
+      "tenant_id": "tenant-demo-01",
+      "sku_id": "SKU-HONEY-01",
+      "sku_name": "Mật ong hoa cà phê Đắk Lắk nguyên chất 500ml",
+      "price_vnd": 159000,
+      "weight_display": "500ml (chai thủy tinh)",
+      "expiry_display": "24 tháng kể từ ngày sản xuất",
+      "origin": "Huyện Cư M'gar, tỉnh Đắk Lắk",
+      "ingredients": ["100% mật ong hoa cà phê tự nhiên"],
+      "storage_instructions": "Bảo quản nơi khô ráo, thoáng mát, tránh ánh nắng trực tiếp, không để tủ lạnh.",
+      "knowledge_version": 1,
+      "approval_status": "APPROVED",
+      "provenance": {
+        "source_id": "doc-honey-spec-01",
+        "document_version": "v1.0",
+        "extracted_by": "synthetic_seed",
+        "approved_by": "reviewer-demo-01",
+        "approved_at": "2026-11-20T09:00:00Z"
+      },
+      "valid_from": "2026-11-20T09:00:00Z",
+      "valid_until": null
+    },
+    {
+      "tenant_id": "tenant-demo-01",
+      "sku_id": "SKU-TEA-02",
+      "sku_name": "Trà Shan Tuyết cổ thụ Hà Giang hộp thiếc 100g",
+      "price_vnd": 245000,
+      "weight_display": "100g (hộp thiếc hút chân không)",
+      "expiry_display": "18 tháng kể từ ngày đóng gói",
+      "origin": "Xã Phìn Hồ, huyện Hoàng Su Phì, tỉnh Hà Giang",
+      "ingredients": ["100% búp trà Shan Tuyết cổ thụ 1 tôm 2 lá"],
+      "storage_instructions": "Đậy kín nắp sau khi dùng, để nơi khô thoáng, tránh mùi lạ.",
+      "knowledge_version": 1,
+      "approval_status": "APPROVED",
+      "provenance": {
+        "source_id": "doc-tea-spec-01",
+        "document_version": "v1.0",
+        "extracted_by": "synthetic_seed",
+        "approved_by": "reviewer-demo-01",
+        "approved_at": "2026-11-20T09:00:00Z"
+      },
+      "valid_from": "2026-11-20T09:00:00Z",
+      "valid_until": null
+    },
+    {
+      "tenant_id": "tenant-demo-01",
+      "sku_id": "SKU-CASHEW-03",
+      "sku_name": "Hạt điều rang củi vỏ lụa Bình Phước hộp 500g",
+      "price_vnd": 185000,
+      "weight_display": "500g (hộp nhựa PET nắp vặn)",
+      "expiry_display": "12 tháng kể từ ngày sản xuất",
+      "origin": "Huyện Bù Đăng, tỉnh Bình Phước",
+      "ingredients": ["99% hạt điều nhân sống Bình Phước", "1% muối tinh"],
+      "storage_instructions": "Đóng kín nắp ngay sau khi sử dụng để giữ độ giòn.",
+      "knowledge_version": 1,
+      "approval_status": "APPROVED",
+      "provenance": {
+        "source_id": "doc-cashew-spec-01",
+        "document_version": "v1.0",
+        "extracted_by": "synthetic_seed",
+        "approved_by": "reviewer-demo-01",
+        "approved_at": "2026-11-20T09:00:00Z"
+      },
+      "valid_from": "2026-11-20T09:00:00Z",
+      "valid_until": null
+    }
+  ],
+  "eligibility_snapshots": [
+    {
+      "tenant_id": "tenant-demo-01",
+      "sku_id": "SKU-HONEY-01",
+      "ocop_status": "VERIFIED",
+      "ocop_version": 1,
+      "ocop_code": "SYNTH-OCOP-4S-DL-001",
+      "food_safety_verified": true,
+      "rights_status": "ACTIVE",
+      "rights_version": 1
+    },
+    {
+      "tenant_id": "tenant-demo-01",
+      "sku_id": "SKU-TEA-02",
+      "ocop_status": "VERIFIED",
+      "ocop_version": 1,
+      "ocop_code": "SYNTH-OCOP-4S-HG-002",
+      "food_safety_verified": true,
+      "rights_status": "ACTIVE",
+      "rights_version": 1
+    },
+    {
+      "tenant_id": "tenant-demo-01",
+      "sku_id": "SKU-CASHEW-03",
+      "ocop_status": "PENDING",
+      "ocop_version": 1,
+      "ocop_code": null,
+      "food_safety_verified": true,
+      "rights_status": "ACTIVE",
+      "rights_version": 1
+    }
+  ],
+  "evidence_chunks": [
+    {
+      "evidence_id": "ev-honey-01",
+      "tenant_id": "tenant-demo-01",
+      "sku_id": "SKU-HONEY-01",
+      "section": "usage",
+      "content": "Cách dùng mật ong hoa cà phê: pha 1-2 thìa cà phê với 150ml nước ấm dưới 50 độ C, uống buổi sáng hoặc pha cùng chanh, gừng. Không dùng cho trẻ em dưới 1 tuổi.",
+      "knowledge_version": 1,
+      "approval_status": "APPROVED",
+      "provenance": {
+        "source_id": "doc-honey-faq-01",
+        "document_version": "v1.0",
+        "extracted_by": "synthetic_seed",
+        "approved_by": "reviewer-demo-01",
+        "approved_at": "2026-11-20T09:00:00Z"
+      }
+    },
+    {
+      "evidence_id": "ev-honey-02",
+      "tenant_id": "tenant-demo-01",
+      "sku_id": "SKU-HONEY-01",
+      "section": "quality_crystallization",
+      "content": "Mật ong nguyên chất có thể kết tinh tự nhiên ở nhiệt độ thấp; đây là hiện tượng bình thường do hàm lượng đường tự nhiên trong hoa cà phê, chỉ cần ngâm chai vào nước ấm 40 độ C để mật tan lại.",
+      "knowledge_version": 1,
+      "approval_status": "APPROVED",
+      "provenance": {
+        "source_id": "doc-honey-faq-01",
+        "document_version": "v1.0",
+        "extracted_by": "synthetic_seed",
+        "approved_by": "reviewer-demo-01",
+        "approved_at": "2026-11-20T09:00:00Z"
+      }
+    },
+    {
+      "evidence_id": "ev-honey-03",
+      "tenant_id": "tenant-demo-01",
+      "sku_id": "SKU-HONEY-01",
+      "section": "shipping_return",
+      "content": "Đóng gói chống sốc hai lớp cho chai thủy tinh 500ml. Miễn phí vận chuyển cho đơn từ 2 chai. Hỗ trợ đổi mới 1-1 trong 7 ngày nếu chai bị vỡ hoặc rò rỉ khi nhận hàng (cần video mở hộp).",
+      "knowledge_version": 1,
+      "approval_status": "APPROVED",
+      "provenance": {
+        "source_id": "doc-honey-policy-01",
+        "document_version": "v1.0",
+        "extracted_by": "synthetic_seed",
+        "approved_by": "reviewer-demo-01",
+        "approved_at": "2026-11-20T09:00:00Z"
+      }
+    },
+    {
+      "evidence_id": "ev-honey-04",
+      "tenant_id": "tenant-demo-01",
+      "sku_id": "SKU-HONEY-01",
+      "section": "ocop_origin",
+      "content": "Mật ong hoa cà phê Cư M'gar Đắk Lắk đạt chứng nhận OCOP 4 sao cấp tỉnh, thu hoạch đúng mùa hoa cà phê tháng 2-3, không pha đường tinh luyện, không chất bảo quản.",
+      "knowledge_version": 1,
+      "approval_status": "APPROVED",
+      "provenance": {
+        "source_id": "doc-honey-spec-01",
+        "document_version": "v1.0",
+        "extracted_by": "synthetic_seed",
+        "approved_by": "reviewer-demo-01",
+        "approved_at": "2026-11-20T09:00:00Z"
+      }
+    },
+    {
+      "evidence_id": "ev-tea-01",
+      "tenant_id": "tenant-demo-01",
+      "sku_id": "SKU-TEA-02",
+      "section": "brewing_guide",
+      "content": "Cách pha trà Shan Tuyết cổ thụ: tráng ấm bằng nước sôi, cho 5g trà vào ấm 150ml, dùng nước nhiệt độ 85-90 độ C, hãm 30-45 giây cho nước đầu. Có thể pha được 6 đến 8 lần nước.",
+      "knowledge_version": 1,
+      "approval_status": "APPROVED",
+      "provenance": {
+        "source_id": "doc-tea-faq-01",
+        "document_version": "v1.0",
+        "extracted_by": "synthetic_seed",
+        "approved_by": "reviewer-demo-01",
+        "approved_at": "2026-11-20T09:00:00Z"
+      }
+    },
+    {
+      "evidence_id": "ev-tea-02",
+      "tenant_id": "tenant-demo-01",
+      "sku_id": "SKU-TEA-02",
+      "section": "audience_caution",
+      "content": "Trà Shan Tuyết chứa caffeine tự nhiên giúp tỉnh táo; phụ nữ mang thai, người nhạy cảm với caffeine hoặc hay mất ngủ nên tham khảo ý kiến bác sĩ và không uống sát giờ đi ngủ.",
+      "knowledge_version": 1,
+      "approval_status": "APPROVED",
+      "provenance": {
+        "source_id": "doc-tea-faq-01",
+        "document_version": "v1.0",
+        "extracted_by": "synthetic_seed",
+        "approved_by": "reviewer-demo-01",
+        "approved_at": "2026-11-20T09:00:00Z"
+      }
+    },
+    {
+      "evidence_id": "ev-tea-03",
+      "tenant_id": "tenant-demo-01",
+      "sku_id": "SKU-TEA-02",
+      "section": "flavor_origin",
+      "content": "Thu hái thủ công từ cây trà cổ thụ trên độ cao trên 1.300m tại Hoàng Su Phì, Hà Giang. Nước trà vàng sánh như mật ong, hương thơm cốm nhẹ, vị chát dịu và hậu ngọt sâu.",
+      "knowledge_version": 1,
+      "approval_status": "APPROVED",
+      "provenance": {
+        "source_id": "doc-tea-spec-01",
+        "document_version": "v1.0",
+        "extracted_by": "synthetic_seed",
+        "approved_by": "reviewer-demo-01",
+        "approved_at": "2026-11-20T09:00:00Z"
+      }
+    },
+    {
+      "evidence_id": "ev-cashew-01",
+      "tenant_id": "tenant-demo-01",
+      "sku_id": "SKU-CASHEW-03",
+      "section": "nutrition_allergen",
+      "content": "Hạt điều rang củi giữ nguyên vỏ lụa giúp bảo vệ nhân hạt giòn béo, ít vỡ. Lưu ý dị ứng: sản phẩm chứa hạt cây (hạt điều), không phù hợp với người dị ứng các loại hạt.",
+      "knowledge_version": 1,
+      "approval_status": "APPROVED",
+      "provenance": {
+        "source_id": "doc-cashew-faq-01",
+        "document_version": "v1.0",
+        "extracted_by": "synthetic_seed",
+        "approved_by": "reviewer-demo-01",
+        "approved_at": "2026-11-20T09:00:00Z"
+      }
+    },
+    {
+      "evidence_id": "ev-cashew-02",
+      "tenant_id": "tenant-demo-01",
+      "sku_id": "SKU-CASHEW-03",
+      "section": "shipping_return",
+      "content": "Hộp 500g có gói hút ẩm riêng. Nếu hạt bị ỉu, hôi dầu hoặc mốc khi mở hộp, shop hoàn tiền hoặc đổi hộp mới trong 7 ngày.",
+      "knowledge_version": 1,
+      "approval_status": "APPROVED",
+      "provenance": {
+        "source_id": "doc-cashew-policy-01",
+        "document_version": "v1.0",
+        "extracted_by": "synthetic_seed",
+        "approved_by": "reviewer-demo-01",
+        "approved_at": "2026-11-20T09:00:00Z"
+      }
+    }
+  ],
+  "claim_registry": [
+    {
+      "claim_id": "clm-honey-allowed-01",
+      "tenant_id": "tenant-demo-01",
+      "sku_id": "SKU-HONEY-01",
+      "claim_text": "100% mật ong hoa cà phê nguyên chất, không pha đường tinh luyện, không chất bảo quản.",
+      "category": "ALLOWED",
+      "evidence_ids": ["ev-honey-04"],
+      "requires_ocop_verified": false,
+      "approval_status": "APPROVED",
+      "knowledge_version": 1,
+      "provenance": {
+        "source_id": "doc-honey-spec-01",
+        "document_version": "v1.0",
+        "extracted_by": "synthetic_seed",
+        "approved_by": "reviewer-demo-01",
+        "approved_at": "2026-11-20T09:00:00Z"
+      }
+    },
+    {
+      "claim_id": "clm-honey-ocop-01",
+      "tenant_id": "tenant-demo-01",
+      "sku_id": "SKU-HONEY-01",
+      "claim_text": "Đạt chứng nhận OCOP 4 sao cấp tỉnh Đắk Lắk.",
+      "category": "REQUIRES_OFFICIAL_VERIFICATION",
+      "evidence_ids": ["ev-honey-04"],
+      "requires_ocop_verified": true,
+      "approval_status": "APPROVED",
+      "knowledge_version": 1,
+      "provenance": {
+        "source_id": "doc-honey-spec-01",
+        "document_version": "v1.0",
+        "extracted_by": "synthetic_seed",
+        "approved_by": "reviewer-demo-01",
+        "approved_at": "2026-11-20T09:00:00Z"
+      }
+    },
+    {
+      "claim_id": "clm-honey-prohibited-01",
+      "tenant_id": "tenant-demo-01",
+      "sku_id": "SKU-HONEY-01",
+      "claim_text": "Chữa khỏi đau dạ dày, trị dứt điểm ho mãn tính hoặc thay thế thuốc chữa bệnh.",
+      "category": "PROHIBITED",
+      "evidence_ids": [],
+      "requires_ocop_verified": false,
+      "approval_status": "APPROVED",
+      "knowledge_version": 1,
+      "provenance": {
+        "source_id": "policy-food-r17",
+        "document_version": "v1.0",
+        "extracted_by": "synthetic_seed",
+        "approved_by": "reviewer-demo-01",
+        "approved_at": "2026-11-20T09:00:00Z"
+      }
+    },
+    {
+      "claim_id": "clm-tea-prohibited-01",
+      "tenant_id": "tenant-demo-01",
+      "sku_id": "SKU-TEA-02",
+      "claim_text": "Chữa tiểu đường, giảm mỡ máu cấp tốc, phòng ngừa ung thư.",
+      "category": "PROHIBITED",
+      "evidence_ids": [],
+      "requires_ocop_verified": false,
+      "approval_status": "APPROVED",
+      "knowledge_version": 1,
+      "provenance": {
+        "source_id": "policy-food-r17",
+        "document_version": "v1.0",
+        "extracted_by": "synthetic_seed",
+        "approved_by": "reviewer-demo-01",
+        "approved_at": "2026-11-20T09:00:00Z"
+      }
+    }
+  ]
+}

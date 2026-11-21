@@ -1,0 +1,672 @@
+{
+  "experiment_id": "P05-E02",
+  "run_id": "20261121T055725Z",
+  "created_at": "2026-11-21T05:57:25.272318Z",
+  "dataset_source": "e02_retrieval/e02_questions.json (45 câu) + data/catalog_seed.json (9 chunks)",
+  "is_synthetic": true,
+  "environment": {
+    "python": "3.13.2",
+    "os": "Windows-11-10.0.26300-SP0",
+    "processor": "Intel64 Family 6 Model 170 Stepping 4, GenuineIntel",
+    "postgres_image": "pgvector/pgvector:pg16"
+  },
+  "config": {
+    "top_k": 5,
+    "sku_scoped_filter": true,
+    "pgvector_enabled": true,
+    "embedding_model": "intfloat/multilingual-e5-small"
+  },
+  "metrics": {
+    "methods": [
+      {
+        "method": "postgres_fts_raw",
+        "overall": {
+          "count": 45,
+          "recall_at_1": 0.7333,
+          "recall_at_3": 0.8667,
+          "mrr": 0.8,
+          "p50_ms": 1.422,
+          "p95_ms": 2.485,
+          "cross_sku_leaks": 0
+        },
+        "by_group": {
+          "diacritics": {
+            "count": 15,
+            "recall_at_1": 0.9333,
+            "recall_at_3": 1.0,
+            "mrr": 0.9667,
+            "p95_ms": 8.47
+          },
+          "no_diacritics_slang": {
+            "count": 15,
+            "recall_at_1": 0.6,
+            "recall_at_3": 0.6667,
+            "mrr": 0.6333,
+            "p95_ms": 1.802
+          },
+          "semantic_paraphrase": {
+            "count": 15,
+            "recall_at_1": 0.6667,
+            "recall_at_3": 0.9333,
+            "mrr": 0.8,
+            "p95_ms": 2.24
+          }
+        },
+        "miss_at_1_count": 12,
+        "sample_misses": [
+          {
+            "qid": "R10",
+            "group": "diacritics",
+            "sku_id": "SKU-TEA-02",
+            "query": "Hương vị nước trà Shan Tuyết Hoàng Su Phì như thế nào?",
+            "gold": [
+              "ev-tea-03"
+            ],
+            "top3_predicted": [
+              "ev-tea-01",
+              "ev-tea-03",
+              "ev-tea-02"
+            ]
+          },
+          {
+            "qid": "R20",
+            "group": "no_diacritics_slang",
+            "sku_id": "SKU-HONEY-01",
+            "query": "mat ong dak lak co ocop 4 sao ko, co pha duong ko",
+            "gold": [
+              "ev-honey-04"
+            ],
+            "top3_predicted": [
+              "ev-honey-01",
+              "ev-honey-04",
+              "ev-honey-02"
+            ]
+          },
+          {
+            "qid": "R24",
+            "group": "no_diacritics_slang",
+            "sku_id": "SKU-TEA-02",
+            "query": "bau bi hay mat ngu uong tra nay dc ko",
+            "gold": [
+              "ev-tea-02"
+            ],
+            "top3_predicted": []
+          },
+          {
+            "qid": "R25",
+            "group": "no_diacritics_slang",
+            "sku_id": "SKU-TEA-02",
+            "query": "vi tra co chat ko, huong thom com nhe dung ko",
+            "gold": [
+              "ev-tea-03"
+            ],
+            "top3_predicted": []
+          },
+          {
+            "qid": "R27",
+            "group": "no_diacritics_slang",
+            "sku_id": "SKU-CASHEW-03",
+            "query": "bi di ung hat co an hat dieu dc ko shop",
+            "gold": [
+              "ev-cashew-01"
+            ],
+            "top3_predicted": []
+          },
+          {
+            "qid": "R28",
+            "group": "no_diacritics_slang",
+            "sku_id": "SKU-CASHEW-03",
+            "query": "hat dieu con vo lua an co gion beo ko",
+            "gold": [
+              "ev-cashew-01"
+            ],
+            "top3_predicted": []
+          },
+          {
+            "qid": "R29",
+            "group": "no_diacritics_slang",
+            "sku_id": "SKU-CASHEW-03",
+            "query": "hat dieu bi iu hoi dau moc co dc doi tra hoan tien ko",
+            "gold": [
+              "ev-cashew-02"
+            ],
+            "top3_predicted": []
+          },
+          {
+            "qid": "R33",
+            "group": "semantic_paraphrase",
+            "sku_id": "SKU-HONEY-01",
+            "query": "Trời lạnh thấy đáy chai bị đóng đường trắng lại thì có phải hàng giả không?",
+            "gold": [
+              "ev-honey-02"
+            ],
+            "top3_predicted": [
+              "ev-honey-03",
+              "ev-honey-02",
+              "ev-honey-04"
+            ]
+          },
+          {
+            "qid": "R34",
+            "group": "semantic_paraphrase",
+            "sku_id": "SKU-HONEY-01",
+            "query": "Giao hàng xa lỡ shipper làm bể bể bình thì bên mình đền bù sao?",
+            "gold": [
+              "ev-honey-03"
+            ],
+            "top3_predicted": [
+              "ev-honey-02",
+              "ev-honey-03"
+            ]
+          },
+          {
+            "qid": "R35",
+            "group": "semantic_paraphrase",
+            "sku_id": "SKU-HONEY-01",
+            "query": "Mua combo 2 lọ có được freeship không ạ?",
+            "gold": [
+              "ev-honey-03"
+            ],
+            "top3_predicted": []
+          }
+        ]
+      },
+      {
+        "method": "postgres_fts_unaccent",
+        "overall": {
+          "count": 45,
+          "recall_at_1": 0.7778,
+          "recall_at_3": 0.9778,
+          "mrr": 0.8778,
+          "p50_ms": 1.459,
+          "p95_ms": 2.8,
+          "cross_sku_leaks": 0
+        },
+        "by_group": {
+          "diacritics": {
+            "count": 15,
+            "recall_at_1": 0.8667,
+            "recall_at_3": 1.0,
+            "mrr": 0.9333,
+            "p95_ms": 3.924
+          },
+          "no_diacritics_slang": {
+            "count": 15,
+            "recall_at_1": 0.9333,
+            "recall_at_3": 1.0,
+            "mrr": 0.9667,
+            "p95_ms": 2.194
+          },
+          "semantic_paraphrase": {
+            "count": 15,
+            "recall_at_1": 0.5333,
+            "recall_at_3": 0.9333,
+            "mrr": 0.7333,
+            "p95_ms": 2.044
+          }
+        },
+        "miss_at_1_count": 10,
+        "sample_misses": [
+          {
+            "qid": "R10",
+            "group": "diacritics",
+            "sku_id": "SKU-TEA-02",
+            "query": "Hương vị nước trà Shan Tuyết Hoàng Su Phì như thế nào?",
+            "gold": [
+              "ev-tea-03"
+            ],
+            "top3_predicted": [
+              "ev-tea-01",
+              "ev-tea-03",
+              "ev-tea-02"
+            ]
+          },
+          {
+            "qid": "R15",
+            "group": "diacritics",
+            "sku_id": "SKU-CASHEW-03",
+            "query": "Hộp hạt điều 500g có gói hút ẩm đi kèm không?",
+            "gold": [
+              "ev-cashew-02"
+            ],
+            "top3_predicted": [
+              "ev-cashew-01",
+              "ev-cashew-02"
+            ]
+          },
+          {
+            "qid": "R16",
+            "group": "no_diacritics_slang",
+            "sku_id": "SKU-HONEY-01",
+            "query": "pha mat ong nuoc am bao nhieu do c vay shop",
+            "gold": [
+              "ev-honey-01"
+            ],
+            "top3_predicted": [
+              "ev-honey-02",
+              "ev-honey-01",
+              "ev-honey-04"
+            ]
+          },
+          {
+            "qid": "R32",
+            "group": "semantic_paraphrase",
+            "sku_id": "SKU-HONEY-01",
+            "query": "Bé nhà mình mới 8 tháng tuổi cho nếm thử chút mật được không?",
+            "gold": [
+              "ev-honey-01"
+            ],
+            "top3_predicted": [
+              "ev-honey-04",
+              "ev-honey-01",
+              "ev-honey-02"
+            ]
+          },
+          {
+            "qid": "R33",
+            "group": "semantic_paraphrase",
+            "sku_id": "SKU-HONEY-01",
+            "query": "Trời lạnh thấy đáy chai bị đóng đường trắng lại thì có phải hàng giả không?",
+            "gold": [
+              "ev-honey-02"
+            ],
+            "top3_predicted": [
+              "ev-honey-03",
+              "ev-honey-02",
+              "ev-honey-04"
+            ]
+          },
+          {
+            "qid": "R34",
+            "group": "semantic_paraphrase",
+            "sku_id": "SKU-HONEY-01",
+            "query": "Giao hàng xa lỡ shipper làm bể bể bình thì bên mình đền bù sao?",
+            "gold": [
+              "ev-honey-03"
+            ],
+            "top3_predicted": [
+              "ev-honey-02",
+              "ev-honey-03"
+            ]
+          },
+          {
+            "qid": "R35",
+            "group": "semantic_paraphrase",
+            "sku_id": "SKU-HONEY-01",
+            "query": "Mua combo 2 lọ có được freeship không ạ?",
+            "gold": [
+              "ev-honey-03"
+            ],
+            "top3_predicted": [
+              "ev-honey-04"
+            ]
+          },
+          {
+            "qid": "R40",
+            "group": "semantic_paraphrase",
+            "sku_id": "SKU-TEA-02",
+            "query": "Màu nước rót ra nhìn thế nào, uống xong có ngọt cổ không?",
+            "gold": [
+              "ev-tea-03"
+            ],
+            "top3_predicted": [
+              "ev-tea-01",
+              "ev-tea-03",
+              "ev-tea-02"
+            ]
+          },
+          {
+            "qid": "R44",
+            "group": "semantic_paraphrase",
+            "sku_id": "SKU-CASHEW-03",
+            "query": "Nhận hàng mở nắp thấy mềm không giòn hoặc có mùi lạ thì khiếu nại được mấy ngày?",
+            "gold": [
+              "ev-cashew-02"
+            ],
+            "top3_predicted": [
+              "ev-cashew-01",
+              "ev-cashew-02"
+            ]
+          },
+          {
+            "qid": "R45",
+            "group": "semantic_paraphrase",
+            "sku_id": "SKU-CASHEW-03",
+            "query": "Bên trong hũ có bỏ túi chống ẩm để giữ giòn không?",
+            "gold": [
+              "ev-cashew-02"
+            ],
+            "top3_predicted": [
+              "ev-cashew-01",
+              "ev-cashew-02"
+            ]
+          }
+        ]
+      },
+      {
+        "method": "pgvector_e5_small_dense",
+        "overall": {
+          "count": 45,
+          "recall_at_1": 0.7778,
+          "recall_at_3": 1.0,
+          "mrr": 0.8852,
+          "p50_ms": 31.038,
+          "p95_ms": 42.805,
+          "cross_sku_leaks": 0
+        },
+        "by_group": {
+          "diacritics": {
+            "count": 15,
+            "recall_at_1": 0.8667,
+            "recall_at_3": 1.0,
+            "mrr": 0.9333,
+            "p95_ms": 48.114
+          },
+          "no_diacritics_slang": {
+            "count": 15,
+            "recall_at_1": 0.6667,
+            "recall_at_3": 1.0,
+            "mrr": 0.8222,
+            "p95_ms": 34.132
+          },
+          "semantic_paraphrase": {
+            "count": 15,
+            "recall_at_1": 0.8,
+            "recall_at_3": 1.0,
+            "mrr": 0.9,
+            "p95_ms": 33.576
+          }
+        },
+        "miss_at_1_count": 10,
+        "sample_misses": [
+          {
+            "qid": "R06",
+            "group": "diacritics",
+            "sku_id": "SKU-HONEY-01",
+            "query": "Mật ong có pha đường tinh luyện hay chất bảo quản không?",
+            "gold": [
+              "ev-honey-04"
+            ],
+            "top3_predicted": [
+              "ev-honey-02",
+              "ev-honey-04",
+              "ev-honey-01"
+            ]
+          },
+          {
+            "qid": "R10",
+            "group": "diacritics",
+            "sku_id": "SKU-TEA-02",
+            "query": "Hương vị nước trà Shan Tuyết Hoàng Su Phì như thế nào?",
+            "gold": [
+              "ev-tea-03"
+            ],
+            "top3_predicted": [
+              "ev-tea-01",
+              "ev-tea-03",
+              "ev-tea-02"
+            ]
+          },
+          {
+            "qid": "R16",
+            "group": "no_diacritics_slang",
+            "sku_id": "SKU-HONEY-01",
+            "query": "pha mat ong nuoc am bao nhieu do c vay shop",
+            "gold": [
+              "ev-honey-01"
+            ],
+            "top3_predicted": [
+              "ev-honey-04",
+              "ev-honey-01",
+              "ev-honey-02"
+            ]
+          },
+          {
+            "qid": "R17",
+            "group": "no_diacritics_slang",
+            "sku_id": "SKU-HONEY-01",
+            "query": "be duoi 1 tuoi uong mat ong dc ko shop oi",
+            "gold": [
+              "ev-honey-01"
+            ],
+            "top3_predicted": [
+              "ev-honey-04",
+              "ev-honey-03",
+              "ev-honey-01"
+            ]
+          },
+          {
+            "qid": "R19",
+            "group": "no_diacritics_slang",
+            "sku_id": "SKU-HONEY-01",
+            "query": "mua may chai dc mien phi van chuyen, vo chai doi 1-1 ko",
+            "gold": [
+              "ev-honey-03"
+            ],
+            "top3_predicted": [
+              "ev-honey-04",
+              "ev-honey-03",
+              "ev-honey-01"
+            ]
+          },
+          {
+            "qid": "R23",
+            "group": "no_diacritics_slang",
+            "sku_id": "SKU-TEA-02",
+            "query": "1 am tra pha dc may lan nuoc vay shop",
+            "gold": [
+              "ev-tea-01"
+            ],
+            "top3_predicted": [
+              "ev-tea-03",
+              "ev-tea-01",
+              "ev-tea-02"
+            ]
+          },
+          {
+            "qid": "R27",
+            "group": "no_diacritics_slang",
+            "sku_id": "SKU-CASHEW-03",
+            "query": "bi di ung hat co an hat dieu dc ko shop",
+            "gold": [
+              "ev-cashew-01"
+            ],
+            "top3_predicted": [
+              "ev-cashew-02",
+              "ev-cashew-01"
+            ]
+          },
+          {
+            "qid": "R40",
+            "group": "semantic_paraphrase",
+            "sku_id": "SKU-TEA-02",
+            "query": "Màu nước rót ra nhìn thế nào, uống xong có ngọt cổ không?",
+            "gold": [
+              "ev-tea-03"
+            ],
+            "top3_predicted": [
+              "ev-tea-01",
+              "ev-tea-03",
+              "ev-tea-02"
+            ]
+          },
+          {
+            "qid": "R43",
+            "group": "semantic_paraphrase",
+            "sku_id": "SKU-CASHEW-03",
+            "query": "Bóc lớp áo mỏng bên ngoài đi hay để nguyên vỏ vậy cho đỡ nát?",
+            "gold": [
+              "ev-cashew-01"
+            ],
+            "top3_predicted": [
+              "ev-cashew-02",
+              "ev-cashew-01"
+            ]
+          },
+          {
+            "qid": "R45",
+            "group": "semantic_paraphrase",
+            "sku_id": "SKU-CASHEW-03",
+            "query": "Bên trong hũ có bỏ túi chống ẩm để giữ giòn không?",
+            "gold": [
+              "ev-cashew-02"
+            ],
+            "top3_predicted": [
+              "ev-cashew-01",
+              "ev-cashew-02"
+            ]
+          }
+        ]
+      },
+      {
+        "method": "hybrid_fts_unaccent_plus_pgvector_rrf",
+        "overall": {
+          "count": 45,
+          "recall_at_1": 0.8222,
+          "recall_at_3": 1.0,
+          "mrr": 0.9074,
+          "p50_ms": 29.533,
+          "p95_ms": 41.268,
+          "cross_sku_leaks": 0
+        },
+        "by_group": {
+          "diacritics": {
+            "count": 15,
+            "recall_at_1": 0.8667,
+            "recall_at_3": 1.0,
+            "mrr": 0.9333,
+            "p95_ms": 33.841
+          },
+          "no_diacritics_slang": {
+            "count": 15,
+            "recall_at_1": 0.9333,
+            "recall_at_3": 1.0,
+            "mrr": 0.9556,
+            "p95_ms": 29.382
+          },
+          "semantic_paraphrase": {
+            "count": 15,
+            "recall_at_1": 0.6667,
+            "recall_at_3": 1.0,
+            "mrr": 0.8333,
+            "p95_ms": 44.819
+          }
+        },
+        "miss_at_1_count": 8,
+        "sample_misses": [
+          {
+            "qid": "R10",
+            "group": "diacritics",
+            "sku_id": "SKU-TEA-02",
+            "query": "Hương vị nước trà Shan Tuyết Hoàng Su Phì như thế nào?",
+            "gold": [
+              "ev-tea-03"
+            ],
+            "top3_predicted": [
+              "ev-tea-01",
+              "ev-tea-03",
+              "ev-tea-02"
+            ]
+          },
+          {
+            "qid": "R15",
+            "group": "diacritics",
+            "sku_id": "SKU-CASHEW-03",
+            "query": "Hộp hạt điều 500g có gói hút ẩm đi kèm không?",
+            "gold": [
+              "ev-cashew-02"
+            ],
+            "top3_predicted": [
+              "ev-cashew-01",
+              "ev-cashew-02"
+            ]
+          },
+          {
+            "qid": "R16",
+            "group": "no_diacritics_slang",
+            "sku_id": "SKU-HONEY-01",
+            "query": "pha mat ong nuoc am bao nhieu do c vay shop",
+            "gold": [
+              "ev-honey-01"
+            ],
+            "top3_predicted": [
+              "ev-honey-02",
+              "ev-honey-04",
+              "ev-honey-01"
+            ]
+          },
+          {
+            "qid": "R33",
+            "group": "semantic_paraphrase",
+            "sku_id": "SKU-HONEY-01",
+            "query": "Trời lạnh thấy đáy chai bị đóng đường trắng lại thì có phải hàng giả không?",
+            "gold": [
+              "ev-honey-02"
+            ],
+            "top3_predicted": [
+              "ev-honey-03",
+              "ev-honey-02",
+              "ev-honey-04"
+            ]
+          },
+          {
+            "qid": "R35",
+            "group": "semantic_paraphrase",
+            "sku_id": "SKU-HONEY-01",
+            "query": "Mua combo 2 lọ có được freeship không ạ?",
+            "gold": [
+              "ev-honey-03"
+            ],
+            "top3_predicted": [
+              "ev-honey-04",
+              "ev-honey-03",
+              "ev-honey-02"
+            ]
+          },
+          {
+            "qid": "R40",
+            "group": "semantic_paraphrase",
+            "sku_id": "SKU-TEA-02",
+            "query": "Màu nước rót ra nhìn thế nào, uống xong có ngọt cổ không?",
+            "gold": [
+              "ev-tea-03"
+            ],
+            "top3_predicted": [
+              "ev-tea-01",
+              "ev-tea-03",
+              "ev-tea-02"
+            ]
+          },
+          {
+            "qid": "R44",
+            "group": "semantic_paraphrase",
+            "sku_id": "SKU-CASHEW-03",
+            "query": "Nhận hàng mở nắp thấy mềm không giòn hoặc có mùi lạ thì khiếu nại được mấy ngày?",
+            "gold": [
+              "ev-cashew-02"
+            ],
+            "top3_predicted": [
+              "ev-cashew-01",
+              "ev-cashew-02"
+            ]
+          },
+          {
+            "qid": "R45",
+            "group": "semantic_paraphrase",
+            "sku_id": "SKU-CASHEW-03",
+            "query": "Bên trong hũ có bỏ túi chống ẩm để giữ giòn không?",
+            "gold": [
+              "ev-cashew-02"
+            ],
+            "top3_predicted": [
+              "ev-cashew-01",
+              "ev-cashew-02"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "decision": "TO_REVIEW",
+  "notes": "Benchmark trên 45 câu hỏi synthetic (3 nhóm: có dấu, không dấu/slang, diễn đạt đồng nghĩa). Cần mở rộng lên 100-200 câu và bổ sung tài liệu thật trước khi chốt quyết định OPEN-2."
+}

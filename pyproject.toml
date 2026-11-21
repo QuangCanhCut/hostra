@@ -1,0 +1,13 @@
+# Cấu hình đường dẫn tìm module cho trình kiểm tra Python (Pyrefly / Pyright)
+# Dùng chung cho các thư mục thí nghiệm Stage 03 trong `experiments/`.
+
+[tool.pyrefly]
+search-path = [
+    ".",
+    "experiments/sales-intelligence/knowledge-verification",
+]
+
+[tool.pyright]
+extraPaths = [
+    "experiments/sales-intelligence/knowledge-verification",
+]

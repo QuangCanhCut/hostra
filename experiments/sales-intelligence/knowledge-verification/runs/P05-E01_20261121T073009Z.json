@@ -1,0 +1,402 @@
+{
+  "experiment_id": "P05-E01",
+  "run_id": "20261121T073009Z",
+  "created_at": "2026-11-21T07:30:09.815440Z",
+  "dataset_source": "e01_extraction/ground_truth.json (10 tài liệu synthetic: 5 DOCX + 5 PDF)",
+  "is_synthetic": true,
+  "environment": {
+    "python": "3.13.2",
+    "os": "Windows-11-10.0.26300-SP0",
+    "processor": "Intel64 Family 6 Model 170 Stepping 4, GenuineIntel",
+    "device": "cpu"
+  },
+  "config": {
+    "extractor": "docling.DocumentConverter",
+    "output_approval_status": "DRAFT",
+    "fields_evaluated": [
+      "price_vnd",
+      "weight",
+      "expiry",
+      "origin"
+    ]
+  },
+  "metrics": {
+    "total_documents": 10,
+    "overall_field_exact_match": 0.925,
+    "exact_match_by_field": {
+      "price_vnd": 1.0,
+      "weight": 1.0,
+      "expiry": 1.0,
+      "origin": 0.7
+    },
+    "by_format": {
+      "docx": {
+        "docs": 5,
+        "field_exact_match": 1.0,
+        "p50_sec": 0.091,
+        "p95_sec": 0.259
+      },
+      "pdf": {
+        "docs": 5,
+        "field_exact_match": 0.85,
+        "p50_sec": 9.707,
+        "p95_sec": 81.115
+      }
+    },
+    "latency_sec": {
+      "p50": 1.87,
+      "p95": 60.54
+    },
+    "error_count": 3,
+    "errors": [
+      {
+        "doc_id": "doc06_honey_spec.pdf",
+        "format": "pdf",
+        "layout": "pdf_table",
+        "field": "origin",
+        "gold": "Đắk Lắk",
+        "prediction": null
+      },
+      {
+        "doc_id": "doc08_cashew_label.pdf",
+        "format": "pdf",
+        "layout": "pdf_label",
+        "field": "origin",
+        "gold": "Bình Phước",
+        "prediction": "Bình Phước - Chi tiết: Thành phần: 99% hạt điều nhân sống Bình Phước, 1% muối tinh"
+      },
+      {
+        "doc_id": "doc09_ginger_tea.pdf",
+        "format": "pdf",
+        "layout": "pdf_table",
+        "field": "origin",
+        "gold": "Lâm Đồng",
+        "prediction": null
+      }
+    ],
+    "comparison_table": [
+      {
+        "doc_id": "doc01_honey_table.docx",
+        "format": "docx",
+        "field": "price_vnd",
+        "gold": 159000,
+        "prediction": 159000,
+        "exact_match": true
+      },
+      {
+        "doc_id": "doc01_honey_table.docx",
+        "format": "docx",
+        "field": "weight",
+        "gold": "500ml",
+        "prediction": "500ml",
+        "exact_match": true
+      },
+      {
+        "doc_id": "doc01_honey_table.docx",
+        "format": "docx",
+        "field": "expiry",
+        "gold": "24 tháng",
+        "prediction": "24 tháng",
+        "exact_match": true
+      },
+      {
+        "doc_id": "doc01_honey_table.docx",
+        "format": "docx",
+        "field": "origin",
+        "gold": "Đắk Lắk",
+        "prediction": "Đắk Lắk",
+        "exact_match": true
+      },
+      {
+        "doc_id": "doc02_tea_prose.docx",
+        "format": "docx",
+        "field": "price_vnd",
+        "gold": 245000,
+        "prediction": 245000,
+        "exact_match": true
+      },
+      {
+        "doc_id": "doc02_tea_prose.docx",
+        "format": "docx",
+        "field": "weight",
+        "gold": "100g",
+        "prediction": "100g",
+        "exact_match": true
+      },
+      {
+        "doc_id": "doc02_tea_prose.docx",
+        "format": "docx",
+        "field": "expiry",
+        "gold": "18 tháng",
+        "prediction": "18 tháng",
+        "exact_match": true
+      },
+      {
+        "doc_id": "doc02_tea_prose.docx",
+        "format": "docx",
+        "field": "origin",
+        "gold": "Hà Giang",
+        "prediction": "Hà Giang",
+        "exact_match": true
+      },
+      {
+        "doc_id": "doc03_cashew_mixed.docx",
+        "format": "docx",
+        "field": "price_vnd",
+        "gold": 185000,
+        "prediction": 185000,
+        "exact_match": true
+      },
+      {
+        "doc_id": "doc03_cashew_mixed.docx",
+        "format": "docx",
+        "field": "weight",
+        "gold": "500g",
+        "prediction": "500g",
+        "exact_match": true
+      },
+      {
+        "doc_id": "doc03_cashew_mixed.docx",
+        "format": "docx",
+        "field": "expiry",
+        "gold": "12 tháng",
+        "prediction": "12 tháng",
+        "exact_match": true
+      },
+      {
+        "doc_id": "doc03_cashew_mixed.docx",
+        "format": "docx",
+        "field": "origin",
+        "gold": "Bình Phước",
+        "prediction": "Bình Phước",
+        "exact_match": true
+      },
+      {
+        "doc_id": "doc04_mango_table.docx",
+        "format": "docx",
+        "field": "price_vnd",
+        "gold": 129000,
+        "prediction": 129000,
+        "exact_match": true
+      },
+      {
+        "doc_id": "doc04_mango_table.docx",
+        "format": "docx",
+        "field": "weight",
+        "gold": "0.5 kg",
+        "prediction": "0.5 kg",
+        "exact_match": true
+      },
+      {
+        "doc_id": "doc04_mango_table.docx",
+        "format": "docx",
+        "field": "expiry",
+        "gold": "12 tháng",
+        "prediction": "12 tháng",
+        "exact_match": true
+      },
+      {
+        "doc_id": "doc04_mango_table.docx",
+        "format": "docx",
+        "field": "origin",
+        "gold": "Khánh Hòa",
+        "prediction": "Khánh Hòa",
+        "exact_match": true
+      },
+      {
+        "doc_id": "doc05_coffee_informal.docx",
+        "format": "docx",
+        "field": "price_vnd",
+        "gold": 210000,
+        "prediction": 210000,
+        "exact_match": true
+      },
+      {
+        "doc_id": "doc05_coffee_informal.docx",
+        "format": "docx",
+        "field": "weight",
+        "gold": "250g",
+        "prediction": "250g",
+        "exact_match": true
+      },
+      {
+        "doc_id": "doc05_coffee_informal.docx",
+        "format": "docx",
+        "field": "expiry",
+        "gold": "12 tháng",
+        "prediction": "12 tháng",
+        "exact_match": true
+      },
+      {
+        "doc_id": "doc05_coffee_informal.docx",
+        "format": "docx",
+        "field": "origin",
+        "gold": "Đắk Lắk",
+        "prediction": "Đắk Lắk",
+        "exact_match": true
+      },
+      {
+        "doc_id": "doc06_honey_spec.pdf",
+        "format": "pdf",
+        "field": "price_vnd",
+        "gold": 159000,
+        "prediction": 159000,
+        "exact_match": true
+      },
+      {
+        "doc_id": "doc06_honey_spec.pdf",
+        "format": "pdf",
+        "field": "weight",
+        "gold": "500ml",
+        "prediction": "500ml",
+        "exact_match": true
+      },
+      {
+        "doc_id": "doc06_honey_spec.pdf",
+        "format": "pdf",
+        "field": "expiry",
+        "gold": "24 tháng",
+        "prediction": "24 tháng",
+        "exact_match": true
+      },
+      {
+        "doc_id": "doc06_honey_spec.pdf",
+        "format": "pdf",
+        "field": "origin",
+        "gold": "Đắk Lắk",
+        "prediction": null,
+        "exact_match": false
+      },
+      {
+        "doc_id": "doc07_tea_catalog.pdf",
+        "format": "pdf",
+        "field": "price_vnd",
+        "gold": 245000,
+        "prediction": 245000,
+        "exact_match": true
+      },
+      {
+        "doc_id": "doc07_tea_catalog.pdf",
+        "format": "pdf",
+        "field": "weight",
+        "gold": "100g",
+        "prediction": "100g",
+        "exact_match": true
+      },
+      {
+        "doc_id": "doc07_tea_catalog.pdf",
+        "format": "pdf",
+        "field": "expiry",
+        "gold": "18 tháng",
+        "prediction": "18 tháng",
+        "exact_match": true
+      },
+      {
+        "doc_id": "doc07_tea_catalog.pdf",
+        "format": "pdf",
+        "field": "origin",
+        "gold": "Hà Giang",
+        "prediction": "Hà Giang",
+        "exact_match": true
+      },
+      {
+        "doc_id": "doc08_cashew_label.pdf",
+        "format": "pdf",
+        "field": "price_vnd",
+        "gold": 185000,
+        "prediction": 185000,
+        "exact_match": true
+      },
+      {
+        "doc_id": "doc08_cashew_label.pdf",
+        "format": "pdf",
+        "field": "weight",
+        "gold": "500g",
+        "prediction": "500g",
+        "exact_match": true
+      },
+      {
+        "doc_id": "doc08_cashew_label.pdf",
+        "format": "pdf",
+        "field": "expiry",
+        "gold": "12 tháng",
+        "prediction": "12 tháng",
+        "exact_match": true
+      },
+      {
+        "doc_id": "doc08_cashew_label.pdf",
+        "format": "pdf",
+        "field": "origin",
+        "gold": "Bình Phước",
+        "prediction": "Bình Phước - Chi tiết: Thành phần: 99% hạt điều nhân sống Bình Phước, 1% muối tinh",
+        "exact_match": false
+      },
+      {
+        "doc_id": "doc09_ginger_tea.pdf",
+        "format": "pdf",
+        "field": "price_vnd",
+        "gold": 95000,
+        "prediction": 95000,
+        "exact_match": true
+      },
+      {
+        "doc_id": "doc09_ginger_tea.pdf",
+        "format": "pdf",
+        "field": "weight",
+        "gold": "200g",
+        "prediction": "200g",
+        "exact_match": true
+      },
+      {
+        "doc_id": "doc09_ginger_tea.pdf",
+        "format": "pdf",
+        "field": "expiry",
+        "gold": "18 tháng",
+        "prediction": "18 tháng",
+        "exact_match": true
+      },
+      {
+        "doc_id": "doc09_ginger_tea.pdf",
+        "format": "pdf",
+        "field": "origin",
+        "gold": "Lâm Đồng",
+        "prediction": null,
+        "exact_match": false
+      },
+      {
+        "doc_id": "doc10_macadamia_sheet.pdf",
+        "format": "pdf",
+        "field": "price_vnd",
+        "gold": 320000,
+        "prediction": 320000,
+        "exact_match": true
+      },
+      {
+        "doc_id": "doc10_macadamia_sheet.pdf",
+        "format": "pdf",
+        "field": "weight",
+        "gold": "500 gram",
+        "prediction": "500 gram",
+        "exact_match": true
+      },
+      {
+        "doc_id": "doc10_macadamia_sheet.pdf",
+        "format": "pdf",
+        "field": "expiry",
+        "gold": "12 tháng",
+        "prediction": "12 tháng",
+        "exact_match": true
+      },
+      {
+        "doc_id": "doc10_macadamia_sheet.pdf",
+        "format": "pdf",
+        "field": "origin",
+        "gold": "Lâm Đồng",
+        "prediction": "Lâm Đồng",
+        "exact_match": true
+      }
+    ]
+  },
+  "decision": "GO",
+  "notes": "Chạy trên 10 tài liệu synthetic dạng text/table (DOCX + PDF Unicode). Chưa bao gồm ảnh chụp nhãn sản phẩm bị nghiêng/mờ cần OCR nặng; cần bổ sung kiểm thử trên tài liệu scan thực tế của merchant trước khi chốt VALIDATED."
+}

@@ -1,0 +1,200 @@
+{
+  "experiment_id": "P05-E03",
+  "run_id": "20261121T050419Z",
+  "created_at": "2026-11-21T05:04:19.731774Z",
+  "dataset_source": "data/catalog_seed.json (p05-synthetic-catalog-v0.1)",
+  "is_synthetic": true,
+  "environment": {
+    "python": "3.13.2",
+    "os": "Windows-11-10.0.26300-SP0",
+    "processor": "Intel64 Family 6 Model 170 Stepping 4, GenuineIntel"
+  },
+  "config": {
+    "total_cases": 13,
+    "gate_mode": "deterministic_fail_closed"
+  },
+  "metrics": {
+    "total_cases": 13,
+    "passed_cases": 13,
+    "unsafe_commits": 0,
+    "false_positives": 0,
+    "case_results": [
+      {
+        "case_id": "E03-P01",
+        "description": "Lời thoại báo đúng giá 159.000đ cho SKU mật ong đã OCOP VERIFIED",
+        "expected_status": "ALLOW",
+        "actual_status": "ALLOW",
+        "expected_reason": null,
+        "actual_reasons": [],
+        "details": [],
+        "passed": true
+      },
+      {
+        "case_id": "E03-P02",
+        "description": "Lời thoại nhắc chứng nhận OCOP 4 sao cho SKU đã được P09 xác minh VERIFIED",
+        "expected_status": "ALLOW",
+        "actual_status": "ALLOW",
+        "expected_reason": null,
+        "actual_reasons": [],
+        "details": [],
+        "passed": true
+      },
+      {
+        "case_id": "E03-P03",
+        "description": "Lời thoại hướng dẫn pha trà Shan Tuyết có dẫn chứng đúng SKU",
+        "expected_status": "ALLOW",
+        "actual_status": "ALLOW",
+        "expected_reason": null,
+        "actual_reasons": [],
+        "details": [],
+        "passed": true
+      },
+      {
+        "case_id": "E03-N01",
+        "description": "Sai giá khai báo (nói 120.000đ thay vì 159.000đ)",
+        "expected_status": "BLOCK",
+        "actual_status": "BLOCK",
+        "expected_reason": "PRICE_MISMATCH",
+        "actual_reasons": [
+          "PRICE_MISMATCH"
+        ],
+        "details": [
+          "Sai giá khai báo: candidate ghi 120,000đ, giá chuẩn hiện tại là 159,000đ.",
+          "Phát hiện giá sai trong văn bản lời thoại: 120,000đ (giá chuẩn hiện tại là 159,000đ)."
+        ],
+        "passed": true
+      },
+      {
+        "case_id": "E03-N02",
+        "description": "Giấu stated_price_vnd=None nhưng vẫn đọc sai giá (99k) trong văn bản",
+        "expected_status": "BLOCK",
+        "actual_status": "BLOCK",
+        "expected_reason": "PRICE_MISMATCH",
+        "actual_reasons": [
+          "PRICE_MISMATCH"
+        ],
+        "details": [
+          "Phát hiện giá sai trong văn bản lời thoại: 99,000đ (giá chuẩn hiện tại là 159,000đ)."
+        ],
+        "passed": true
+      },
+      {
+        "case_id": "E03-N03",
+        "description": "Phát ngôn công dụng chữa bệnh bị cấm (R17 - chữa khỏi đau dạ dày)",
+        "expected_status": "BLOCK",
+        "actual_status": "BLOCK",
+        "expected_reason": "PROHIBITED_CLAIM",
+        "actual_reasons": [
+          "PROHIBITED_CLAIM"
+        ],
+        "details": [
+          "Lời thoại chứa cụm từ công dụng bị cấm đối với thực phẩm: 'chữa khỏi'."
+        ],
+        "passed": true
+      },
+      {
+        "case_id": "E03-N04",
+        "description": "Phát ngôn công dụng chữa bệnh bị cấm cho trà (R17 - chữa tiểu đường/ung thư)",
+        "expected_status": "BLOCK",
+        "actual_status": "BLOCK",
+        "expected_reason": "PROHIBITED_CLAIM",
+        "actual_reasons": [
+          "PROHIBITED_CLAIM"
+        ],
+        "details": [
+          "Lời thoại chứa cụm từ công dụng bị cấm đối với thực phẩm: 'chữa tiểu đường'."
+        ],
+        "passed": true
+      },
+      {
+        "case_id": "E03-N05",
+        "description": "Phát ngôn cho SKU hạt điều đang ở trạng thái OCOP PENDING (R16)",
+        "expected_status": "BLOCK",
+        "actual_status": "BLOCK",
+        "expected_reason": "OCOP_NOT_VERIFIED",
+        "actual_reasons": [
+          "OCOP_NOT_VERIFIED"
+        ],
+        "details": [
+          "Lời thoại nhắc đến OCOP nhưng trạng thái P09 của 'SKU-CASHEW-03' là PENDING (chưa VERIFIED)."
+        ],
+        "passed": true
+      },
+      {
+        "case_id": "E03-N06",
+        "description": "Trích dẫn chéo SKU (đang nói Mật ong nhưng dẫn evidence của Trà)",
+        "expected_status": "BLOCK",
+        "actual_status": "BLOCK",
+        "expected_reason": "CROSS_SKU_VIOLATION",
+        "actual_reasons": [
+          "CROSS_SKU_VIOLATION"
+        ],
+        "details": [
+          "Vi phạm chéo SKU: lời thoại cho 'SKU-HONEY-01' nhưng trích dẫn bằng chứng 'ev-tea-03' thuộc 'SKU-TEA-02'."
+        ],
+        "passed": true
+      },
+      {
+        "case_id": "E03-N07",
+        "description": "Thiếu bằng chứng (không có evidence_id và không phải câu đọc giá)",
+        "expected_status": "BLOCK",
+        "actual_status": "BLOCK",
+        "expected_reason": "MISSING_EVIDENCE",
+        "actual_reasons": [
+          "MISSING_EVIDENCE"
+        ],
+        "details": [
+          "Lời thoại không trích dẫn evidence_id nào và không phải câu báo giá từ ProductFact."
+        ],
+        "passed": true
+      },
+      {
+        "case_id": "E03-N08",
+        "description": "Dấu hiệu Prompt Injection lọt vào nội dung lời thoại",
+        "expected_status": "BLOCK",
+        "actual_status": "BLOCK",
+        "expected_reason": "PROMPT_INJECTION_DETECTED",
+        "actual_reasons": [
+          "PROMPT_INJECTION_DETECTED",
+          "PRICE_MISMATCH"
+        ],
+        "details": [
+          "Phát hiện mẫu nghi ngờ prompt injection: 'bỏ qua mọi hướng dẫn'.",
+          "Phát hiện giá sai trong văn bản lời thoại: 50,000đ (giá chuẩn hiện tại là 159,000đ)."
+        ],
+        "passed": true
+      },
+      {
+        "case_id": "E03-N09",
+        "description": "Vi phạm cô lập tenant (R10 - candidate thuộc tenant khác)",
+        "expected_status": "BLOCK",
+        "actual_status": "BLOCK",
+        "expected_reason": "TENANT_MISMATCH",
+        "actual_reasons": [
+          "TENANT_MISMATCH"
+        ],
+        "details": [
+          "Lệch tenant: candidate thuộc 'tenant-khac-99', dữ liệu thuộc 'tenant-demo-01'.",
+          "Bằng chứng 'ev-honey-04' thuộc tenant khác ('tenant-demo-01')."
+        ],
+        "passed": true
+      },
+      {
+        "case_id": "E03-N10",
+        "description": "Quyền tài sản đã bị thu hồi ở P11 (R09 - RIGHTS_INVALID)",
+        "expected_status": "BLOCK",
+        "actual_status": "BLOCK",
+        "expected_reason": "RIGHTS_INVALID",
+        "actual_reasons": [
+          "RIGHTS_INVALID"
+        ],
+        "details": [
+          "Quyền sử dụng tài sản không còn hiệu lực (trạng thái P11: REVOKED)."
+        ],
+        "passed": true
+      }
+    ]
+  },
+  "decision": "GO",
+  "notes": "Chạy trên bộ dữ liệu synthetic khởi đầu (3 ca hợp lệ, 10 ca độc hại). Kết quả GO chỉ áp dụng cho lớp deterministic gate trên bộ test này; cần bổ sung kiểm thử trên tài liệu thật và đánh giá reviewer trước khi đánh dấu VALIDATED."
+}
