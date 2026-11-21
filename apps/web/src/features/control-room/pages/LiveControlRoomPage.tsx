@@ -168,7 +168,7 @@ export function LiveControlRoomPage() {
   )
 
   return (
-    <div className="space-y-4 pb-24">
+    <div className="space-y-4 pb-4">
       {/* Z01 & Z02: Header + Compact 5-Axis Status Bar (CR-D4=A) */}
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div>
@@ -646,8 +646,11 @@ export function LiveControlRoomPage() {
         </div>
       </div>
 
-      {/* Z06: Sticky Runtime Control Bar (CR-D3=A) */}
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-[var(--border-strong)] bg-[var(--bg-surface)]/95 backdrop-blur px-4 py-3 md:left-[72px] xl:left-[232px]">
+      {/* Z06: Sticky Runtime Control Bar (CR-D3=A) — scoped inside <main> so it never overlaps Sidebar */}
+      <div
+        data-testid="runtime-control-bar"
+        className="sticky bottom-0 z-30 -mx-4 sm:-mx-6 lg:-mx-8 border-t border-[var(--border-strong)] bg-[var(--bg-surface)]/95 backdrop-blur px-4 sm:px-6 lg:px-8 py-3 shadow-[0_-4px_12px_rgba(15,23,42,0.06)]"
+      >
         <div className="mx-auto flex max-w-[1440px] flex-wrap items-center justify-between gap-2">
           <div className="flex flex-wrap items-center gap-2">
             {snap.aiState === 'PAUSED' ? (

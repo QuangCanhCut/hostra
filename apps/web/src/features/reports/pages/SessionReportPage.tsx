@@ -170,7 +170,10 @@ export function SessionReportPage() {
             Báo cáo: {report.sessionTitle}
           </h1>
           <p className="mt-1 text-sm text-[var(--text-secondary)]">
-            Mã phiên {report.sessionCode} · Cập nhật lúc {formatShortTime(report.generatedAt)}
+            Mã phiên {report.sessionCode}
+            {report.startedAt ? ` · Bắt đầu ${formatShortTime(report.startedAt)}` : ' · Chưa bắt đầu'}
+            {report.stoppedAt ? ` · Kết thúc ${formatShortTime(report.stoppedAt)}` : ''}
+            {` · Cập nhật ${formatShortTime(report.generatedAt)}`}
           </p>
         </div>
 
@@ -291,75 +294,81 @@ export function SessionReportPage() {
                 Lượt vào phòng theo khung thời gian
               </h2>
               <p className="text-xs text-[var(--text-secondary)]">
-                Đếm theo lượt cấp quyền thành công (Admissions) · Không tính trùng khách tải lại trang
+                {report.chartCoverageLabel} · Phân biệt với Người xem đồng thời (Concurrent Viewers)
               </p>
             </div>
             <StatusBadge tone="info" label="Time-bucketed SVG" showIcon={false} />
           </div>
 
-          <div className="w-full overflow-x-auto">
-            <svg
-              viewBox="0 0 560 200"
-              className="h-48 w-full min-w-[360px]"
-              role="img"
-              aria-label="Biểu đồ lượt vào phòng theo khung thời gian"
-            >
-              {[0, 0.25, 0.5, 0.75, 1].map((ratio) => {
-                const y = 165 - ratio * 135
-                return (
-                  <line
-                    key={ratio}
-                    x1="36"
-                    y1={y}
-                    x2="544"
-                    y2={y}
-                    stroke="currentColor"
-                    strokeOpacity="0.12"
-                    strokeDasharray="3 3"
-                  />
-                )
-              })}
-              {report.intervalChart.map((pt, idx) => {
-                const slotWidth = 500 / Math.max(1, report.intervalChart.length)
-                const barWidth = Math.min(44, slotWidth * 0.55)
-                const x = 44 + idx * slotWidth + (slotWidth - barWidth) / 2
-                const h = (pt.admissions / maxAdmissions) * 130
-                const y = 165 - h
-                return (
-                  <g key={pt.bucketLabel}>
-                    <rect
-                      x={x}
-                      y={y}
-                      width={barWidth}
-                      height={Math.max(4, h)}
-                      rx="6"
-                      fill="#F5C430"
+          {report.intervalChart.length === 0 ? (
+            <div className="rounded-[var(--radius-md)] border border-dashed border-[var(--border-subtle)] bg-[var(--surface-subtle)] p-6 text-center text-xs text-[var(--text-muted)]">
+              Chưa có dữ liệu biểu đồ vì phiên chưa phát trực tiếp.
+            </div>
+          ) : (
+            <div className="w-full overflow-x-auto">
+              <svg
+                viewBox="0 0 560 200"
+                className="h-48 w-full min-w-[360px]"
+                role="img"
+                aria-label="Biểu đồ lượt vào phòng theo khung thời gian"
+              >
+                {[0, 0.25, 0.5, 0.75, 1].map((ratio) => {
+                  const y = 165 - ratio * 135
+                  return (
+                    <line
+                      key={ratio}
+                      x1="36"
+                      y1={y}
+                      x2="544"
+                      y2={y}
+                      stroke="currentColor"
+                      strokeOpacity="0.12"
+                      strokeDasharray="3 3"
                     />
-                    <text
-                      x={x + barWidth / 2}
-                      y={Math.max(18, y - 6)}
-                      textAnchor="middle"
-                      fontSize="11"
-                      fontWeight="600"
-                      fill="currentColor"
-                    >
-                      {pt.admissions}
-                    </text>
-                    <text
-                      x={x + barWidth / 2}
-                      y="186"
-                      textAnchor="middle"
-                      fontSize="10"
-                      fill="currentColor"
-                      opacity="0.7"
-                    >
-                      {pt.bucketLabel}
-                    </text>
-                  </g>
-                )
-              })}
-            </svg>
-          </div>
+                  )
+                })}
+                {report.intervalChart.map((pt, idx) => {
+                  const slotWidth = 500 / Math.max(1, report.intervalChart.length)
+                  const barWidth = Math.min(44, slotWidth * 0.55)
+                  const x = 44 + idx * slotWidth + (slotWidth - barWidth) / 2
+                  const h = (pt.admissions / maxAdmissions) * 130
+                  const y = 165 - h
+                  return (
+                    <g key={pt.bucketLabel}>
+                      <rect
+                        x={x}
+                        y={y}
+                        width={barWidth}
+                        height={Math.max(4, h)}
+                        rx="6"
+                        fill="#F5C430"
+                      />
+                      <text
+                        x={x + barWidth / 2}
+                        y={Math.max(18, y - 6)}
+                        textAnchor="middle"
+                        fontSize="11"
+                        fontWeight="600"
+                        fill="currentColor"
+                      >
+                        {pt.admissions}
+                      </text>
+                      <text
+                        x={x + barWidth / 2}
+                        y="186"
+                        textAnchor="middle"
+                        fontSize="10"
+                        fill="currentColor"
+                        opacity="0.7"
+                      >
+                        {pt.bucketLabel}
+                      </text>
+                    </g>
+                  )
+                })}
+              </svg>
+            </div>
+          )}
 
           {/* Optional Concurrent Viewers chart per SR-ADD-01 */}
           <div className="border-t border-[var(--border-subtle)] pt-4">

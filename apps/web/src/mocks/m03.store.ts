@@ -16,8 +16,9 @@ import type {
   ViewerRoomSnapshot,
   WorkspaceMember,
 } from '@/types/m03'
-import type { ConnectionFreshness, DialogueSubstate } from '@/types/domain'
+import type { ConnectionFreshness, DialogueSubstate, ReportStatus } from '@/types/domain'
 import { getStore } from '@/mocks/store'
+import { computeDurationMinutes, formatClockTime, formatDurationMinutesVi } from '@/lib/format'
 
 interface SessionRuntimeState {
   publisherState: PublisherState
@@ -543,6 +544,39 @@ export function buildViewerRoomSnapshot(
   }
 }
 
+function addMinutesIso(baseIso: string, minutes: number): string {
+  return new Date(new Date(baseIso).getTime() + minutes * 60000).toISOString()
+}
+
+function distributeAdmissions(total: number, weights: number[]): number[] {
+  if (total <= 0 || weights.length === 0) return weights.map(() => 0)
+  const weightSum = weights.reduce((a, b) => a + b, 0)
+  const raw = weights.map((w) => Math.floor((total * w) / weightSum))
+  let remainder = total - raw.reduce((a, b) => a + b, 0)
+  let idx = 0
+  while (remainder > 0) {
+    raw[idx % raw.length] += 1
+    remainder -= 1
+    idx += 1
+  }
+  return raw
+}
+
+export function resolveSessionReportStatus(
+  sessionId: string,
+  lifecycle: string,
+  scenario: MockScenarioKey,
+): ReportStatus {
+  if (lifecycle === 'FAILED') return 'FAILED'
+  if (lifecycle === 'CREATED' || lifecycle === 'PREPARING' || lifecycle === 'READY' || lifecycle === 'CANCELLED') {
+    return 'PENDING'
+  }
+  if (scenario === 'report-partial' || sessionId === 'ses-013') {
+    return 'PARTIAL'
+  }
+  return 'READY'
+}
+
 export function buildSessionReport(
   scenario: MockScenarioKey,
   role: UserRole,
@@ -554,12 +588,45 @@ export function buildSessionReport(
   if (!session) return null
 
   const rt = getOrCreateRuntime(scenario, sessionId)
-  const sessionInvites = m03.invites.filter((i) => i.sessionId === sessionId)
-  const totalAdmissions = sessionInvites.reduce((sum, inv) => sum + inv.successfulAdmissions, 0) || (sessionId === 'ses-013' ? 86 : 0)
-  const playedAck =
-    sessionId === 'ses-013' ? 37 : rt.playbackAckIds.size
-  const isPartial = scenario === 'report-partial' || sessionId === 'ses-013'
+  const reportStatus = resolveSessionReportStatus(sessionId, session.lifecycle, scenario)
+  const isPending = reportStatus === 'PENDING'
+  const isPartial = reportStatus === 'PARTIAL'
   const isReduced = role === 'OPERATOR'
+
+  const sessionInvites = m03.invites.filter((i) => i.sessionId === sessionId)
+  const inviteAdmissions = sessionInvites.reduce((sum, inv) => sum + inv.successfulAdmissions, 0)
+  const totalAdmissions = isPending
+    ? null
+    : inviteAdmissions > 0
+      ? inviteAdmissions
+      : sessionId === 'ses-013'
+        ? 86
+        : sessionId === 'ses-012'
+          ? 54
+          : 0
+
+  const playedAck = isPending
+    ? null
+    : sessionId === 'ses-013'
+      ? 37
+      : sessionId === 'ses-012'
+        ? 29
+        : rt.playbackAckIds.size
+
+  const commentsReceived = isPending
+    ? null
+    : sessionId === 'ses-013'
+      ? 143
+      : sessionId === 'ses-012'
+        ? 92
+        : rt.comments.length
+
+  const startIso = session.startedAt
+  const endIso =
+    session.stoppedAt ??
+    (startIso && session.lifecycle === 'LIVE' ? session.updatedAt : undefined)
+  const durationMinutes = computeDurationMinutes(startIso, endIso)
+  const durationLabel = formatDurationMinutesVi(durationMinutes)
 
   const rawAudit = m03.auditLog.filter((a) => !a.sessionId || a.sessionId === sessionId)
   const maskedAudit = isReduced
@@ -569,91 +636,249 @@ export function buildSessionReport(
       }))
     : rawAudit
 
+  let intervalChart: SessionReportDetail['intervalChart'] = []
+  let timeline: SessionReportDetail['timeline'] = []
+  let chartCoverageLabel = 'Chưa có dữ liệu phát sóng (phiên chưa bắt đầu)'
+
+  if (!isPending && startIso) {
+    if (sessionId === 'ses-013') {
+      // Canonical 19:00 -> 20:32 (UTC 12:00 -> 13:32), 7 x 15-min buckets summing to exactly 86
+      const bucketAdmissions = [10, 16, 22, 15, 11, 8, 4]
+      intervalChart = bucketAdmissions.map((count, idx) => {
+        const iso = addMinutesIso(startIso, idx * 15)
+        return {
+          bucketStartIso: iso,
+          bucketLabel: formatClockTime(iso),
+          admissions: count,
+          concurrentViewers: null,
+        }
+      })
+      chartCoverageLabel = `Toàn bộ phiên (${formatClockTime(startIso)} – ${formatClockTime(endIso ?? addMinutesIso(startIso, 92))}) · Tổng 7 khung = 86 lượt khớp KPI`
+      timeline = [
+        {
+          id: 'tl-13-1',
+          occurredAtIso: startIso,
+          timeLabel: formatClockTime(startIso),
+          title: 'Bắt đầu phát trực tiếp (LIVE)',
+          kind: 'LIVE',
+          detail: 'Publisher đã xác nhận luồng phát ổn định.',
+        },
+        {
+          id: 'tl-13-2',
+          occurredAtIso: addMinutesIso(startIso, 22),
+          timeLabel: formatClockTime(addMinutesIso(startIso, 22)),
+          title: 'Tạm dừng AI (AI PAUSED)',
+          kind: 'AI_PAUSED',
+          detail: 'Stream vẫn duy trì cảnh sản phẩm an toàn.',
+        },
+        {
+          id: 'tl-13-3',
+          occurredAtIso: addMinutesIso(startIso, 34),
+          timeLabel: formatClockTime(addMinutesIso(startIso, 34)),
+          title: 'Media suy giảm tạm thời',
+          kind: 'MEDIA_DEGRADED',
+          detail: 'Chuyển sang cảnh sản phẩm dự phòng + âm thanh xác minh.',
+        },
+        {
+          id: 'tl-13-4',
+          occurredAtIso: addMinutesIso(startIso, 42),
+          timeLabel: formatClockTime(addMinutesIso(startIso, 42)),
+          title: 'Media phục hồi ổn định',
+          kind: 'LIVE',
+          detail: 'Quay lại cảnh AI Presenter bình thường.',
+        },
+        {
+          id: 'tl-13-5',
+          occurredAtIso: endIso ?? addMinutesIso(startIso, 92),
+          timeLabel: formatClockTime(endIso ?? addMinutesIso(startIso, 92)),
+          title: 'Kết thúc phiên an toàn (STOPPED)',
+          kind: 'STOPPED',
+          detail: 'Phiên khép lại sau 1 giờ 32 phút phát thực tế.',
+        },
+      ]
+    } else if (sessionId === 'ses-012') {
+      // Canonical 20:00 -> 21:15 (UTC 13:00 -> 14:15), 5 x 15-min buckets summing to 54
+      const bucketAdmissions = [9, 14, 15, 10, 6]
+      const concurrent = [7, 15, 24, 19, 11]
+      intervalChart = bucketAdmissions.map((count, idx) => {
+        const iso = addMinutesIso(startIso, idx * 15)
+        return {
+          bucketStartIso: iso,
+          bucketLabel: formatClockTime(iso),
+          admissions: count,
+          concurrentViewers: isPartial ? null : concurrent[idx],
+        }
+      })
+      chartCoverageLabel = `Toàn bộ phiên (${formatClockTime(startIso)} – ${formatClockTime(endIso ?? addMinutesIso(startIso, 75))}) · Tổng 5 khung = 54 lượt khớp KPI`
+      timeline = [
+        {
+          id: 'tl-12-1',
+          occurredAtIso: startIso,
+          timeLabel: formatClockTime(startIso),
+          title: 'Bắt đầu phát trực tiếp (LIVE)',
+          kind: 'LIVE',
+          detail: 'Publisher xác nhận luồng phát ổn định.',
+        },
+        {
+          id: 'tl-12-2',
+          occurredAtIso: endIso ?? addMinutesIso(startIso, 75),
+          timeLabel: formatClockTime(endIso ?? addMinutesIso(startIso, 75)),
+          title: 'Kết thúc phiên an toàn (STOPPED)',
+          kind: 'STOPPED',
+          detail: 'Phiên kết thúc bình thường không có sự cố media.',
+        },
+      ]
+    } else {
+      // Dynamic session (e.g. ses-014): derive buckets strictly from canonical startIso & totalAdmissions
+      const bucketCounts = distributeAdmissions(totalAdmissions ?? 0, [15, 25, 30, 18, 12])
+      const concurrentSamples = [8, 19, 28, 22, 15]
+      intervalChart = bucketCounts.map((count, idx) => {
+        const iso = addMinutesIso(startIso, idx * 15)
+        return {
+          bucketStartIso: iso,
+          bucketLabel: formatClockTime(iso),
+          admissions: count,
+          concurrentViewers: isPartial ? null : concurrentSamples[idx],
+        }
+      })
+      chartCoverageLabel = `Toàn bộ phiên tính từ ${formatClockTime(startIso)} · Tổng ${intervalChart.length} khung = ${totalAdmissions ?? 0} lượt khớp KPI`
+      timeline = [
+        {
+          id: `tl-${session.id}-1`,
+          occurredAtIso: startIso,
+          timeLabel: formatClockTime(startIso),
+          title: 'Bắt đầu phát trực tiếp (LIVE)',
+          kind: 'LIVE',
+          detail: 'Publisher đã xác nhận luồng phát ổn định.',
+        },
+        ...(session.lifecycle === 'STOPPED' && endIso
+          ? [
+              {
+                id: `tl-${session.id}-end`,
+                occurredAtIso: endIso,
+                timeLabel: formatClockTime(endIso),
+                title: 'Kết thúc phiên (STOPPED)',
+                kind: 'STOPPED' as const,
+                detail: 'Phiên livestream đã kết thúc theo xác nhận hệ thống.',
+              },
+            ]
+          : []),
+      ]
+    }
+  }
+
+  const peakConcurrent =
+    isPending || isPartial
+      ? null
+      : Math.max(0, ...intervalChart.map((pt) => pt.concurrentViewers ?? 0))
+
+  const generatedAt = session.stoppedAt ?? session.updatedAt
+
   return {
     sessionId: session.id,
     sessionCode: session.code,
     sessionTitle: session.title,
     lifecycle: session.lifecycle,
-    reportStatus: isPartial ? 'PARTIAL' : 'READY',
-    generatedAt: '2026-11-21T08:30:00Z',
+    reportStatus,
+    startedAt: startIso,
+    stoppedAt: session.stoppedAt,
+    generatedAt,
+    chartCoverageLabel,
     isReducedOperatorView: isReduced,
-    canExport: role === 'OWNER' && !isPartial,
+    canExport: role === 'OWNER' && reportStatus === 'READY',
     kpis: [
       {
         key: 'live_duration_seconds',
         label: 'Thời lượng phát LIVE',
-        value: sessionId === 'ses-013' ? '1 giờ 32 phút' : '45 phút',
+        value: isPending ? null : durationLabel,
         unit: '',
-        status: 'MEASURED',
+        status: isPending ? 'NOT_AVAILABLE' : 'MEASURED',
         source: 'P09 Session Lifecycle + Publisher Intervals',
+        reason: isPending ? 'Phiên chưa bắt đầu phát trực tiếp.' : undefined,
       },
       {
         key: 'guest_successful_admissions',
         label: 'Lượt vào phòng thành công',
         value: totalAdmissions,
-        unit: 'lượt',
-        status: 'MEASURED',
+        unit: isPending ? '' : 'lượt',
+        status: isPending ? 'NOT_AVAILABLE' : 'MEASURED',
         source: 'Invite Admission API (idempotent guest session)',
+        reason: isPending ? 'Chưa phát sinh lượt cấp quyền tham gia.' : undefined,
       },
       {
         key: 'comments_received',
         label: 'Bình luận đã tiếp nhận',
-        value: sessionId === 'ses-013' ? 143 : rt.comments.length,
-        unit: 'bình luận',
-        status: 'MEASURED',
+        value: commentsReceived,
+        unit: isPending ? '' : 'bình luận',
+        status: isPending ? 'NOT_AVAILABLE' : 'MEASURED',
         source: 'Comment Intake API receipts',
+        reason: isPending ? 'Chưa mở phòng bình luận.' : undefined,
       },
       {
         key: 'answered_played',
         label: 'Câu AI đã phát (Playback ACK)',
         value: playedAck,
-        unit: 'lượt phát',
-        status: 'MEASURED',
+        unit: isPending ? '' : 'lượt phát',
+        status: isPending ? 'NOT_AVAILABLE' : 'MEASURED',
         source: 'P04 PlaybackCompleted ACK (deduplicated)',
+        reason: isPending ? 'Chưa có lượt phát AI nào được xác nhận ACK.' : undefined,
       },
       {
         key: 'concurrent_viewers',
         label: 'Người xem đồng thời cao nhất',
-        value: isPartial ? null : 28,
-        unit: isPartial ? '' : 'người',
-        status: isPartial ? 'NOT_AVAILABLE' : 'MEASURED',
+        value: peakConcurrent,
+        unit: peakConcurrent === null ? '' : 'người',
+        status: peakConcurrent === null ? 'NOT_AVAILABLE' : 'MEASURED',
         source: 'LiveKit Presence Telemetry',
-        reason: isPartial
-          ? 'Chưa thu thập đủ mẫu presence theo khoảng thời gian cho phiên này (không thay bằng 0).'
-          : undefined,
+        reason:
+          peakConcurrent === null
+            ? isPending
+              ? 'Phiên chưa phát trực tiếp nên chưa có dữ liệu presence.'
+              : 'Chưa thu thập đủ mẫu presence theo khoảng thời gian cho phiên này (không suy luận từ admissions và không thay bằng 0).'
+            : undefined,
       },
     ],
-    intervalChart: [
-      { bucketLabel: '07:30', admissions: 6, concurrentViewers: isPartial ? null : 8 },
-      { bucketLabel: '07:45', admissions: 11, concurrentViewers: isPartial ? null : 19 },
-      { bucketLabel: '08:00', admissions: 14, concurrentViewers: isPartial ? null : 28 },
-      { bucketLabel: '08:15', admissions: 8, concurrentViewers: isPartial ? null : 22 },
-      { bucketLabel: '08:30', admissions: 4, concurrentViewers: isPartial ? null : 15 },
-    ],
-    hasConcurrentTelemetry: !isPartial,
-    timeline: [
-      { id: 'tl-1', timeLabel: '07:30', title: 'Bắt đầu phát trực tiếp (LIVE)', kind: 'LIVE', detail: 'Publisher đã xác nhận luồng phát ổn định.' },
-      { id: 'tl-2', timeLabel: '07:52', title: 'Tạm dừng AI (AI PAUSED)', kind: 'AI_PAUSED', detail: 'Stream vẫn duy trì cảnh sản phẩm an toàn.' },
-      { id: 'tl-3', timeLabel: '08:04', title: 'Media suy giảm tạm thời', kind: 'MEDIA_DEGRADED', detail: 'Chuyển sang cảnh sản phẩm dự phòng + âm thanh xác minh.' },
-      { id: 'tl-4', timeLabel: '08:12', title: 'Media phục hồi ổn định', kind: 'LIVE', detail: 'Quay lại cảnh AI Presenter bình thường.' },
-    ],
+    intervalChart,
+    hasConcurrentTelemetry: !isPending && !isPartial,
+    timeline,
     aiFunnel: {
-      commentsReceived: sessionId === 'ses-013' ? 143 : rt.comments.length,
-      commentsEligible: sessionId === 'ses-013' ? 118 : rt.comments.filter((c) => c.moderationStatus === 'ELIGIBLE').length,
-      turnsPrepared: sessionId === 'ses-013' ? 44 : playedAck + 1,
-      turnsCommitted: sessionId === 'ses-013' ? 39 : playedAck + 1,
-      turnsPlayedAck: playedAck,
-      dedupedAckCount: 2,
+      commentsReceived: commentsReceived ?? 0,
+      commentsEligible: isPending
+        ? 0
+        : sessionId === 'ses-013'
+          ? 118
+          : sessionId === 'ses-012'
+            ? 76
+            : rt.comments.filter((c) => c.moderationStatus === 'ELIGIBLE').length,
+      turnsPrepared: isPending
+        ? 0
+        : sessionId === 'ses-013'
+          ? 44
+          : sessionId === 'ses-012'
+            ? 33
+            : (playedAck ?? 0) + 1,
+      turnsCommitted: isPending
+        ? 0
+        : sessionId === 'ses-013'
+          ? 39
+          : sessionId === 'ses-012'
+            ? 31
+            : (playedAck ?? 0) + 1,
+      turnsPlayedAck: playedAck ?? 0,
+      dedupedAckCount: isPending ? 0 : 2,
     },
-    mediaIncidents: [
-      {
-        id: 'inc-1',
-        timeLabel: '08:04 – 08:12',
-        severity: 'warning',
-        summary: 'Độ trễ lip-sync vượt ngưỡng mục tiêu trong 8 phút',
-        fallbackUsed: 'PRODUCT_SHOWCASE + verified audio',
-      },
-    ],
+    mediaIncidents:
+      sessionId === 'ses-013' && startIso
+        ? [
+            {
+              id: 'inc-13-1',
+              timeLabel: `${formatClockTime(addMinutesIso(startIso, 34))} – ${formatClockTime(addMinutesIso(startIso, 42))}`,
+              severity: 'warning',
+              summary: 'Độ trễ lip-sync vượt ngưỡng mục tiêu trong 8 phút',
+              fallbackUsed: 'PRODUCT_SHOWCASE + verified audio',
+            },
+          ]
+        : [],
     auditEvents: maskedAudit,
   }
 }
