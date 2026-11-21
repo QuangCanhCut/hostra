@@ -241,6 +241,7 @@ export interface ReportMetricValue {
 }
 
 export interface ReportIntervalPoint {
+  bucketStartIso: string
   bucketLabel: string
   admissions: number
   concurrentViewers: number | null
@@ -248,6 +249,7 @@ export interface ReportIntervalPoint {
 
 export interface ReportTimelineSegment {
   id: string
+  occurredAtIso: string
   timeLabel: string
   title: string
   kind: 'LIVE' | 'AI_PAUSED' | 'MEDIA_DEGRADED' | 'STOPPED' | 'EMERGENCY'
@@ -260,7 +262,10 @@ export interface SessionReportDetail {
   sessionTitle: string
   lifecycle: SessionLifecycle
   reportStatus: ReportStatus
+  startedAt?: string
+  stoppedAt?: string
   generatedAt: string
+  chartCoverageLabel: string
   isReducedOperatorView: boolean
   canExport: boolean
   kpis: ReportMetricValue[]

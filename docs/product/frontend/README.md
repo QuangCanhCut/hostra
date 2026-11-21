@@ -317,3 +317,12 @@ Trước khi viết bất kỳ dòng code frontend nào trong `apps/web/`, Codin
   - [IMPLEMENTATION_REPORT.md](./reports/milestone-03/IMPLEMENTATION_REPORT.md)
   - [QA_REPORT.md](./reports/milestone-03/QA_REPORT.md)
   - Screenshots: [reports/milestone-03/screenshots/](./reports/milestone-03/screenshots/)
+- **Milestone 04 (Final Frontend QA, Cross-Module UAT & Backend Integration Readiness):**
+  - [IMPLEMENTATION_REPORT.md](./reports/milestone-04/IMPLEMENTATION_REPORT.md)
+  - [FINAL_QA_REPORT.md](./reports/milestone-04/FINAL_QA_REPORT.md)
+  - [UX_ACCESSIBILITY_AUDIT.md](./reports/milestone-04/UX_ACCESSIBILITY_AUDIT.md)
+  - [CROSS_MODULE_UAT_MATRIX.md](./reports/milestone-04/CROSS_MODULE_UAT_MATRIX.md)
+  - [INTEGRATION_READINESS_MATRIX.md](./reports/milestone-04/INTEGRATION_READINESS_MATRIX.md)
+  - [API_CONTRACT_GAPS.md](./reports/milestone-04/API_CONTRACT_GAPS.md)
+  - [DEMO_GUIDE.md](./reports/milestone-04/DEMO_GUIDE.md)
+  - Screenshots: [reports/milestone-04/screenshots/](./reports/milestone-04/screenshots/)

@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/Button'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { formatShortTime } from '@/lib/format'
+import { resolveSessionReportStatus } from '@/mocks/m03.store'
 import type { BadgeTone } from '@/lib/status-copy'
 import type { ReportStatus, SessionLifecycle } from '@/types/domain'
 
@@ -32,7 +33,7 @@ const REPORT_STATUS_BADGE: Record<ReportStatus, { label: string; tone: BadgeTone
 }
 
 export function ReportsHistoryPage() {
-  const { role } = useScenario()
+  const { role, scenario } = useScenario()
   const { data: sessionsRes, isLoading, isError, refetch } = useSessions()
   const [search, setSearch] = useState('')
   const [lifecycleFilter, setLifecycleFilter] = useState<'ALL' | 'STOPPED' | 'LIVE' | 'OTHER'>('ALL')
@@ -150,13 +151,22 @@ export function ReportsHistoryPage() {
         <div className="grid gap-4 md:grid-cols-2">
           {filtered.map((session) => {
             const lc = LIFECYCLE_BADGE[session.lifecycle]
-            const reportStatus: ReportStatus =
-              session.lifecycle === 'STOPPED'
-                ? 'READY'
-                : session.lifecycle === 'LIVE'
-                  ? 'PARTIAL'
-                  : 'PENDING'
+            const reportStatus: ReportStatus = resolveSessionReportStatus(
+              session.id,
+              session.lifecycle,
+              scenario,
+            )
             const rs = REPORT_STATUS_BADGE[reportStatus]
+            const exportAvailabilityLabel =
+              role !== 'OWNER'
+                ? 'Bản rút gọn (chỉ Chủ sở hữu được xuất)'
+                : reportStatus === 'READY'
+                  ? 'Sẵn sàng xuất CSV / PDF'
+                  : reportStatus === 'PARTIAL'
+                    ? 'Dữ liệu một phần · Chưa mở xuất file'
+                    : reportStatus === 'FAILED'
+                      ? 'Lỗi tổng hợp · Không thể xuất'
+                      : 'Chưa sẵn sàng xuất (phiên chưa phát)'
 
             return (
               <Card key={session.id} className="flex flex-col justify-between p-5">
@@ -217,7 +227,7 @@ export function ReportsHistoryPage() {
                   ) : (
                     <span className="inline-flex items-center gap-1 text-xs text-[var(--text-muted)]">
                       <FileText className="h-3.5 w-3.5" />
-                      {role === 'OWNER' ? 'Có thể xuất CSV / PDF' : 'Xem bản rút gọn'}
+                      {exportAvailabilityLabel}
                     </span>
                   )}
 

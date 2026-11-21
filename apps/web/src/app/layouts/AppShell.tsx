@@ -25,7 +25,10 @@ function resolvePageLabel(pathname: string): string {
 export function AppShell() {
   const location = useLocation()
   const { data: auth } = useAuth()
-  const [collapsed, setCollapsed] = useState(false)
+  const [collapsed, setCollapsed] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return window.matchMedia('(min-width: 768px) and (max-width: 1199px)').matches
+  })
   const [mobileOpen, setMobileOpen] = useState(false)
 
   useEffect(() => {
@@ -37,7 +40,10 @@ export function AppShell() {
   }, [])
 
   return (
-    <div className="flex min-h-screen bg-[var(--bg-canvas)] text-[var(--text-primary)]">
+    <div
+      className="flex min-h-screen bg-[var(--bg-canvas)] text-[var(--text-primary)]"
+      style={{ '--sidebar-width': collapsed ? '72px' : '232px' } as React.CSSProperties}
+    >
       <Sidebar
         collapsed={collapsed}
         onToggleCollapse={() => setCollapsed((prev) => !prev)}
