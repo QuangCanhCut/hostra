@@ -221,3 +221,10 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Frontend (apps/web)
+node_modules/
+apps/web/dist/
+apps/web/test-artifacts/
+playwright-report/
+*.tsbuildinfo
