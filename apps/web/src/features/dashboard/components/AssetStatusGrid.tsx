@@ -60,7 +60,12 @@ export function AssetStatusGrid({ items }: { items: DashboardAssetCardItem[] }) 
                 </div>
 
                 <div className="mt-3">
-                  <StatusBadge label={item.statusLabel} tone={item.statusTone} />
+                  {/* PO-D03: Làm dịu badge ở trạng thái bình thường để ưu tiên cảnh báo và lỗi chặn */}
+                  <StatusBadge
+                    label={item.statusLabel}
+                    tone={item.statusTone}
+                    subtle={item.statusTone === 'success' || item.statusTone === 'neutral'}
+                  />
                 </div>
               </Card>
             </Link>

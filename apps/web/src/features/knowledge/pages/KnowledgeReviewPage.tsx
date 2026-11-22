@@ -124,7 +124,7 @@ export function KnowledgeReviewPage() {
             <StatusBadge label={ocop.label} tone={ocop.tone} />
           </div>
           <p className="mt-1 text-sm text-[var(--text-secondary)]">
-            {pkg.skuCode} · Đối chiếu tài liệu nguồn bên trái và quyết định từng mục bên phải (KC-D1–KC-D5).
+            {pkg.skuCode} · Đối chiếu tài liệu nguồn bên trái và quyết định từng mục thông tin bên phải.
           </p>
         </div>
 
@@ -143,7 +143,7 @@ export function KnowledgeReviewPage() {
         <Banner
           severity="info"
           title="Ranh giới OCOP độc lập"
-          description="Bạn vẫn có thể rà soát và duyệt gói tri thức tại đây, nhưng SKU này chưa đủ điều kiện phát cho đến khi hồ sơ OCOP được P09 xác minh hợp lệ."
+          description="Bạn vẫn có thể rà soát và duyệt gói tri thức tại đây, nhưng sản phẩm này chưa đủ điều kiện lên sóng cho đến khi hồ sơ OCOP được xác minh hợp lệ."
         />
       ) : null}
 

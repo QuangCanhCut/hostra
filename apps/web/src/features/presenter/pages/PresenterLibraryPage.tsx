@@ -1,7 +1,6 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
 import { AlertTriangle, Plus, Search, ShieldAlert, Sparkles } from 'lucide-react'
-import { Button } from '@/components/ui/Button'
+import { Button, ButtonLink } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { Skeleton } from '@/components/ui/Skeleton'
@@ -85,11 +84,13 @@ export function PresenterLibraryPage() {
         </div>
 
         {canManage ? (
-          <Link to="/studio/presenters/new">
-            <Button variant="primary" leftIcon={<Plus className="h-4 w-4" />}>
-              Tạo Presenter mới
-            </Button>
-          </Link>
+          <ButtonLink
+            to="/studio/presenters/new"
+            variant="primary"
+            leftIcon={<Plus className="h-4 w-4" />}
+          >
+            Tạo Presenter mới
+          </ButtonLink>
         ) : null}
       </div>
 
@@ -157,11 +158,13 @@ export function PresenterLibraryPage() {
           }
           action={
             items.length === 0 && canManage ? (
-              <Link to="/studio/presenters/new">
-                <Button variant="primary" leftIcon={<Plus className="h-4 w-4" />}>
-                  Tạo Presenter đầu tiên
-                </Button>
-              </Link>
+              <ButtonLink
+                to="/studio/presenters/new"
+                variant="primary"
+                leftIcon={<Plus className="h-4 w-4" />}
+              >
+                Tạo Presenter đầu tiên
+              </ButtonLink>
             ) : undefined
           }
         />
@@ -209,17 +212,23 @@ export function PresenterLibraryPage() {
                 </div>
 
                 <div className="flex items-center gap-2 pt-2 border-t border-[var(--border-default)]">
-                  <Link to={`/studio/presenters/${item.id}`} className="flex-1">
-                    <Button variant="secondary" size="sm" className="w-full">
-                      Xem chi tiết & QC
-                    </Button>
-                  </Link>
+                  <ButtonLink
+                    to={`/studio/presenters/${item.id}`}
+                    variant="secondary"
+                    size="sm"
+                    className="flex-1"
+                  >
+                    Xem chi tiết & QC
+                  </ButtonLink>
                   {item.rightsStatus === 'PENDING' ? (
-                    <Link to={`/rights/consent/${item.rightsConsent.requestId}`}>
-                      <Button variant="ghost" size="sm" leftIcon={<ShieldAlert className="h-3.5 w-3.5" />}>
-                        Cổng quyền
-                      </Button>
-                    </Link>
+                    <ButtonLink
+                      to={`/rights/consent/${item.rightsConsent.requestId}`}
+                      variant="ghost"
+                      size="sm"
+                      leftIcon={<ShieldAlert className="h-3.5 w-3.5" />}
+                    >
+                      Cổng quyền
+                    </ButtonLink>
                   ) : null}
                 </div>
               </Card>

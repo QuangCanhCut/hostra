@@ -114,10 +114,12 @@ test('Gate 2 (FLOW 08 & 09): Emergency Stop 1-step modal + Escape close + 409 Co
   await page.keyboard.press('Escape')
   await expect(page.locator('text=Dừng khẩn cấp livestream?')).toHaveCount(0)
 
-  // Simulate 409 conflict in Dark Mode
+  // Simulate 409 conflict in Dark Mode (mở ngăn kéo Chẩn đoán nơi gom công cụ mô phỏng)
   await page.goto('/studio/sessions/ses-014/control?role=OWNER&theme=dark&hideDevBar=1')
   await page.waitForSelector('text=Phòng điều khiển livestream · Phiên #014')
+  await page.getByRole('button', { name: /^Chẩn đoán$/i }).click()
   await page.getByRole('button', { name: /Mô phỏng xung đột 409/i }).click()
+  await page.keyboard.press('Escape')
   await page.getByRole('button', { name: /Tạm dừng AI/i }).click()
   await page.waitForSelector('text=xung đột')
   await assertCleanPage(page)

@@ -14,6 +14,8 @@ export interface StatusBadgeProps {
   tone: BadgeTone
   pulse?: boolean
   showIcon?: boolean
+  /* Biến thể nhẹ giảm mật độ màu trên các trang nhiều trạng thái */
+  subtle?: boolean
   className?: string
 }
 
@@ -27,6 +29,14 @@ const TONE_CLASSES: Record<BadgeTone, string> = {
   info: 'bg-[var(--status-info-bg)] text-[var(--status-info-fg)] border-[var(--status-info-border)]',
   neutral:
     'bg-[var(--status-neutral-bg)] text-[var(--status-neutral-fg)] border-[var(--status-neutral-border)]',
+}
+
+const SUBTLE_TONE_CLASSES: Record<BadgeTone, string> = {
+  success: 'bg-transparent text-[var(--status-success-fg)] border-[var(--border-default)]',
+  warning: 'bg-transparent text-[var(--status-warning-fg)] border-[var(--border-default)]',
+  danger: 'bg-transparent text-[var(--status-danger-fg)] border-[var(--border-default)]',
+  info: 'bg-transparent text-[var(--status-info-fg)] border-[var(--border-default)]',
+  neutral: 'bg-transparent text-[var(--text-secondary)] border-[var(--border-default)]',
 }
 
 function ToneIcon({ tone, pulse }: { tone: BadgeTone; pulse?: boolean }) {
@@ -52,13 +62,15 @@ export function StatusBadge({
   tone,
   pulse = false,
   showIcon = true,
+  subtle = false,
   className,
 }: StatusBadgeProps) {
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium leading-5',
-        TONE_CLASSES[tone],
+        /* Luôn giữ 1 dòng không bóp méo chữ trên thẻ hẹp */
+        'inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-0.5 text-xs font-medium leading-5',
+        subtle ? SUBTLE_TONE_CLASSES[tone] : TONE_CLASSES[tone],
         className,
       )}
     >

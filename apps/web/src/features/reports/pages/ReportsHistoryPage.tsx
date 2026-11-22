@@ -5,7 +5,7 @@ import { useScenario } from '@/hooks/useScenario'
 import { useSessions } from '@/features/live-session/hooks/useSessions'
 import { Card } from '@/components/ui/Card'
 import { StatusBadge } from '@/components/ui/StatusBadge'
-import { Button } from '@/components/ui/Button'
+import { Button, ButtonLink } from '@/components/ui/Button'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { formatShortTime } from '@/lib/format'
@@ -91,7 +91,7 @@ export function ReportsHistoryPage() {
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Tìm theo mã phiên, tiêu đề hoặc AI Presenter..."
               aria-label="Tìm kiếm báo cáo phiên"
-              className="h-10 w-full rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--surface-base)] pl-9 pr-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--brand-amber)] focus:outline-none"
+              className="h-10 w-full rounded-[var(--radius-input)] border border-[var(--border-default)] bg-[var(--bg-surface)] pl-9 pr-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--brand-amber)] focus:outline-none"
             />
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -107,10 +107,10 @@ export function ReportsHistoryPage() {
                 key={f.id}
                 type="button"
                 onClick={() => setLifecycleFilter(f.id)}
-                className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+                className={`min-h-9 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] ${
                   lifecycleFilter === f.id
                     ? 'bg-[var(--brand-navy)] text-white dark:bg-[var(--brand-amber)] dark:text-[var(--brand-navy)]'
-                    : 'border border-[var(--border-subtle)] bg-[var(--surface-base)] text-[var(--text-secondary)] hover:bg-[var(--surface-subtle)]'
+                    : 'border border-[var(--border-default)] bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)]'
                 }`}
               >
                 {f.label}
@@ -195,16 +195,16 @@ export function ReportsHistoryPage() {
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 rounded-[var(--radius-md)] bg-[var(--surface-subtle)] p-3 text-xs">
+                  <div className="grid grid-cols-2 gap-2 rounded-[var(--radius-input)] bg-[var(--bg-subtle)] p-3 text-xs">
                     <div>
                       <span className="text-[var(--text-muted)]">Bắt đầu</span>
-                      <p className="mt-0.5 font-semibold text-[var(--text-primary)]">
+                      <p className="mt-0.5 font-semibold text-[var(--text-primary)] tabular-nums">
                         {session.startedAt ? formatShortTime(session.startedAt) : 'Chưa phát'}
                       </p>
                     </div>
                     <div>
                       <span className="text-[var(--text-muted)]">Kết thúc</span>
-                      <p className="mt-0.5 font-semibold text-[var(--text-primary)]">
+                      <p className="mt-0.5 font-semibold text-[var(--text-primary)] tabular-nums">
                         {session.stoppedAt
                           ? formatShortTime(session.stoppedAt)
                           : session.lifecycle === 'LIVE'
@@ -215,11 +215,11 @@ export function ReportsHistoryPage() {
                   </div>
                 </div>
 
-                <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-[var(--border-subtle)] pt-3">
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-[var(--border-default)] pt-3">
                   {session.lifecycle === 'LIVE' ? (
                     <Link
                       to={`/studio/sessions/${session.id}/control`}
-                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--status-danger)] hover:underline"
+                      className="inline-flex min-h-9 items-center gap-1.5 text-xs font-semibold text-[var(--status-danger-fg)] hover:underline"
                     >
                       <Radio className="h-3.5 w-3.5" />
                       Mở phòng điều khiển
@@ -231,12 +231,14 @@ export function ReportsHistoryPage() {
                     </span>
                   )}
 
-                  <Link to={`/studio/sessions/${session.id}/report`}>
-                    <Button variant="secondary" size="sm">
-                      Xem báo cáo chi tiết
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  </Link>
+                  <ButtonLink
+                    to={`/studio/sessions/${session.id}/report`}
+                    variant="secondary"
+                    size="sm"
+                    rightIcon={<ChevronRight className="h-4 w-4" />}
+                  >
+                    Xem báo cáo chi tiết
+                  </ButtonLink>
                 </div>
               </Card>
             )

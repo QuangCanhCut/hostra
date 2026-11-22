@@ -38,7 +38,8 @@ describe('Merchant Dashboard — Milestone 1', () => {
       expect(screen.getByText('Sẵn sàng cho phiên giới thiệu đặc sản')).toBeInTheDocument()
     })
 
-    expect(screen.getByRole('button', { name: /Tạo phiên mới/i })).toBeInTheDocument()
+    /* M05.4 (UX-04): Nút Tạo phiên mới dùng ButtonLink (<a role="link">) để không lồng <button> trong <a> */
+    expect(screen.getByRole('link', { name: /Tạo phiên mới/i })).toBeInTheDocument()
     expect(screen.getByText('Công việc cần xử lý')).toBeInTheDocument()
     expect(screen.getByText('Kịch bản giới thiệu Mứt Mận Mường Lát')).toBeInTheDocument()
     expect(screen.getByText('Phiên gần nhất')).toBeInTheDocument()

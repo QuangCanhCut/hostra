@@ -10,7 +10,7 @@ import {
   ShieldAlert,
   XCircle,
 } from 'lucide-react'
-import { Button } from '@/components/ui/Button'
+import { Button, ButtonLink } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { Banner } from '@/components/ui/Banner'
@@ -190,9 +190,15 @@ export function ReadinessPage() {
         </Card>
       ) : null}
 
+      {/* Ưu tiên đưa các mục Bị chặn / Đang chờ lên đầu danh sách để chủ shop xử lý ngay */}
       <Card padding="none" className="overflow-hidden">
         <ul className="divide-y divide-[var(--border-default)]">
-          {readiness.gates.map((gate) => {
+          {[...readiness.gates]
+            .sort((a, b) => {
+              const order = { BLOCKED: 0, PENDING: 1, PASS: 2 } as const
+              return order[a.status] - order[b.status]
+            })
+            .map((gate) => {
             const Icon =
               gate.status === 'PASS'
                 ? CheckCircle2
@@ -209,7 +215,13 @@ export function ReadinessPage() {
             return (
               <li
                 key={gate.id}
-                className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
+                className={`flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between ${
+                  gate.status === 'BLOCKED'
+                    ? 'bg-[var(--status-danger-bg)]/25'
+                    : gate.status === 'PENDING'
+                      ? 'bg-[var(--status-warning-bg)]/25'
+                      : ''
+                }`}
               >
                 <div className="flex items-start gap-3">
                   <Icon className={`mt-0.5 h-5 w-5 shrink-0 ${iconColor}`} aria-hidden="true" />
@@ -239,15 +251,15 @@ export function ReadinessPage() {
                 </div>
 
                 {gate.remediationRoute && gate.remediationLabel ? (
-                  <Link to={gate.remediationRoute} className="shrink-0">
-                    <Button
-                      variant={gate.status === 'PASS' ? 'ghost' : 'secondary'}
-                      size="sm"
-                      rightIcon={<ArrowRight className="h-3.5 w-3.5" />}
-                    >
-                      {gate.remediationLabel}
-                    </Button>
-                  </Link>
+                  <ButtonLink
+                    to={gate.remediationRoute}
+                    variant={gate.status === 'PASS' ? 'ghost' : 'secondary'}
+                    size="sm"
+                    rightIcon={<ArrowRight className="h-3.5 w-3.5" />}
+                    className="shrink-0"
+                  >
+                    {gate.remediationLabel}
+                  </ButtonLink>
                 ) : null}
               </li>
             )

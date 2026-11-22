@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { ArrowRight, Plus, Radio } from 'lucide-react'
-import { Button } from '@/components/ui/Button'
+import { ButtonLink } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { Skeleton } from '@/components/ui/Skeleton'
@@ -43,11 +43,13 @@ export function SessionsListPage() {
         </div>
 
         {isOwner ? (
-          <Link to="/studio/sessions/new">
-            <Button variant="primary" leftIcon={<Plus className="h-4 w-4" />}>
-              Tạo phiên mới
-            </Button>
-          </Link>
+          <ButtonLink
+            to="/studio/sessions/new"
+            variant="primary"
+            leftIcon={<Plus className="h-4 w-4" />}
+          >
+            Tạo phiên mới
+          </ButtonLink>
         ) : null}
       </div>
 
@@ -62,11 +64,13 @@ export function SessionsListPage() {
           }
           action={
             isOwner ? (
-              <Link to="/studio/sessions/new">
-                <Button variant="primary" leftIcon={<Plus className="h-4 w-4" />}>
-                  Tạo phiên mới
-                </Button>
-              </Link>
+              <ButtonLink
+                to="/studio/sessions/new"
+                variant="primary"
+                leftIcon={<Plus className="h-4 w-4" />}
+              >
+                Tạo phiên mới
+              </ButtonLink>
             ) : undefined
           }
         />

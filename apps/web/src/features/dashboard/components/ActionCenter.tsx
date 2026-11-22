@@ -26,7 +26,7 @@ export function ActionCenter({ items, totalCount }: ActionCenterProps) {
         {totalCount > 5 ? (
           <Link
             to="/studio/sessions"
-            className="text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] underline-offset-4 hover:underline shrink-0"
+            className="inline-flex min-h-9 shrink-0 items-center rounded-[8px] px-2.5 py-1.5 text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] underline-offset-4 hover:underline"
           >
             Xem tất cả ({totalCount})
           </Link>
@@ -74,6 +74,7 @@ export function ActionCenter({ items, totalCount }: ActionCenterProps) {
                     <StatusBadge
                       label={item.statusLabel}
                       tone={item.statusTone}
+                      subtle={item.statusTone === 'info' || item.statusTone === 'neutral'}
                       className="whitespace-nowrap"
                     />
                     <ChevronRight

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight, PackageCheck, Plus, Search } from 'lucide-react'
-import { Button } from '@/components/ui/Button'
+import { ButtonLink } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { Skeleton } from '@/components/ui/Skeleton'
@@ -54,11 +54,13 @@ export function ProductsCatalogPage() {
           </p>
         </div>
 
-        <Link to="/studio/products/new">
-          <Button variant="primary" leftIcon={<Plus className="h-4 w-4" />}>
-            {isOwner ? 'Thêm sản phẩm mới' : 'Tạo bản nháp sản phẩm'}
-          </Button>
-        </Link>
+        <ButtonLink
+          to="/studio/products/new"
+          variant="primary"
+          leftIcon={<Plus className="h-4 w-4" />}
+        >
+          {isOwner ? 'Thêm sản phẩm mới' : 'Tạo bản nháp sản phẩm'}
+        </ButtonLink>
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -110,11 +112,13 @@ export function ProductsCatalogPage() {
           }
           description="Thêm 2–5 sản phẩm thực phẩm đóng gói cùng hồ sơ OCOP để chuẩn bị cho phiên livestream."
           action={
-            <Link to="/studio/products/new">
-              <Button variant="primary" leftIcon={<Plus className="h-4 w-4" />}>
-                Thêm sản phẩm
-              </Button>
-            </Link>
+            <ButtonLink
+              to="/studio/products/new"
+              variant="primary"
+              leftIcon={<Plus className="h-4 w-4" />}
+            >
+              Thêm sản phẩm
+            </ButtonLink>
           }
         />
       ) : (

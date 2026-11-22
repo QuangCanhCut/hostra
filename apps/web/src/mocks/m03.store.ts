@@ -793,7 +793,7 @@ export function buildSessionReport(
         value: isPending ? null : durationLabel,
         unit: '',
         status: isPending ? 'NOT_AVAILABLE' : 'MEASURED',
-        source: 'P09 Session Lifecycle + Publisher Intervals',
+        source: 'Hệ thống quản lý phiên phát',
         reason: isPending ? 'Phiên chưa bắt đầu phát trực tiếp.' : undefined,
       },
       {
@@ -802,7 +802,7 @@ export function buildSessionReport(
         value: totalAdmissions,
         unit: isPending ? '' : 'lượt',
         status: isPending ? 'NOT_AVAILABLE' : 'MEASURED',
-        source: 'Invite Admission API (idempotent guest session)',
+        source: 'Hệ thống ghi nhận lượt vào phòng',
         reason: isPending ? 'Chưa phát sinh lượt cấp quyền tham gia.' : undefined,
       },
       {
@@ -811,17 +811,17 @@ export function buildSessionReport(
         value: commentsReceived,
         unit: isPending ? '' : 'bình luận',
         status: isPending ? 'NOT_AVAILABLE' : 'MEASURED',
-        source: 'Comment Intake API receipts',
+        source: 'Hệ thống tiếp nhận bình luận',
         reason: isPending ? 'Chưa mở phòng bình luận.' : undefined,
       },
       {
         key: 'answered_played',
-        label: 'Câu AI đã phát (Playback ACK)',
+        label: 'Câu AI đã phát xong',
         value: playedAck,
         unit: isPending ? '' : 'lượt phát',
         status: isPending ? 'NOT_AVAILABLE' : 'MEASURED',
-        source: 'P04 PlaybackCompleted ACK (deduplicated)',
-        reason: isPending ? 'Chưa có lượt phát AI nào được xác nhận ACK.' : undefined,
+        source: 'Xác nhận nội dung đã phát tới người xem',
+        reason: isPending ? 'Chưa có lượt phát AI nào được xác nhận đã phát xong.' : undefined,
       },
       {
         key: 'concurrent_viewers',
@@ -829,12 +829,12 @@ export function buildSessionReport(
         value: peakConcurrent,
         unit: peakConcurrent === null ? '' : 'người',
         status: peakConcurrent === null ? 'NOT_AVAILABLE' : 'MEASURED',
-        source: 'LiveKit Presence Telemetry',
+        source: 'Dữ liệu theo dõi người xem trực tiếp',
         reason:
           peakConcurrent === null
             ? isPending
-              ? 'Phiên chưa phát trực tiếp nên chưa có dữ liệu presence.'
-              : 'Chưa thu thập đủ mẫu presence theo khoảng thời gian cho phiên này (không suy luận từ admissions và không thay bằng 0).'
+              ? 'Phiên chưa phát trực tiếp nên chưa có dữ liệu người xem đồng thời.'
+              : 'Chưa thu thập đủ mẫu theo dõi người xem theo khung thời gian cho phiên này (không suy luận từ lượt vào phòng và không thay bằng 0).'
             : undefined,
       },
     ],

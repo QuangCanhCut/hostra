@@ -1,6 +1,5 @@
-import { Link } from 'react-router-dom'
 import { AlertTriangle, Plus, RefreshCw, ShieldBan } from 'lucide-react'
-import { Button } from '@/components/ui/Button'
+import { Button, ButtonLink } from '@/components/ui/Button'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { useAuth } from '@/features/auth/hooks/useAuth'
 import { useDashboard } from '@/features/dashboard/hooks/useDashboard'
@@ -44,9 +43,9 @@ export function DashboardPage() {
         }
         action={
           isForbidden ? (
-            <Link to="/auth/sign-in">
-              <Button variant="secondary">Quay lại trang đăng nhập</Button>
-            </Link>
+            <ButtonLink to="/auth/sign-in" variant="secondary">
+              Quay lại trang đăng nhập
+            </ButtonLink>
           ) : (
             <Button
               variant="primary"
@@ -82,15 +81,15 @@ export function DashboardPage() {
         </div>
 
         {canCreateSession ? (
-          <Link to="/studio/sessions/new" className="shrink-0">
-            <Button
-              variant="primary"
-              size="md"
-              leftIcon={<Plus className="h-4 w-4" />}
-            >
-              Tạo phiên mới
-            </Button>
-          </Link>
+          <ButtonLink
+            to="/studio/sessions/new"
+            variant="primary"
+            size="md"
+            className="shrink-0"
+            leftIcon={<Plus className="h-4 w-4" />}
+          >
+            Tạo phiên mới
+          </ButtonLink>
         ) : null}
       </div>
 

@@ -1,0 +1,213 @@
+{
+  "executedAt": "2026-11-22T07:55:24.575Z",
+  "browser": "Chromium (headless channel: chrome)",
+  "baseUrl": "http://127.0.0.1:4181",
+  "consoleErrors": [
+    "Failed to load resource: net::ERR_NAME_NOT_RESOLVED",
+    "Failed to load resource: net::ERR_NAME_NOT_RESOLVED",
+    "Failed to load resource: net::ERR_NAME_NOT_RESOLVED",
+    "Failed to load resource: net::ERR_NAME_NOT_RESOLVED",
+    "Failed to load resource: net::ERR_NAME_NOT_RESOLVED",
+    "Failed to load resource: net::ERR_NAME_NOT_RESOLVED",
+    "Failed to load resource: net::ERR_NAME_NOT_RESOLVED",
+    "Failed to load resource: net::ERR_NAME_NOT_RESOLVED",
+    "Failed to load resource: net::ERR_NAME_NOT_RESOLVED",
+    "Failed to load resource: net::ERR_NAME_NOT_RESOLVED",
+    "Failed to load resource: net::ERR_NAME_NOT_RESOLVED",
+    "Failed to load resource: net::ERR_NAME_NOT_RESOLVED",
+    "Failed to load resource: net::ERR_NAME_NOT_RESOLVED",
+    "Failed to load resource: net::ERR_NAME_NOT_RESOLVED",
+    "Failed to load resource: net::ERR_NAME_NOT_RESOLVED",
+    "Failed to load resource: net::ERR_NAME_NOT_RESOLVED",
+    "Failed to load resource: net::ERR_NAME_NOT_RESOLVED",
+    "Failed to load resource: net::ERR_NAME_NOT_RESOLVED",
+    "Failed to load resource: net::ERR_NAME_NOT_RESOLVED",
+    "Failed to load resource: net::ERR_NAME_NOT_RESOLVED",
+    "Failed to load resource: net::ERR_NAME_NOT_RESOLVED",
+    "Failed to load resource: net::ERR_NAME_NOT_RESOLVED",
+    "Failed to load resource: net::ERR_NAME_NOT_RESOLVED",
+    "Failed to load resource: net::ERR_NAME_NOT_RESOLVED",
+    "Failed to load resource: net::ERR_NAME_NOT_RESOLVED",
+    "Failed to load resource: net::ERR_NAME_NOT_RESOLVED",
+    "Failed to load resource: net::ERR_NAME_NOT_RESOLVED"
+  ],
+  "pageErrors": [
+    "TypeError: Failed to update a ServiceWorker for scope ('http://127.0.0.1:4181/') with script ('http://127.0.0.1:4181/mockServiceWorker.js'): Not found"
+  ],
+  "brokenImages": [],
+  "checks": {
+    "accountMenuEscapeFocusRestore": {
+      "pass": true,
+      "menuVisibleAfterEsc": false,
+      "focusedLabel": "Menu tài khoản Nguyễn Minh Quân"
+    },
+    "onboardingNoAwD2": {
+      "pass": true
+    },
+    "accountMenuSignOut": {
+      "pass": true,
+      "url": "http://127.0.0.1:4181/auth/sign-in"
+    },
+    "darkModeToggle": {
+      "pass": true
+    },
+    "reportFriendlyMicrocopy": {
+      "pass": true
+    },
+    "readinessFriendlyMicrocopy": {
+      "pass": true
+    },
+    "controlRoomStickyBar": {
+      "pass": true
+    },
+    "invitesQrOriginMatch": {
+      "pass": true
+    },
+    "viewerCommentAndNoMerchantControls": {
+      "pass": true
+    },
+    "zoom200AndReducedMotion": {
+      "pass": true,
+      "zoom200Overflow": 0,
+      "prefersReduced": true
+    }
+  },
+  "nestedInteractiveAudit": [
+    {
+      "route": "/studio?role=OWNER&scenario=happy-path&hideDevBar=1",
+      "nested": 0,
+      "brokenImgs": 0
+    },
+    {
+      "route": "/studio/presenters?role=OWNER&hideDevBar=1",
+      "nested": 0,
+      "brokenImgs": 0
+    },
+    {
+      "route": "/studio/products?role=OWNER&hideDevBar=1",
+      "nested": 0,
+      "brokenImgs": 0
+    },
+    {
+      "route": "/studio/knowledge?role=OWNER&hideDevBar=1",
+      "nested": 0,
+      "brokenImgs": 0
+    },
+    {
+      "route": "/studio/sessions?role=OWNER&hideDevBar=1",
+      "nested": 0,
+      "brokenImgs": 0
+    },
+    {
+      "route": "/studio/sessions/ses-014/setup?role=OWNER&hideDevBar=1",
+      "nested": 0,
+      "brokenImgs": 0
+    },
+    {
+      "route": "/studio/sessions/ses-014/readiness?role=OWNER&hideDevBar=1",
+      "nested": 0,
+      "brokenImgs": 0
+    },
+    {
+      "route": "/studio/sessions/ses-014/control?role=OWNER&hideDevBar=1",
+      "nested": 0,
+      "brokenImgs": 0
+    },
+    {
+      "route": "/studio/sessions/ses-013/report?role=OWNER&hideDevBar=1",
+      "nested": 0,
+      "brokenImgs": 0
+    },
+    {
+      "route": "/studio/members?role=OWNER&hideDevBar=1",
+      "nested": 0,
+      "brokenImgs": 0
+    },
+    {
+      "route": "/studio/invites?role=OWNER&hideDevBar=1",
+      "nested": 0,
+      "brokenImgs": 0
+    },
+    {
+      "route": "/live/ses-014?invite=ml014-doitac&hideDevBar=1",
+      "nested": 0,
+      "brokenImgs": 0
+    }
+  ],
+  "responsiveMatrix": [
+    {
+      "width": 320,
+      "height": 568,
+      "route": "/studio?role=OWNER&scenario=happy-path&hideDevBar=1",
+      "label": "Dashboard 320x568",
+      "overflowPx": 0,
+      "pass": true
+    },
+    {
+      "width": 375,
+      "height": 812,
+      "route": "/studio?role=OWNER&scenario=happy-path&hideDevBar=1",
+      "label": "Dashboard 375x812",
+      "overflowPx": 0,
+      "pass": true
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "route": "/studio?role=OWNER&scenario=happy-path&hideDevBar=1",
+      "label": "Dashboard 390x844",
+      "overflowPx": 0,
+      "pass": true
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "route": "/studio?role=OWNER&scenario=happy-path&hideDevBar=1",
+      "label": "Dashboard 768x1024",
+      "overflowPx": 0,
+      "pass": true
+    },
+    {
+      "width": 1024,
+      "height": 768,
+      "route": "/studio?role=OWNER&scenario=happy-path&hideDevBar=1",
+      "label": "Dashboard 1024x768",
+      "overflowPx": 0,
+      "pass": true
+    },
+    {
+      "width": 1280,
+      "height": 800,
+      "route": "/studio?role=OWNER&scenario=happy-path&hideDevBar=1",
+      "label": "Dashboard 1280x800",
+      "overflowPx": 0,
+      "pass": true
+    },
+    {
+      "width": 1920,
+      "height": 1080,
+      "route": "/studio?role=OWNER&scenario=happy-path&hideDevBar=1",
+      "label": "Dashboard 1920x1080",
+      "overflowPx": 0,
+      "pass": true
+    },
+    {
+      "width": 320,
+      "height": 568,
+      "route": "/live/ses-014?invite=ml014-doitac&hideDevBar=1",
+      "label": "Viewer 320x568",
+      "overflowPx": 0,
+      "pass": true
+    }
+  ],
+  "summary": {
+    "totalNestedInteractive": 0,
+    "appConsoleErrorCount": 0,
+    "sandboxOfflineNetworkWarnings": 27,
+    "appPageErrorCount": 0,
+    "brokenImageCount": 0,
+    "failedChecks": [],
+    "failedViewports": [],
+    "allPassed": true
+  }
+}

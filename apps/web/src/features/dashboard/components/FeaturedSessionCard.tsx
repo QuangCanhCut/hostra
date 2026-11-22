@@ -1,7 +1,6 @@
-import { Link } from 'react-router-dom'
 import { ArrowRight, CalendarPlus, Radio, ShieldAlert, Sparkles } from 'lucide-react'
 import { Card } from '@/components/ui/Card'
-import { Button } from '@/components/ui/Button'
+import { ButtonLink } from '@/components/ui/Button'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import {
   AI_STATE_COPY,
@@ -47,21 +46,18 @@ export function FeaturedSessionCard({
         </div>
 
         {capabilities?.canCreateSession ? (
-          <Link to="/studio/sessions/new">
-            <Button
-              variant="primary"
-              className="w-full"
-              leftIcon={<CalendarPlus className="h-4 w-4" />}
-            >
-              Tạo phiên livestream mới
-            </Button>
-          </Link>
+          <ButtonLink
+            to="/studio/sessions/new"
+            variant="primary"
+            className="w-full"
+            leftIcon={<CalendarPlus className="h-4 w-4" />}
+          >
+            Tạo phiên livestream mới
+          </ButtonLink>
         ) : (
-          <Link to="/studio/sessions">
-            <Button variant="secondary" className="w-full">
-              Xem danh sách phiên
-            </Button>
-          </Link>
+          <ButtonLink to="/studio/sessions" variant="secondary" className="w-full">
+            Xem danh sách phiên
+          </ButtonLink>
         )}
       </Card>
     )
@@ -142,10 +138,18 @@ export function FeaturedSessionCard({
             ) : null}
           </div>
 
-          {/* Independent AI & Media badges — never merged with LIVE */}
+          {/* Tách độc lập trạng thái AI & Media; dùng dạng nhẹ (subtle) khi hoạt động bình thường (PO-D03) */}
           <div className="flex flex-wrap gap-2 pt-1">
-            <StatusBadge label={aiBadge.label} tone={aiBadge.tone} />
-            <StatusBadge label={mediaBadge.label} tone={mediaBadge.tone} />
+            <StatusBadge
+              label={aiBadge.label}
+              tone={aiBadge.tone}
+              subtle={session.aiState === 'ACTIVE'}
+            />
+            <StatusBadge
+              label={mediaBadge.label}
+              tone={mediaBadge.tone}
+              subtle={session.mediaHealth === 'HEALTHY'}
+            />
           </div>
 
           {session.fallbackDescription ? (
@@ -157,16 +161,15 @@ export function FeaturedSessionCard({
         </div>
       </div>
 
-      <Link to={cta.to} className="block">
-        <Button
-          variant="primary"
-          size="md"
-          className="w-full"
-          rightIcon={<ArrowRight className="h-4 w-4" />}
-        >
-          {cta.label}
-        </Button>
-      </Link>
+      <ButtonLink
+        to={cta.to}
+        variant="primary"
+        size="md"
+        className="w-full"
+        rightIcon={<ArrowRight className="h-4 w-4" />}
+      >
+        {cta.label}
+      </ButtonLink>
     </Card>
   )
 }
