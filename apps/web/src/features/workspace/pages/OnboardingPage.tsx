@@ -44,10 +44,10 @@ export function OnboardingPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-[var(--text-primary)]">
-            Thiết lập Workspace & Bắt đầu nhanh
+            Thiết lập không gian làm việc
           </h1>
           <p className="mt-1 text-sm text-[var(--text-secondary)]">
-            Lưu nháp linh hoạt theo AW-D2 — các tác vụ chạy nền (tạo Presenter, xác minh OCOP) không khóa bước chuẩn bị.
+            Lưu nháp linh hoạt — các tác vụ chạy nền (tạo AI Presenter, xác minh OCOP) không khóa bước chuẩn bị.
           </p>
         </div>
         {isOwner ? (

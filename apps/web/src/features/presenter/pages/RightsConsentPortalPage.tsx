@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft, CheckCircle2, ShieldAlert, XCircle } from 'lucide-react'
+import { useParams } from 'react-router-dom'
+import { CheckCircle2, ShieldAlert, XCircle } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { StatusBadge } from '@/components/ui/StatusBadge'
@@ -43,11 +43,6 @@ export function RightsConsentPortalPage() {
         </div>
         <div className="flex items-center gap-2">
           <ThemeToggle />
-          <Link to="/studio/presenters">
-            <Button variant="secondary" size="sm" leftIcon={<ArrowLeft className="h-3.5 w-3.5" />}>
-              Về Studio
-            </Button>
-          </Link>
         </div>
       </header>
 

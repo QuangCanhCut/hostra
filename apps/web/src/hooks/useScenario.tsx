@@ -7,7 +7,9 @@ interface ScenarioContextValue {
   role: UserRole
   setScenario: (key: MockScenarioKey) => void
   setRole: (role: UserRole) => void
+  /* Chỉ bật công cụ mô phỏng/Dev Inspector khi ?devTools=1 hoặc bấm Ctrl+Shift+D */
   isDevToolsVisible: boolean
+  toggleDevTools: () => void
 }
 
 const ScenarioContext = createContext<ScenarioContextValue | null>(null)
@@ -27,26 +29,59 @@ function readInitialRole(): UserRole {
   return 'OWNER'
 }
 
-function readDevToolsVisible(): boolean {
+/* Chỉ cho phép bật công cụ mô phỏng trên môi trường dev/localhost hoặc khi cờ env được bật chủ động (chặn bật bằng query ở domain production) */
+function isDevInspectorAllowed(): boolean {
   if (typeof window === 'undefined') return false
-  const hide = new URLSearchParams(window.location.search).get('hideDevBar')
+  if (import.meta.env.DEV || import.meta.env.VITE_ENABLE_MOCK_SWITCHER === 'true') {
+    return true
+  }
+  const host = window.location.hostname
+  return host === 'localhost' || host === '127.0.0.1'
+}
+
+function readDevToolsVisible(): boolean {
+  if (!isDevInspectorAllowed()) return false
+  const params = new URLSearchParams(window.location.search)
+  const hide = params.get('hideDevBar')
   if (hide === '1' || hide === 'true') return false
-  return import.meta.env.DEV || import.meta.env.VITE_ENABLE_MOCK_SWITCHER === 'true'
+  const show = params.get('devTools')
+  if (show === '1' || show === 'true') return true
+  return false
 }
 
 export function ScenarioProvider({ children }: { children: ReactNode }) {
   const [scenario, setScenario] = useState<MockScenarioKey>(readInitialScenario)
   const [role, setRole] = useState<UserRole>(readInitialRole)
-  const [isDevToolsVisible] = useState<boolean>(readDevToolsVisible)
+  const [isDevToolsVisible, setIsDevToolsVisible] = useState<boolean>(readDevToolsVisible)
 
   useEffect(() => {
     window.__HOSTRA_MOCK_SCENARIO__ = scenario
     window.__HOSTRA_MOCK_ROLE__ = role
   }, [scenario, role])
 
+  /* Phím tắt Ctrl+Shift+D chỉ hoạt động khi môi trường cho phép Dev Inspector (khóa trên domain production thật) */
+  useEffect(() => {
+    if (!isDevInspectorAllowed()) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'd') {
+        e.preventDefault()
+        setIsDevToolsVisible((prev) => !prev)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
   return (
     <ScenarioContext.Provider
-      value={{ scenario, role, setScenario, setRole, isDevToolsVisible }}
+      value={{
+        scenario,
+        role,
+        setScenario,
+        setRole,
+        isDevToolsVisible,
+        toggleDevTools: () => setIsDevToolsVisible((prev) => !prev),
+      }}
     >
       {children}
     </ScenarioContext.Provider>

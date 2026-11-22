@@ -64,14 +64,22 @@ export function Sidebar({
 
     return (
       <div className="flex h-full flex-col bg-[var(--bg-sidebar)] text-[var(--text-sidebar)]">
-        <div className="flex h-16 items-center justify-between px-4 border-b border-white/10">
+        {/* Header thanh điều hướng: khi thu gọn (72px) xếp gọn logo, đặt nút mở rộng riêng bên dưới để không bị ép còn 16px ở 1024px */}
+        <div
+          className={cn(
+            'flex border-b border-white/10',
+            isCompact
+              ? 'flex-col items-center gap-2 px-2 py-3'
+              : 'h-16 items-center justify-between px-4',
+          )}
+        >
           <BrandLogo collapsed={isCompact} />
           {isMobileDrawer ? (
             <button
               type="button"
               onClick={onCloseMobile}
               aria-label="Đóng thanh điều hướng"
-              className="flex h-9 w-9 items-center justify-center rounded-[8px] text-slate-300 hover:bg-white/10 cursor-pointer"
+              className="flex h-10 w-10 items-center justify-center rounded-[8px] text-slate-300 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] cursor-pointer"
             >
               <X className="h-5 w-5" />
             </button>
@@ -80,7 +88,7 @@ export function Sidebar({
               type="button"
               onClick={onToggleCollapse}
               aria-label={isCompact ? 'Mở rộng thanh điều hướng' : 'Thu gọn thanh điều hướng'}
-              className="hidden lg:flex h-8 w-8 items-center justify-center rounded-[8px] text-slate-400 hover:bg-white/10 hover:text-white cursor-pointer"
+              className="hidden lg:flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] text-slate-300 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] cursor-pointer"
             >
               {isCompact ? (
                 <ChevronRight className="h-4 w-4" />

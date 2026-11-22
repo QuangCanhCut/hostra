@@ -45,7 +45,7 @@ export function RecentSessionsSection({
         </h2>
         <Link
           to="/studio/sessions"
-          className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+          className="inline-flex min-h-9 items-center gap-1 rounded-[8px] px-2.5 py-1.5 text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)]"
         >
           <span>Xem tất cả</span>
           <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
@@ -110,11 +110,13 @@ export function RecentSessionsSection({
                                 <StatusBadge
                                   label={ai.label}
                                   tone={ai.tone}
+                                  subtle={session.aiState === 'ACTIVE'}
                                   className="whitespace-nowrap"
                                 />
                                 <StatusBadge
                                   label={media.label}
                                   tone={media.tone}
+                                  subtle={session.mediaHealth === 'HEALTHY'}
                                   className="whitespace-nowrap"
                                 />
                               </>
@@ -132,7 +134,7 @@ export function RecentSessionsSection({
                         <td className="px-5 py-3.5 text-right whitespace-nowrap">
                           <Link
                             to={resolveSessionRoute(session)}
-                            className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--text-primary)] hover:underline"
+                            className="inline-flex min-h-9 items-center gap-1 rounded-[8px] px-2.5 py-1.5 text-xs font-semibold text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] hover:underline"
                           >
                             <span>{resolveSessionActionLabel(session)}</span>
                             <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
@@ -176,10 +178,16 @@ export function RecentSessionsSection({
                     </div>
                     {session.lifecycle === 'LIVE' ? (
                       <div className="flex flex-wrap gap-1.5">
-                        <StatusBadge label={ai.label} tone={ai.tone} className="whitespace-nowrap" />
+                        <StatusBadge
+                          label={ai.label}
+                          tone={ai.tone}
+                          subtle={session.aiState === 'ACTIVE'}
+                          className="whitespace-nowrap"
+                        />
                         <StatusBadge
                           label={media.label}
                           tone={media.tone}
+                          subtle={session.mediaHealth === 'HEALTHY'}
                           className="whitespace-nowrap"
                         />
                       </div>
@@ -192,7 +200,7 @@ export function RecentSessionsSection({
                     </span>
                     <Link
                       to={resolveSessionRoute(session)}
-                      className="inline-flex items-center gap-1 font-semibold text-[var(--text-primary)] hover:underline"
+                      className="inline-flex min-h-9 items-center gap-1 rounded-[8px] px-2 py-1.5 font-semibold text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] hover:underline"
                     >
                       <span>{resolveSessionActionLabel(session)}</span>
                       <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />

@@ -1,7 +1,6 @@
-import { Link } from 'react-router-dom'
 import { ArrowRight } from 'lucide-react'
 import { Banner } from '@/components/ui/Banner'
-import { Button } from '@/components/ui/Button'
+import { ButtonLink } from '@/components/ui/Button'
 import type {
   DashboardCriticalAlert,
   DashboardHeroAction,
@@ -22,11 +21,9 @@ export function DashboardHero({ hero, criticalAlerts }: DashboardHeroProps) {
           title={alert.title}
           description={alert.description}
           action={
-            <Link to={alert.targetRoute}>
-              <Button variant="secondary" size="sm">
-                {alert.actionLabel}
-              </Button>
-            </Link>
+            <ButtonLink to={alert.targetRoute} variant="secondary" size="sm">
+              {alert.actionLabel}
+            </ButtonLink>
           }
         />
       ))}
@@ -43,30 +40,29 @@ export function DashboardHero({ hero, criticalAlerts }: DashboardHeroProps) {
             <p className="text-sm text-[var(--text-secondary)]">{hero.summary}</p>
           </div>
 
+          {/* Dùng ButtonLink / anchor tạo kiểu nút trực tiếp để tránh lồng <button> trong <a> (UX-04) */}
           <div className="flex flex-wrap items-center gap-2.5 shrink-0">
-            <Link to={hero.targetRoute}>
-              <Button
-                variant="primary"
-                size="md"
-                rightIcon={<ArrowRight className="h-4 w-4" />}
-              >
-                {hero.ctaLabel}
-              </Button>
-            </Link>
+            <ButtonLink
+              to={hero.targetRoute}
+              variant="primary"
+              size="md"
+              rightIcon={<ArrowRight className="h-4 w-4" />}
+            >
+              {hero.ctaLabel}
+            </ButtonLink>
 
             {hero.secondaryLabel && hero.secondaryRoute ? (
               hero.secondaryRoute.startsWith('#') ? (
-                <a href={hero.secondaryRoute}>
-                  <Button variant="secondary" size="md">
-                    {hero.secondaryLabel}
-                  </Button>
+                <a
+                  href={hero.secondaryRoute}
+                  className="inline-flex min-h-10 items-center justify-center gap-2 whitespace-nowrap rounded-[8px] border border-[var(--border-strong)] bg-[var(--bg-surface)] px-4 text-sm font-medium text-[var(--text-primary)] transition-colors duration-150 hover:bg-[var(--bg-subtle)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--bg-canvas)]"
+                >
+                  {hero.secondaryLabel}
                 </a>
               ) : (
-                <Link to={hero.secondaryRoute}>
-                  <Button variant="secondary" size="md">
-                    {hero.secondaryLabel}
-                  </Button>
-                </Link>
+                <ButtonLink to={hero.secondaryRoute} variant="secondary" size="md">
+                  {hero.secondaryLabel}
+                </ButtonLink>
               )
             ) : null}
           </div>

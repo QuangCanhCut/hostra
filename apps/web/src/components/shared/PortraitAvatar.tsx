@@ -62,7 +62,7 @@ export function PresenterPortrait({
         <img
           src={src}
           alt={`Ảnh chân dung AI minh họa ${name}`}
-          loading="lazy"
+          loading="eager"
           onError={() => setFailed(true)}
           className="h-full w-full object-cover object-top"
         />
@@ -92,7 +92,7 @@ export function ProductThumb({
   return (
     <div
       className={cn(
-        'flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-[10px] border border-[var(--border-default)]',
+        'flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-[10px] border border-[var(--border-default)] dark:opacity-90',
         className,
       )}
       style={{ backgroundColor: palette.bg }}

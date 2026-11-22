@@ -168,15 +168,15 @@ export function LiveControlRoomPage() {
   )
 
   return (
-    <div className="space-y-4 pb-4">
-      {/* Z01 & Z02: Header + Compact 5-Axis Status Bar (CR-D4=A) */}
+    <div className="space-y-5 pb-10">
+      {/* Z01 & Z02: Tiêu đề gọn gàng & Thanh trạng thái vận hành (đã dọn thuật ngữ kỹ thuật & nút mô phỏng khỏi frame chính) */}
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="text-xl font-bold text-[var(--text-primary)] sm:text-2xl">
             Phòng điều khiển livestream · {snap.sessionCode}
           </h1>
-          <p className="text-xs text-[var(--text-secondary)]">
-            {snap.sessionTitle} · Revision v{snap.revision} · Epoch {snap.epoch} · Môi trường mô phỏng
+          <p className="mt-0.5 text-sm text-[var(--text-secondary)]">
+            {snap.sessionTitle}
           </p>
         </div>
 
@@ -207,7 +207,7 @@ export function LiveControlRoomPage() {
           >
             Chẩn đoán
           </Button>
-          {/* Emergency Stop separated from normal runtime actions (CR-D3 & CR-D11=B) */}
+          {/* Nút Dừng khẩn cấp tách biệt rõ khỏi nhóm thao tác thông thường */}
           <Button
             variant="destructive"
             size="sm"
@@ -220,19 +220,19 @@ export function LiveControlRoomPage() {
         </div>
       </div>
 
-      {/* Independent 5-axis status bar */}
+      {/* Thanh trạng thái 5 trục độc lập dùng tiếng Việt thân thiện cho người vận hành */}
       <Card padding="sm" className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-2">
           <StatusBadge label={lifecycleCopy.label} tone={lifecycleCopy.tone} pulse={lifecycleCopy.pulse} />
           <StatusBadge label={aiCopy.label} tone={aiCopy.tone} />
-          <StatusBadge label={mediaCopy.label} tone={mediaCopy.tone} />
+          <StatusBadge label={mediaCopy.label} tone={mediaCopy.tone} subtle={snap.mediaHealth === 'HEALTHY'} />
           <StatusBadge
             label={
               snap.publisherState === 'CONNECTED'
-                ? 'Publisher ổn định'
+                ? 'Đường truyền phát ổn định'
                 : snap.publisherState === 'DEGRADED'
-                  ? 'Publisher suy giảm'
-                  : 'Publisher đã ngắt'
+                  ? 'Đường truyền suy giảm'
+                  : 'Đường truyền đã ngắt'
             }
             tone={
               snap.publisherState === 'CONNECTED'
@@ -241,38 +241,13 @@ export function LiveControlRoomPage() {
                   ? 'warning'
                   : 'neutral'
             }
+            subtle={snap.publisherState === 'CONNECTED'}
           />
           <StatusBadge
-            label={isStale ? 'Dữ liệu có thể cũ' : 'Đồng bộ realtime'}
+            label={isStale ? 'Kết nối điều khiển gián đoạn' : 'Kết nối điều khiển ổn định'}
             tone={isStale ? 'warning' : 'info'}
+            subtle={!isStale}
           />
-        </div>
-
-        {/* Compact Mock Simulation Controls for QA */}
-        <div className="flex flex-wrap items-center gap-1.5">
-          <button
-            type="button"
-            onClick={() => simEventMutation.mutate('TOGGLE_DEGRADED')}
-            className="rounded-[6px] border border-[var(--border-default)] px-2 py-1 text-[11px] font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] cursor-pointer"
-          >
-            Mô phỏng Media suy giảm
-          </button>
-          <button
-            type="button"
-            onClick={() => simEventMutation.mutate('TOGGLE_STALE')}
-            className="rounded-[6px] border border-[var(--border-default)] px-2 py-1 text-[11px] font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] cursor-pointer"
-          >
-            Mô phỏng mất kết nối
-          </button>
-          <button
-            type="button"
-            onClick={() =>
-              runCommand('PAUSE_AI', { overrideRevision: Math.max(1, snap.revision - 1) })
-            }
-            className="rounded-[6px] border border-[var(--border-default)] px-2 py-1 text-[11px] font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] cursor-pointer"
-          >
-            Mô phỏng xung đột 409
-          </button>
         </div>
       </Card>
 
@@ -354,7 +329,7 @@ export function LiveControlRoomPage() {
                       pulse={lifecycleCopy.pulse}
                     />
                     <span className="rounded-full bg-slate-900/80 px-2.5 py-0.5 text-[11px] font-medium text-white">
-                      Môi trường mô phỏng (Không phát LiveKit thật)
+                      Xem trước phòng phát
                     </span>
                   </div>
                   {snap.aiState === 'PAUSED' ? (
@@ -373,7 +348,7 @@ export function LiveControlRoomPage() {
               )}
             </div>
 
-            {/* Active Product & Pending Switch Strip */}
+            {/* Thẻ sản phẩm đang giới thiệu (nút Chuyển SKU đặt duy nhất ở thanh điều khiển dưới để tránh lặp) */}
             <div className="flex flex-col gap-3 border-t border-[var(--border-default)] p-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-3 min-w-0">
                 <ProductThumb skuId={snap.activeSkuId} name={snap.activeSkuName} />
@@ -393,26 +368,13 @@ export function LiveControlRoomPage() {
                 </div>
               </div>
 
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={controlsDisabled}
-                leftIcon={<ArrowLeftRight className="h-3.5 w-3.5" />}
-                onClick={() => {
-                  setSelectedTargetSkuId(
-                    snap.sessionSkus.find((s) => s.skuId !== snap.activeSkuId)?.skuId ?? '',
-                  )
-                  setSwitchDrawerOpen(true)
-                }}
-              >
-                Chuyển SKU
-              </Button>
+              <StatusBadge label="Đang hiển thị trên sóng" tone="success" subtle />
             </div>
 
             {snap.pendingSwitch ? (
               <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--status-info-border)] bg-[var(--status-info-bg)] px-4 py-2.5 text-xs text-[var(--status-info-fg)]">
                 <span>
-                  Đang chờ chuyển sang <strong>{snap.pendingSwitch.targetSkuCode} · {snap.pendingSwitch.targetSkuName}</strong> (ACCEPTED — Active SKU hiện tại vẫn giữ {snap.activeSkuCode} cho tới APPLIED).
+                  Đang chờ chuyển sang <strong>{snap.pendingSwitch.targetSkuCode} · {snap.pendingSwitch.targetSkuName}</strong> (Đã tiếp nhận — sản phẩm hiện tại vẫn giữ {snap.activeSkuCode} cho tới khi áp dụng xong).
                 </span>
                 <Button
                   size="sm"
@@ -431,19 +393,19 @@ export function LiveControlRoomPage() {
             ) : null}
           </Card>
 
-          {/* Expandable AI Activity & "AI sắp nói" (CR-D2=A & CR-D6=A) */}
+          {/* Khối Nội dung AI sắp nói — diễn đạt tự nhiên, giữ nguyên ngữ nghĩa xác nhận phát thật */}
           <Card padding="md" className="space-y-3">
             <button
               type="button"
               onClick={() => setAiExpanded((v) => !v)}
-              className="flex w-full items-center justify-between text-left cursor-pointer"
+              className="flex w-full items-center justify-between text-left cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] rounded-[6px]"
             >
               <div className="flex items-center gap-2">
                 <Activity className="h-4 w-4 text-[var(--brand-amber)]" />
                 <h2 className="text-sm font-bold text-[var(--text-primary)]">
-                  Hoạt động AI & Nội dung sắp nói
+                  Nội dung AI sắp nói
                 </h2>
-                <StatusBadge label="Dự kiến · Chưa phát" tone="info" />
+                <StatusBadge label="Đang chuẩn bị · Chưa phát" tone="info" subtle />
               </div>
               {aiExpanded ? (
                 <ChevronUp className="h-4 w-4 text-[var(--text-muted)]" />
@@ -455,38 +417,27 @@ export function LiveControlRoomPage() {
             {aiExpanded && snap.currentTurn ? (
               <div className="space-y-3 pt-2 border-t border-[var(--border-default)]">
                 <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-                  <span className="font-semibold text-[var(--text-secondary)]">
-                    Giai đoạn hiện tại:{' '}
+                  <span className="font-medium text-[var(--text-secondary)]">
+                    Trạng thái:{' '}
                     <strong className="text-[var(--text-primary)]">
                       {SPEECH_PHASE_LABELS[snap.currentTurn.phase] ?? snap.currentTurn.phase}
                     </strong>
                   </span>
                   <span className="text-[var(--text-muted)] tabular-nums">
-                    Checkpoint kịch bản: {snap.storyCheckpointIndex}/{snap.storyTotalArcs} · Đã phát (ACK): {snap.completedTurnsCount}
+                    Tiến độ kịch bản: {snap.storyCheckpointIndex}/{snap.storyTotalArcs} · Đã phát xong: {snap.completedTurnsCount} câu
                   </span>
                 </div>
 
-                <div className="rounded-[10px] bg-[var(--bg-subtle)] p-3 text-sm text-[var(--text-primary)]">
+                <div className="rounded-[10px] border border-[var(--border-default)] bg-[var(--bg-subtle)] p-3.5 text-sm leading-relaxed text-[var(--text-primary)]">
                   {snap.currentTurn.safeSummary}
-                  <p className="mt-1 text-[11px] text-[var(--text-muted)]">
+                  <p className="mt-1.5 text-[11px] text-[var(--text-muted)]">
                     Nguồn xác minh: {snap.currentTurn.sourceRef}
                   </p>
                 </div>
 
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-[11px] text-[var(--text-muted)]">
-                    Story Checkpoint chỉ tiến sau khi nhận PlaybackCompleted ACK hợp lệ.
-                  </p>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    disabled={snap.currentTurn.phase === 'PLAYBACK_COMPLETED' || isStopped}
-                    loading={advanceSpeechMutation.isPending}
-                    onClick={() => advanceSpeechMutation.mutate()}
-                  >
-                    Tiến bước phát kế tiếp (Mock ACK)
-                  </Button>
-                </div>
+                <p className="text-[11px] text-[var(--text-muted)]">
+                  Tiến độ kịch bản chỉ chuyển bước sau khi người xem đã nghe xong câu hiện tại.
+                </p>
               </div>
             ) : null}
           </Card>
@@ -596,7 +547,7 @@ export function LiveControlRoomPage() {
                 Hàng đợi câu hỏi ({queuedComments.length})
               </h2>
               <span className="text-[11px] text-[var(--text-muted)]">
-                Chỉ can thiệp trước khi COMMITTED
+                Chỉ bỏ qua trước khi AI bắt đầu đọc
               </span>
             </div>
 
@@ -793,12 +744,52 @@ export function LiveControlRoomPage() {
       >
         <div className="space-y-4 text-xs">
           <div className="rounded-[10px] bg-[var(--bg-subtle)] p-3.5 space-y-1.5">
-            <p className="font-bold text-[var(--text-primary)]">Trạng thái phát sóng</p>
-            <p>Session: {lifecycleCopy.label}</p>
+            <p className="font-bold text-[var(--text-primary)]">Thông số kỹ thuật (Chẩn đoán)</p>
+            <p>Phiên bản đồng bộ: Revision v{snap.revision} · Epoch {snap.epoch}</p>
+            <p>Session Lifecycle: {lifecycleCopy.label}</p>
             <p>AI Execution: {aiCopy.label}</p>
             <p>Media Health: {mediaCopy.label}</p>
-            <p>Publisher: {snap.publisherState}</p>
+            <p>Publisher State: {snap.publisherState}</p>
             <p>Kết nối đồng bộ: {snap.connectionFreshness}</p>
+            <p>Xác nhận phát (PlaybackCompleted ACK): {snap.completedTurnsCount} lượt</p>
+          </div>
+          {/* Công cụ mô phỏng kiểm thử được gom gọn vào ngăn kéo Chẩn đoán, tách khỏi giao diện vận hành chính */}
+          <div className="rounded-[10px] border border-dashed border-[var(--border-strong)] p-3.5 space-y-2.5">
+            <p className="font-bold text-[var(--text-primary)]">Công cụ mô phỏng (Chỉ dành cho kiểm thử)</p>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => simEventMutation.mutate('TOGGLE_DEGRADED')}
+              >
+                Mô phỏng Media suy giảm
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => simEventMutation.mutate('TOGGLE_STALE')}
+              >
+                Mô phỏng mất kết nối
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() =>
+                  runCommand('PAUSE_AI', { overrideRevision: Math.max(1, snap.revision - 1) })
+                }
+              >
+                Mô phỏng xung đột 409
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={snap.currentTurn?.phase === 'PLAYBACK_COMPLETED' || isStopped}
+                loading={advanceSpeechMutation.isPending}
+                onClick={() => advanceSpeechMutation.mutate()}
+              >
+                Tiến bước phát kế tiếp (Mock ACK)
+              </Button>
+            </div>
           </div>
           {snap.fallbackModeLabel ? (
             <Banner

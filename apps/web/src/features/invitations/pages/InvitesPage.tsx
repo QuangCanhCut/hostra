@@ -62,8 +62,15 @@ export function InvitesPage() {
   const activeInvite =
     invites.find((i) => i.id === selectedId) ?? invites[0] ?? null
 
+  /* Cho phép cấu hình URL công khai qua VITE_PUBLIC_APP_URL khi demo LAN/preview, mặc định dùng origin hiện tại */
+  const configuredPublicOrigin = (
+    import.meta.env.VITE_PUBLIC_APP_URL as string | undefined
+  )
+    ?.trim()
+    .replace(/\/+$/, '')
   const baseOrigin =
-    typeof window !== 'undefined' ? window.location.origin : 'http://127.0.0.1:5173'
+    configuredPublicOrigin ||
+    (typeof window !== 'undefined' ? window.location.origin : 'http://127.0.0.1:5173')
 
   const handleCreate = async () => {
     const expiresAt = new Date(Date.now() + expiryHours * 3600 * 1000).toISOString()
@@ -151,7 +158,7 @@ export function InvitesPage() {
 
                 <div className="flex items-center justify-between pt-2 border-t border-[var(--border-default)] text-xs">
                   <span className="text-[var(--text-secondary)]">
-                    Đang xem: <strong className="tabular-nums">{inv.activeGuestCount}</strong> · Chính sách bất biến (IM-D3)
+                    Đang xem: <strong className="tabular-nums">{inv.activeGuestCount}</strong> · Thông số cố định sau khi tạo
                   </span>
                   {inv.status === 'ACTIVE' ? (
                     <Button
@@ -204,7 +211,7 @@ export function InvitesPage() {
         open={createOpen}
         onClose={() => setCreateOpen(false)}
         title="Tạo liên kết mời xem livestream"
-        subtitle="Sau khi phát hành, thời hạn và số lượt không thể chỉnh sửa (IM-D3)."
+        subtitle="Sau khi phát hành, thời hạn và giới hạn lượt tham gia không thể chỉnh sửa."
       >
         <div className="space-y-4">
           <div>

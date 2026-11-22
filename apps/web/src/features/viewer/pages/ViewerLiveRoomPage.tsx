@@ -16,6 +16,7 @@ import { Card } from '@/components/ui/Card'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { ThemeToggle } from '@/components/shared/ThemeToggle'
 import { PresenterPortrait, ProductThumb } from '@/components/shared/PortraitAvatar'
+import { useScenario } from '@/hooks/useScenario'
 import {
   useAdmitViewer,
   useSubmitViewerComment,
@@ -33,6 +34,7 @@ interface LocalPendingComment {
 export function ViewerLiveRoomPage() {
   const { id } = useParams<{ id: string }>()
   const sessionId = id ?? 'ses-014'
+  const { isDevToolsVisible } = useScenario()
   const [searchParams] = useSearchParams()
   const inviteToken = searchParams.get('invite')
   const demoState = searchParams.get('demo') // waiting | buffering | chat-reconnect | ended | invalid
@@ -305,14 +307,14 @@ export function ViewerLiveRoomPage() {
               <div className="absolute top-3 left-3 flex items-center gap-2">
                 <StatusBadge label="LIVE" tone="danger" pulse />
                 <span className="rounded-full bg-slate-900/80 px-2.5 py-0.5 text-[11px] font-medium text-white">
-                  Người dẫn AI · Minh họa
+                  Người dẫn AI
                 </span>
               </div>
               <button
                 type="button"
                 aria-label={muted ? 'Bật âm thanh' : 'Tắt âm thanh'}
                 onClick={() => setMuted((m) => !m)}
-                className="absolute top-3 right-3 flex h-9 w-9 items-center justify-center rounded-full bg-slate-900/75 text-white cursor-pointer"
+                className="absolute top-3 right-3 flex h-11 w-11 items-center justify-center rounded-full bg-slate-900/75 text-white hover:bg-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] cursor-pointer"
               >
                 {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
               </button>
@@ -328,7 +330,12 @@ export function ViewerLiveRoomPage() {
               ) : null}
             </div>
 
-            {/* Active Product Card BELOW player (VR-D4=A: never overlays presenter) */}
+            {/* Tiêu đề chính ngữ nghĩa cho trình đọc màn hình & chuẩn WCAG */}
+            <h1 className="sr-only">
+              {room?.sessionTitle ?? 'Phòng xem livestream trực tiếp HOSTRA'}
+            </h1>
+
+            {/* Thẻ sản phẩm đang giới thiệu nằm dưới khung video */}
             {room?.activeSku ? (
               <Card padding="sm" className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0">
@@ -342,7 +349,7 @@ export function ViewerLiveRoomPage() {
                         <StatusBadge label="OCOP đã xác minh" tone="success" />
                       ) : null}
                     </div>
-                    <p className="text-xs text-[var(--text-secondary)]">
+                    <p className="mt-0.5 text-xs text-[var(--text-secondary)]">
                       {room.activeSku.skuCode} ·{' '}
                       <strong className="tabular-nums text-[var(--text-primary)]">
                         {formatVnd(room.activeSku.priceVnd)}
@@ -354,23 +361,25 @@ export function ViewerLiveRoomPage() {
               </Card>
             ) : null}
 
-            {/* Independent Media / Chat failure demo toggles */}
-            <div className="flex flex-wrap gap-2 text-[11px]">
-              <button
-                type="button"
-                onClick={() => setSimBuffering((v) => !v)}
-                className="rounded-[6px] border border-[var(--border-default)] bg-[var(--bg-surface)] px-2.5 py-1 text-[var(--text-secondary)] cursor-pointer"
-              >
-                {simBuffering ? 'Tắt mô phỏng Buffering' : 'Mô phỏng Video Buffering'}
-              </button>
-              <button
-                type="button"
-                onClick={() => setSimChatOffline((v) => !v)}
-                className="rounded-[6px] border border-[var(--border-default)] bg-[var(--bg-surface)] px-2.5 py-1 text-[var(--text-secondary)] cursor-pointer"
-              >
-                {simChatOffline ? 'Kết nối lại bình luận' : 'Mô phỏng Mất kết nối bình luận'}
-              </button>
-            </div>
+            {/* Nút mô phỏng chỉ hiện khi bật Dev Inspector (?devTools=1 hoặc Ctrl+Shift+D) */}
+            {isDevToolsVisible ? (
+              <div className="flex flex-wrap gap-2 text-[11px]">
+                <button
+                  type="button"
+                  onClick={() => setSimBuffering((v) => !v)}
+                  className="rounded-[6px] border border-[var(--border-default)] bg-[var(--bg-surface)] px-2.5 py-1.5 text-[var(--text-secondary)] cursor-pointer"
+                >
+                  {simBuffering ? 'Tắt mô phỏng Buffering' : 'Mô phỏng Video Buffering'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSimChatOffline((v) => !v)}
+                  className="rounded-[6px] border border-[var(--border-default)] bg-[var(--bg-surface)] px-2.5 py-1.5 text-[var(--text-secondary)] cursor-pointer"
+                >
+                  {simChatOffline ? 'Kết nối lại bình luận' : 'Mô phỏng Mất kết nối bình luận'}
+                </button>
+              </div>
+            ) : null}
           </div>
 
           {/* Live Comments & Composer (VR-D7=A) */}

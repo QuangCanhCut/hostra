@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/cn'
 
@@ -12,6 +12,9 @@ export interface ModalProps {
   size?: 'md' | 'lg'
 }
 
+const FOCUSABLE_SELECTOR =
+  'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+
 export function Modal({
   open,
   onClose,
@@ -21,13 +24,55 @@ export function Modal({
   footer,
   size = 'md',
 }: ModalProps) {
+  const panelRef = useRef<HTMLDivElement>(null)
+
+  /* Khóa cuộn nền, giữ focus trong hộp thoại (focus trap) và khôi phục focus khi đóng */
   useEffect(() => {
     if (!open) return
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
+    const previousFocus = document.activeElement as HTMLElement | null
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+
+    const focusFirst = () => {
+      const nodes = panelRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)
+      if (nodes && nodes.length > 0) {
+        nodes[0].focus()
+      } else {
+        panelRef.current?.focus()
+      }
     }
+    const raf = window.requestAnimationFrame(focusFirst)
+
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        onClose()
+        return
+      }
+      if (e.key === 'Tab' && panelRef.current) {
+        const nodes = Array.from(
+          panelRef.current.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR),
+        )
+        if (nodes.length === 0) return
+        const first = nodes[0]
+        const last = nodes[nodes.length - 1]
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault()
+          last.focus()
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault()
+          first.focus()
+        }
+      }
+    }
+
     window.addEventListener('keydown', handleKey)
-    return () => window.removeEventListener('keydown', handleKey)
+    return () => {
+      window.cancelAnimationFrame(raf)
+      window.removeEventListener('keydown', handleKey)
+      document.body.style.overflow = previousOverflow
+      previousFocus?.focus?.()
+    }
   }, [open, onClose])
 
   if (!open) return null
@@ -45,8 +90,10 @@ export function Modal({
         aria-hidden="true"
       />
       <div
+        ref={panelRef}
+        tabIndex={-1}
         className={cn(
-          'relative z-10 flex max-h-[90vh] w-full flex-col rounded-[16px] border border-[var(--border-strong)] bg-[var(--bg-elevated)] shadow-[var(--shadow-elevated)]',
+          'relative z-10 flex max-h-[90vh] w-full flex-col rounded-[16px] border border-[var(--border-strong)] bg-[var(--bg-elevated)] shadow-[var(--shadow-elevated)] outline-none',
           size === 'lg' ? 'max-w-2xl' : 'max-w-lg',
         )}
       >
@@ -61,7 +108,7 @@ export function Modal({
             type="button"
             onClick={onClose}
             aria-label="Đóng hộp thoại"
-            className="flex h-8 w-8 items-center justify-center rounded-[8px] text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] cursor-pointer"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[8px] text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] cursor-pointer"
           >
             <X className="h-4 w-4" />
           </button>

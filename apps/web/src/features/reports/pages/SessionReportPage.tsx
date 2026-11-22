@@ -21,7 +21,7 @@ import { useSessionReport } from '../hooks/useReports'
 import { Card } from '@/components/ui/Card'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { Banner } from '@/components/ui/Banner'
-import { Button } from '@/components/ui/Button'
+import { Button, ButtonLink } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
@@ -105,13 +105,13 @@ export function SessionReportPage() {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <Skeleton className="h-20 rounded-[var(--radius-lg)]" />
+        <Skeleton className="h-20 rounded-[var(--radius-card)]" />
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className="h-32 rounded-[var(--radius-lg)]" />
+            <Skeleton key={i} className="h-32 rounded-[var(--radius-card)]" />
           ))}
         </div>
-        <Skeleton className="h-72 rounded-[var(--radius-lg)]" />
+        <Skeleton className="h-72 rounded-[var(--radius-card)]" />
       </div>
     )
   }
@@ -153,7 +153,7 @@ export function SessionReportPage() {
       <div className="flex items-center gap-2 text-sm">
         <Link
           to="/studio/reports"
-          className="inline-flex items-center gap-1.5 font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+          className="inline-flex min-h-9 items-center gap-1.5 rounded-[8px] px-2 py-1.5 font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)]"
         >
           <ArrowLeft className="h-4 w-4" />
           Báo cáo phiên
@@ -196,12 +196,14 @@ export function SessionReportPage() {
           />
 
           {report.lifecycle === 'LIVE' && (
-            <Link to={`/studio/sessions/${report.sessionId}/control`}>
-              <Button variant="secondary" size="sm">
-                <Radio className="h-4 w-4 text-[var(--status-danger)]" />
-                Mở phòng điều khiển
-              </Button>
-            </Link>
+            <ButtonLink
+              to={`/studio/sessions/${report.sessionId}/control`}
+              variant="secondary"
+              size="sm"
+              leftIcon={<Radio className="h-4 w-4 text-[var(--status-danger-fg)]" />}
+            >
+              Mở phòng điều khiển
+            </ButtonLink>
           )}
 
           {report.canExport ? (
@@ -225,41 +227,43 @@ export function SessionReportPage() {
         <Banner
           severity="info"
           title="Chế độ xem rút gọn dành cho Vận hành viên"
-          description="Vận hành viên được xem KPI vận hành và dòng thời gian của phiên được phân công. Quyền xuất file CSV/PDF kiểm toán chỉ dành cho Chủ sở hữu không gian làm việc (SR-D5)."
+          description="Vận hành viên được xem chỉ số vận hành và dòng thời gian của phiên được phân công. Quyền xuất tệp CSV/PDF kiểm toán chỉ dành cho Chủ sở hữu không gian làm việc."
         />
       )}
 
       {report.reportStatus !== 'READY' && (
-        <Card className="border-[var(--status-warning)]/40 bg-[var(--status-warning)]/5 p-4">
+        <Card className="border-[var(--status-warning-border)] bg-[var(--status-warning-bg)]/45 p-4">
           <div className="flex items-start gap-3">
-            <Info className="mt-0.5 h-5 w-5 shrink-0 text-[var(--status-warning)]" />
+            <Info className="mt-0.5 h-5 w-5 shrink-0 text-[var(--status-warning-fg)]" />
             <div className="text-sm text-[var(--text-secondary)]">
               <p className="font-semibold text-[var(--text-primary)]">
-                Báo cáo ở trạng thái {report.reportStatus} — hiển thị trung thực theo nguồn đo
+                {report.reportStatus === 'PARTIAL'
+                  ? 'Báo cáo đang thiếu một số chỉ số — hiển thị trung thực theo dữ liệu đã đo'
+                  : 'Báo cáo đang được tổng hợp — hiển thị trung thực theo dữ liệu đã đo'}
               </p>
               <p className="mt-0.5">
                 Các chỉ số chưa đủ dữ liệu xác thực sẽ hiển thị <strong>N/A</strong> kèm lý do,
-                không tự điền số 0 giả hoặc suy diễn trước khi có xác nhận từ hệ thống (SR-D2).
+                không tự điền số 0 giả hoặc suy diễn trước khi có xác nhận từ hệ thống.
               </p>
             </div>
           </div>
         </Card>
       )}
 
-      {/* 5 KPI Cards */}
+      {/* 5 thẻ KPI có nguồn đo, chống vỡ dòng badge & dùng số căn thẳng tabular-nums */}
       <section aria-label="Chỉ số tổng quan phiên livestream" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         {report.kpis.map((kpi) => {
           const st = METRIC_STATUS_BADGE[kpi.status]
           return (
             <Card key={kpi.key} className="flex flex-col justify-between p-4">
               <div className="flex items-start justify-between gap-2">
-                <span className="text-xs font-semibold text-[var(--text-secondary)]">
+                <span className="text-xs font-semibold leading-snug text-[var(--text-secondary)]">
                   {kpi.label}
                 </span>
-                <StatusBadge tone={st.tone} label={st.label} showIcon={false} />
+                <StatusBadge tone={st.tone} label={st.label} showIcon={false} subtle={kpi.status === 'MEASURED'} />
               </div>
               <div className="mt-3">
-                <p className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">
+                <p className="text-2xl font-bold tracking-tight tabular-nums text-[var(--text-primary)]">
                   {kpi.value === null ? (
                     <span className="text-[var(--text-muted)]">N/A</span>
                   ) : (
@@ -277,7 +281,7 @@ export function SessionReportPage() {
                   Nguồn: {kpi.source}
                 </p>
                 {kpi.reason ? (
-                  <p className="mt-1 text-[11px] text-[var(--status-warning)]">{kpi.reason}</p>
+                  <p className="mt-1 text-[11px] text-[var(--status-warning-fg)]">{kpi.reason}</p>
                 ) : null}
               </div>
             </Card>
@@ -285,7 +289,7 @@ export function SessionReportPage() {
         })}
       </section>
 
-      {/* Charts + Timeline */}
+      {/* Biểu đồ lượt vào & Dòng thời gian trạng thái */}
       <div className="grid gap-6 lg:grid-cols-12">
         <Card className="p-5 lg:col-span-7 space-y-5">
           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -294,14 +298,14 @@ export function SessionReportPage() {
                 Lượt vào phòng theo khung thời gian
               </h2>
               <p className="text-xs text-[var(--text-secondary)]">
-                {report.chartCoverageLabel} · Phân biệt với Người xem đồng thời (Concurrent Viewers)
+                {report.chartCoverageLabel} · Phân biệt với Người xem đồng thời
               </p>
             </div>
-            <StatusBadge tone="info" label="Time-bucketed SVG" showIcon={false} />
+            <StatusBadge tone="info" label="Theo khung 15 phút" showIcon={false} subtle />
           </div>
 
           {report.intervalChart.length === 0 ? (
-            <div className="rounded-[var(--radius-md)] border border-dashed border-[var(--border-subtle)] bg-[var(--surface-subtle)] p-6 text-center text-xs text-[var(--text-muted)]">
+            <div className="rounded-[var(--radius-input)] border border-dashed border-[var(--border-default)] bg-[var(--bg-subtle)] p-6 text-center text-xs text-[var(--text-muted)]">
               Chưa có dữ liệu biểu đồ vì phiên chưa phát trực tiếp.
             </div>
           ) : (
@@ -370,15 +374,16 @@ export function SessionReportPage() {
             </div>
           )}
 
-          {/* Optional Concurrent Viewers chart per SR-ADD-01 */}
-          <div className="border-t border-[var(--border-subtle)] pt-4">
+          {/* Biểu đồ người xem đồng thời (tùy chọn khi có dữ liệu telemetry) */}
+          <div className="border-t border-[var(--border-default)] pt-4">
             <div className="flex items-center justify-between gap-2">
               <h3 className="text-sm font-semibold text-[var(--text-primary)]">
-                Người xem đồng thời (Concurrent Viewers — tùy chọn theo telemetry)
+                Người xem đồng thời (tùy chọn theo telemetry)
               </h3>
               <StatusBadge
                 tone={report.hasConcurrentTelemetry ? 'success' : 'neutral'}
-                label={report.hasConcurrentTelemetry ? 'Có dữ liệu LiveKit' : 'N/A · Chưa có telemetry'}
+                label={report.hasConcurrentTelemetry ? 'Có dữ liệu đo' : 'N/A · Chưa có dữ liệu'}
+                subtle={!report.hasConcurrentTelemetry}
               />
             </div>
             {report.hasConcurrentTelemetry ? (
@@ -471,12 +476,12 @@ export function SessionReportPage() {
         </Card>
       </div>
 
-      {/* 3 Detail Tabs */}
+      {/* 3 Tab chi tiết dùng đúng biến token của hệ thống thiết kế */}
       <Card className="overflow-hidden">
         <div
           role="tablist"
           aria-label="Chi tiết báo cáo phiên"
-          className="flex flex-wrap border-b border-[var(--border-subtle)] bg-[var(--surface-subtle)] px-4 pt-2"
+          className="flex flex-wrap border-b border-[var(--border-default)] bg-[var(--bg-subtle)] px-4 pt-2"
         >
           {(
             [
@@ -494,7 +499,7 @@ export function SessionReportPage() {
                 type="button"
                 aria-selected={active}
                 onClick={() => setActiveTab(tab.id)}
-                className={`inline-flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-semibold transition-colors ${
+                className={`inline-flex min-h-10 items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-semibold transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] ${
                   active
                     ? 'border-[var(--brand-amber)] text-[var(--text-primary)]'
                     : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
@@ -510,7 +515,7 @@ export function SessionReportPage() {
         <div className="p-5">
           {activeTab === 'AI_COMMENTS' && (
             <div className="space-y-4">
-              <div className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--surface-subtle)] p-3.5 text-xs text-[var(--text-secondary)]">
+              <div className="rounded-[var(--radius-input)] border border-[var(--border-default)] bg-[var(--bg-subtle)] p-3.5 text-xs text-[var(--text-secondary)]">
                 <strong className="text-[var(--text-primary)]">Nguyên tắc đếm câu AI đã phát:</strong>{' '}
                 Chỉ tính các lượt phát nhận được xác nhận{' '}
                 <code className="font-mono font-semibold">PlaybackCompleted ACK</code> duy nhất
@@ -523,31 +528,31 @@ export function SessionReportPage() {
                   { label: 'Bình luận đã nhận', value: report.aiFunnel.commentsReceived },
                   { label: 'Đủ điều kiện phản hồi', value: report.aiFunnel.commentsEligible },
                   { label: 'Lượt AI chuẩn bị', value: report.aiFunnel.turnsPrepared },
-                  { label: 'Lượt đã COMMITTED', value: report.aiFunnel.turnsCommitted },
+                  { label: 'Lượt đã bắt đầu phát', value: report.aiFunnel.turnsCommitted },
                   {
-                    label: 'Đã phát (Playback ACK)',
+                    label: 'Đã phát xong tới người xem',
                     value: report.aiFunnel.turnsPlayedAck,
                     highlight: true,
                   },
                 ].map((step) => (
                   <div
                     key={step.label}
-                    className={`rounded-[var(--radius-md)] border p-3.5 ${
+                    className={`rounded-[var(--radius-input)] border p-3.5 ${
                       step.highlight
                         ? 'border-[var(--brand-amber)] bg-[var(--brand-amber)]/10'
-                        : 'border-[var(--border-subtle)] bg-[var(--surface-base)]'
+                        : 'border-[var(--border-default)] bg-[var(--bg-surface)]'
                     }`}
                   >
                     <p className="text-xs text-[var(--text-secondary)]">{step.label}</p>
-                    <p className="mt-1 text-2xl font-bold text-[var(--text-primary)]">
+                    <p className="mt-1 text-2xl font-bold tabular-nums text-[var(--text-primary)]">
                       {step.value}
                     </p>
                   </div>
                 ))}
               </div>
               <p className="text-xs text-[var(--text-muted)]">
-                Số tín hiệu ACK trùng lặp đã được khử trùng lặp tự động:{' '}
-                <strong className="text-[var(--text-primary)]">
+                Số tín hiệu xác nhận trùng lặp đã được loại bỏ tự động:{' '}
+                <strong className="tabular-nums text-[var(--text-primary)]">
                   {report.aiFunnel.dedupedAckCount}
                 </strong>
               </p>
@@ -557,22 +562,22 @@ export function SessionReportPage() {
           {activeTab === 'MEDIA_STABILITY' && (
             <div className="space-y-3">
               {report.mediaIncidents.length === 0 ? (
-                <div className="flex items-center gap-2 rounded-[var(--radius-md)] bg-[var(--status-success)]/10 p-4 text-sm text-[var(--status-success)]">
+                <div className="flex items-center gap-2 rounded-[var(--radius-input)] border border-[var(--status-success-border)] bg-[var(--status-success-bg)] p-4 text-sm text-[var(--status-success-fg)]">
                   <CheckCircle2 className="h-5 w-5 shrink-0" />
-                  Không ghi nhận sự cố suy giảm media hoặc chuyển fallback trong phiên này.
+                  Không ghi nhận sự cố suy giảm media hoặc chuyển cảnh dự phòng trong phiên này.
                 </div>
               ) : (
                 report.mediaIncidents.map((inc) => (
                   <div
                     key={inc.id}
-                    className="flex flex-col gap-2 rounded-[var(--radius-md)] border border-[var(--border-subtle)] p-4 sm:flex-row sm:items-center sm:justify-between"
+                    className="flex flex-col gap-2 rounded-[var(--radius-input)] border border-[var(--border-default)] p-4 sm:flex-row sm:items-center sm:justify-between"
                   >
                     <div className="flex items-start gap-3">
                       <AlertTriangle
                         className={`mt-0.5 h-5 w-5 shrink-0 ${
                           inc.severity === 'danger'
-                            ? 'text-[var(--status-danger)]'
-                            : 'text-[var(--status-warning)]'
+                            ? 'text-[var(--status-danger-fg)]'
+                            : 'text-[var(--status-warning-fg)]'
                         }`}
                       />
                       <div>
@@ -595,13 +600,13 @@ export function SessionReportPage() {
             <div className="space-y-3">
               {role === 'OPERATOR' && (
                 <p className="text-xs text-[var(--text-muted)]">
-                  Đang hiển thị nhật ký vận hành rút gọn. Chủ sở hữu có thể xuất file CSV đầy đủ.
+                  Đang hiển thị nhật ký vận hành rút gọn. Chủ sở hữu có thể xuất tệp CSV đầy đủ.
                 </p>
               )}
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[640px] border-collapse text-left text-xs">
                   <thead>
-                    <tr className="border-b border-[var(--border-subtle)] text-[var(--text-muted)]">
+                    <tr className="border-b border-[var(--border-default)] text-[var(--text-muted)]">
                       <th className="py-2.5 pr-4 font-semibold">Thời điểm</th>
                       <th className="py-2.5 pr-4 font-semibold">Người thực hiện</th>
                       <th className="py-2.5 pr-4 font-semibold">Hành động</th>
@@ -609,7 +614,7 @@ export function SessionReportPage() {
                       <th className="py-2.5 font-semibold">Lý do / Ghi chú</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[var(--border-subtle)]">
+                  <tbody className="divide-y divide-[var(--border-default)]">
                     {report.auditEvents.map((ev) => (
                       <tr key={ev.id}>
                         <td className="py-2.5 pr-4 font-mono text-[var(--text-muted)] whitespace-nowrap">
@@ -655,13 +660,13 @@ export function SessionReportPage() {
             <button
               type="button"
               onClick={() => handleStartExport('CSV')}
-              className={`flex items-start gap-3 rounded-[var(--radius-md)] border p-3.5 text-left transition-colors ${
+              className={`flex items-start gap-3 rounded-[var(--radius-input)] border p-3.5 text-left transition-colors cursor-pointer ${
                 exportFormat === 'CSV' && exportState !== 'IDLE'
                   ? 'border-[var(--brand-amber)] bg-[var(--brand-amber)]/10'
-                  : 'border-[var(--border-subtle)] hover:bg-[var(--surface-subtle)]'
+                  : 'border-[var(--border-default)] hover:bg-[var(--bg-subtle)]'
               }`}
             >
-              <FileSpreadsheet className="mt-0.5 h-5 w-5 shrink-0 text-[var(--status-success)]" />
+              <FileSpreadsheet className="mt-0.5 h-5 w-5 shrink-0 text-[var(--status-success-fg)]" />
               <div>
                 <p className="text-sm font-semibold text-[var(--text-primary)]">
                   Nhật ký kiểm toán (CSV)
@@ -675,26 +680,26 @@ export function SessionReportPage() {
             <button
               type="button"
               onClick={() => handleStartExport('PDF')}
-              className={`flex items-start gap-3 rounded-[var(--radius-md)] border p-3.5 text-left transition-colors ${
+              className={`flex items-start gap-3 rounded-[var(--radius-input)] border p-3.5 text-left transition-colors cursor-pointer ${
                 exportFormat === 'PDF' && exportState !== 'IDLE'
                   ? 'border-[var(--brand-amber)] bg-[var(--brand-amber)]/10'
-                  : 'border-[var(--border-subtle)] hover:bg-[var(--surface-subtle)]'
+                  : 'border-[var(--border-default)] hover:bg-[var(--bg-subtle)]'
               }`}
             >
-              <FileText className="mt-0.5 h-5 w-5 shrink-0 text-[var(--status-danger)]" />
+              <FileText className="mt-0.5 h-5 w-5 shrink-0 text-[var(--status-danger-fg)]" />
               <div>
                 <p className="text-sm font-semibold text-[var(--text-primary)]">
                   Báo cáo tổng hợp (PDF)
                 </p>
                 <p className="mt-0.5 text-xs text-[var(--text-secondary)]">
-                  Tài liệu PDF 1.4 kèm KPI & Playback ACK
+                  Tài liệu PDF 1.4 kèm chỉ số & xác nhận phát
                 </p>
               </div>
             </button>
           </div>
 
           {exportState !== 'IDLE' && (
-            <div className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--surface-subtle)] p-4 space-y-3">
+            <div className="rounded-[var(--radius-input)] border border-[var(--border-default)] bg-[var(--bg-subtle)] p-4 space-y-3">
               <div className="flex items-center justify-between gap-2">
                 <span className="text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">
                   Trạng thái tác vụ xuất ({exportFormat})
@@ -731,7 +736,7 @@ export function SessionReportPage() {
               )}
 
               {exportMessage && (
-                <p className="flex items-center gap-1.5 text-xs font-medium text-[var(--status-success)]">
+                <p className="flex items-center gap-1.5 text-xs font-medium text-[var(--status-success-fg)]">
                   <CheckCircle2 className="h-4 w-4 shrink-0" />
                   {exportMessage}
                 </p>
@@ -739,7 +744,7 @@ export function SessionReportPage() {
             </div>
           )}
 
-          <div className="flex items-center justify-between border-t border-[var(--border-subtle)] pt-3">
+          <div className="flex items-center justify-between border-t border-[var(--border-default)] pt-3">
             <span className="inline-flex items-center gap-1 text-[11px] text-[var(--text-muted)]">
               <ShieldAlert className="h-3.5 w-3.5" />
               Mock Export · Tải tệp thật trên trình duyệt

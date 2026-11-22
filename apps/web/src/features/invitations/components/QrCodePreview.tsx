@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react'
 import QRCode from 'qrcode'
 import { Check, Copy, Download, ExternalLink } from 'lucide-react'
-import { Link } from 'react-router-dom'
-import { Button } from '@/components/ui/Button'
+import { Button, ButtonLink } from '@/components/ui/Button'
 
 export interface QrCodePreviewProps {
   url: string
@@ -107,16 +106,15 @@ export function QrCodePreview({
         </Button>
 
         {!disabled ? (
-          <Link to={relativePath} className="block">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="w-full"
-              leftIcon={<ExternalLink className="h-3.5 w-3.5" />}
-            >
-              Mở thử phòng xem khách (Viewer Room)
-            </Button>
-          </Link>
+          <ButtonLink
+            to={relativePath}
+            variant="ghost"
+            size="sm"
+            className="w-full"
+            leftIcon={<ExternalLink className="h-3.5 w-3.5" />}
+          >
+            Mở thử phòng xem khách (Viewer Room)
+          </ButtonLink>
         ) : null}
       </div>
 

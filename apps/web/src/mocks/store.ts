@@ -130,7 +130,7 @@ export function computeReadiness(
       : presenter
         ? `Quyền của ${presenter.displayName} hiện ở trạng thái không hợp lệ hoặc đã bị thu hồi.`
         : 'Chưa chọn AI Presenter hợp lệ cho phiên.',
-    sourceLabel: 'P11 · Rights Registry (Mô phỏng)',
+    sourceLabel: 'Hệ thống xác nhận quyền hình ảnh (Mô phỏng)',
     remediationLabel: 'Mở AI Presenter Studio',
     remediationRoute: presenter
       ? `/studio/presenters/${presenter.id}`
@@ -147,7 +147,7 @@ export function computeReadiness(
     reason: presenterApproved
       ? `${presenter?.displayName} · Gói ${presenter?.activePackVersion} đạt QC và đã được duyệt.`
       : 'Presenter chưa có gói clip đạt QC hoặc chưa được Chủ sở hữu phê duyệt.',
-    sourceLabel: 'P01 · Presenter Studio',
+    sourceLabel: 'Thư viện AI Presenter',
     remediationLabel: 'Kiểm duyệt Presenter',
     remediationRoute: presenter
       ? `/studio/presenters/${presenter.id}`
@@ -164,7 +164,7 @@ export function computeReadiness(
     reason: skuCountValid
       ? `Đã chọn ${selectedProducts.length} SKU hợp lệ cho phiên.`
       : `Hiện có ${selectedProducts.length} SKU — MVP yêu cầu từ 2 đến 5 SKU.`,
-    sourceLabel: 'Session Setup',
+    sourceLabel: 'Thiết lập phiên livestream',
     remediationLabel: 'Chỉnh sửa SKU phiên',
     remediationRoute: `/studio/sessions/${session.id}/setup`,
   })
@@ -179,7 +179,7 @@ export function computeReadiness(
     reason: ocopPass
       ? `Toàn bộ ${selectedProducts.length}/${selectedProducts.length} SKU đã có xác minh OCOP hợp lệ.`
       : `${unverifiedOcop.map((p) => p.skuCode).join(', ')} chưa đạt OCOP đã xác minh (không tự suy diễn từ duyệt tri thức).`,
-    sourceLabel: 'P09 · OCOP Eligibility',
+    sourceLabel: 'Hệ thống xác minh OCOP',
     remediationLabel: 'Mở Sản phẩm & OCOP',
     remediationRoute: unverifiedOcop[0]
       ? `/studio/products/${unverifiedOcop[0].skuId}?tab=ocop`
@@ -199,7 +199,7 @@ export function computeReadiness(
     reason: knowledgePass
       ? 'Toàn bộ SKU đã có phiên bản tri thức đã duyệt và liên kết bằng chứng.'
       : `${unapprovedKnowledge.map((p) => p.skuCode).join(', ')} chưa có gói tri thức được duyệt.`,
-    sourceLabel: 'P05 · Knowledge & Claims',
+    sourceLabel: 'Kho Tri thức & Claims',
     remediationLabel: 'Rà soát Tri thức',
     remediationRoute: unapprovedKnowledge[0]
       ? `/studio/knowledge/${unapprovedKnowledge[0].skuId}`
@@ -215,7 +215,7 @@ export function computeReadiness(
     reason: storyPass
       ? `Đã duyệt phiên bản kịch bản v${story.approvedRevision} (${story.arcs.length} đoạn).`
       : story?.dirtyReason || 'Kịch bản đang ở trạng thái nháp hoặc cần duyệt lại sau khi chỉnh sửa.',
-    sourceLabel: 'P06 · Story Planner',
+    sourceLabel: 'Kế hoạch nội dung',
     remediationLabel: 'Mở Story Planner',
     remediationRoute: `/studio/sessions/${session.id}/story`,
   })
@@ -226,9 +226,9 @@ export function computeReadiness(
     label: 'Hạ tầng phát & cảnh dự phòng an toàn (Mô phỏng)',
     status: state.mediaReadyMock ? 'PASS' : 'BLOCKED',
     reason: state.mediaReadyMock
-      ? 'Phòng riêng LiveKit mô phỏng và cảnh sản phẩm dự phòng đã sẵn sàng.'
+      ? 'Phòng riêng phát sóng mô phỏng và cảnh sản phẩm dự phòng đã sẵn sàng.'
       : 'Bộ phát media mô phỏng chưa sẵn sàng.',
-    sourceLabel: 'P04 · Media Controller (Mô phỏng)',
+    sourceLabel: 'Hạ tầng phát sóng (Mô phỏng)',
   })
 
   const blockedCount = gates.filter((g) => g.status === 'BLOCKED').length

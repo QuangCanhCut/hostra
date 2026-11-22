@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 import { X } from 'lucide-react'
 
 export interface DrawerProps {
@@ -9,14 +9,55 @@ export interface DrawerProps {
   children: ReactNode
 }
 
+const FOCUSABLE_SELECTOR =
+  'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+
 export function Drawer({ open, onClose, title, subtitle, children }: DrawerProps) {
+  const panelRef = useRef<HTMLDivElement>(null)
+
+  /* Khóa cuộn nền, giữ focus trong ngăn kéo (focus trap) và khôi phục focus khi đóng */
   useEffect(() => {
     if (!open) return
+    const previousFocus = document.activeElement as HTMLElement | null
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+
+    const raf = window.requestAnimationFrame(() => {
+      const nodes = panelRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)
+      if (nodes && nodes.length > 0) nodes[0].focus()
+      else panelRef.current?.focus()
+    })
+
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        onClose()
+        return
+      }
+      if (e.key === 'Tab' && panelRef.current) {
+        const nodes = Array.from(
+          panelRef.current.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR),
+        )
+        if (nodes.length === 0) return
+        const first = nodes[0]
+        const last = nodes[nodes.length - 1]
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault()
+          last.focus()
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault()
+          first.focus()
+        }
+      }
     }
+
     window.addEventListener('keydown', handleKey)
-    return () => window.removeEventListener('keydown', handleKey)
+    return () => {
+      window.cancelAnimationFrame(raf)
+      window.removeEventListener('keydown', handleKey)
+      document.body.style.overflow = previousOverflow
+      previousFocus?.focus?.()
+    }
   }, [open, onClose])
 
   if (!open) return null
@@ -33,7 +74,11 @@ export function Drawer({ open, onClose, title, subtitle, children }: DrawerProps
         onClick={onClose}
         aria-hidden="true"
       />
-      <div className="relative z-10 flex h-full w-full max-w-lg flex-col border-l border-[var(--border-strong)] bg-[var(--bg-elevated)] shadow-[var(--shadow-elevated)]">
+      <div
+        ref={panelRef}
+        tabIndex={-1}
+        className="relative z-10 flex h-full w-full max-w-lg flex-col border-l border-[var(--border-strong)] bg-[var(--bg-elevated)] shadow-[var(--shadow-elevated)] outline-none"
+      >
         <div className="flex items-start justify-between gap-3 border-b border-[var(--border-default)] px-5 py-4">
           <div className="min-w-0">
             <h2 className="text-base font-bold text-[var(--text-primary)] truncate">
@@ -49,7 +94,7 @@ export function Drawer({ open, onClose, title, subtitle, children }: DrawerProps
             type="button"
             onClick={onClose}
             aria-label="Đóng bảng chi tiết"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] cursor-pointer"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[8px] text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] cursor-pointer"
           >
             <X className="h-4 w-4" />
           </button>

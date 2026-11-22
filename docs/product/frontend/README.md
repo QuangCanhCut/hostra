@@ -49,7 +49,7 @@ docs/product/frontend/
 ├── blueprint/       # Frontend Design & Implementation Blueprint (hiện ở trạng thái DRAFT)
 ├── design/          # Visual Redesign v0.4 (APPROVED), PDF review 51 trang & ảnh tổng quan
 ├── modules/         # 12 gói đặc tả module (v0.2 / Dashboard v0.4) & Cross-Module Audit v0.1
-├── reports/         # Báo cáo triển khai & screenshots kiểm thử theo từng milestone (milestone-01..03, final-qa)
+├── reports/         # Báo cáo triển khai & screenshots kiểm thử theo từng milestone (milestone-01..05)
 └── archive/         # Lưu trữ phiên bản cũ (hiện trống; không dùng làm nguồn hiện hành)
 ```
 
@@ -65,8 +65,8 @@ docs/product/frontend/
 | :--- | :---: | :---: | :--- | :--- |
 | Frontend Documentation Hub | v1.0 | `ACTIVE` | Điểm bắt đầu đọc tài liệu frontend & hướng dẫn Coding Agents | [README.md](./README.md) |
 | Frontend Decision Register | v1.0 | `ACTIVE` | Tổng hợp toàn bộ quyết định sản phẩm/UX theo module & danh mục Open/Conflict | [DECISIONS.md](./DECISIONS.md) |
-| Milestone 1 Implementation Report | M1 | `REVIEW` | Báo cáo triển khai Foundation & Merchant Dashboard + 9 screenshots Visual QA | [reports/milestone-01/IMPLEMENTATION_REPORT.md](./reports/milestone-01/IMPLEMENTATION_REPORT.md) |
-| Milestone 2 Implementation Report | M2 | `REVIEW` | Báo cáo triển khai M01 Fixes + 6 module Asset Preparation + 13 screenshots Visual QA | [reports/milestone-02/IMPLEMENTATION_REPORT.md](./reports/milestone-02/IMPLEMENTATION_REPORT.md) |
+| Milestone 1–4 Implementation & QA Reports | M1–M4 | `COMPLETED` | Báo cáo triển khai Foundation, Asset Prep, Live Ops, Final QA & Integration Readiness (xem chi tiết Mục 17) | [reports/milestone-04/FINAL_QA_REPORT.md](./reports/milestone-04/FINAL_QA_REPORT.md) |
+| Milestone 5 Final Closure & Demo Readiness | M05.1–M05.4 | `PASS (MOCK MVP)` | Đóng 22/22 vấn đề UI/UX, kiểm thử hồi quy toàn diện, Demo Runbook & bàn giao Frontend Mock MVP | [reports/milestone-05/04-final-regression-demo-readiness/README.md](./reports/milestone-05/04-final-regression-demo-readiness/README.md) |
 | Frontend Design & Implementation Blueprint | v1.0 | `DRAFT` | Bản tổng hợp kiến trúc frontend, sitemap, 8 journeys (`PT-01`–`PT-08`), kế hoạch F0–F5 | [blueprint/HOSTRA_AI_Frontend_Design_Implementation_Blueprint_v1.0_DRAFT.docx](./blueprint/HOSTRA_AI_Frontend_Design_Implementation_Blueprint_v1.0_DRAFT.docx) |
 | Visual Redesign & Figma Handoff | v0.4 | `APPROVED` | Chuẩn thị giác v0.4 (CTA `#F5C430`, Dark Mode, 6 micro-UI fixes, ranh giới nghiệp vụ) | [design/HOSTRA_Visual_Redesign_and_Figma_Handoff_v0.4.docx](./design/HOSTRA_Visual_Redesign_and_Figma_Handoff_v0.4.docx) |
 | UI Redesign Clickable Review (51 trang) | v0.4 | `APPROVED` | Bộ review thị giác 25 màn hình × 2 theme Light/Dark (Desktop + Mobile 390×844) | [design/HOSTRA_UI_Redesign_Clickable_Review_v0.4.pdf](./design/HOSTRA_UI_Redesign_Clickable_Review_v0.4.pdf) |
@@ -326,3 +326,25 @@ Trước khi viết bất kỳ dòng code frontend nào trong `apps/web/`, Codin
   - [API_CONTRACT_GAPS.md](./reports/milestone-04/API_CONTRACT_GAPS.md)
   - [DEMO_GUIDE.md](./reports/milestone-04/DEMO_GUIDE.md)
   - Screenshots: [reports/milestone-04/screenshots/](./reports/milestone-04/screenshots/)
+- **Milestone 05.1 (Comprehensive Frontend UI/UX Audit — Audit Only):**
+  - [README.md](./reports/milestone-05/01-ui-ux-audit/README.md) · [UI_UX_AUDIT_REPORT.md](./reports/milestone-05/01-ui-ux-audit/UI_UX_AUDIT_REPORT.md)
+  - [SCREEN_BY_SCREEN_REVIEW.md](./reports/milestone-05/01-ui-ux-audit/SCREEN_BY_SCREEN_REVIEW.md) · [ISSUE_REGISTER.md](./reports/milestone-05/01-ui-ux-audit/ISSUE_REGISTER.md)
+  - [DESIGN_SYSTEM_AUDIT.md](./reports/milestone-05/01-ui-ux-audit/DESIGN_SYSTEM_AUDIT.md) · [RESPONSIVE_ACCESSIBILITY_AUDIT.md](./reports/milestone-05/01-ui-ux-audit/RESPONSIVE_ACCESSIBILITY_AUDIT.md)
+  - [UX_MICROCOPY_GLOSSARY.md](./reports/milestone-05/01-ui-ux-audit/UX_MICROCOPY_GLOSSARY.md) · [IMPROVEMENT_BACKLOG.md](./reports/milestone-05/01-ui-ux-audit/IMPROVEMENT_BACKLOG.md)
+  - [PROPOSED_M05_2_PLAN.md](./reports/milestone-05/01-ui-ux-audit/PROPOSED_M05_2_PLAN.md)
+  - Screenshots: [reports/milestone-05/01-ui-ux-audit/screenshots/](./reports/milestone-05/01-ui-ux-audit/screenshots/)
+- **Milestone 05.2 (UI/UX Refinement Implementation):**
+  - [README.md](./reports/milestone-05/02-ui-ux-refinement/README.md) · [REFINEMENT_REPORT.md](./reports/milestone-05/02-ui-ux-refinement/REFINEMENT_REPORT.md) · [BEFORE_AFTER_COMPARISON.md](./reports/milestone-05/02-ui-ux-refinement/BEFORE_AFTER_COMPARISON.md)
+  - Screenshots: [reports/milestone-05/02-ui-ux-refinement/screenshots/](./reports/milestone-05/02-ui-ux-refinement/screenshots/)
+- **Milestone 05.3 (Usability Testing & End-to-End User Journey Validation):**
+  - [README.md](./reports/milestone-05/03-usability-validation/README.md) · [M05_3_USABILITY_REPORT.md](./reports/milestone-05/03-usability-validation/M05_3_USABILITY_REPORT.md)
+  - [USER_JOURNEY_TEST_MATRIX.md](./reports/milestone-05/03-usability-validation/USER_JOURNEY_TEST_MATRIX.md) · [ACCESSIBILITY_RESPONSIVE_REPORT.md](./reports/milestone-05/03-usability-validation/ACCESSIBILITY_RESPONSIVE_REPORT.md)
+  - [M05_1_ISSUE_CLOSURE.md](./reports/milestone-05/03-usability-validation/M05_1_ISSUE_CLOSURE.md) · [HUMAN_USABILITY_TEST_PLAN.md](./reports/milestone-05/03-usability-validation/HUMAN_USABILITY_TEST_PLAN.md)
+  - [M05_3_FIX_LOG.md](./reports/milestone-05/03-usability-validation/M05_3_FIX_LOG.md) · [M05_3_EXIT_GATE.md](./reports/milestone-05/03-usability-validation/M05_3_EXIT_GATE.md)
+  - Screenshots: [reports/milestone-05/03-usability-validation/screenshots/](./reports/milestone-05/03-usability-validation/screenshots/)
+- **Milestone 05.4 (Final Regression, UX Issue Closure & Frontend Demo Readiness — `PASS — FRONTEND MOCK MVP BASELINE READY`):**
+  - [README.md](./reports/milestone-05/04-final-regression-demo-readiness/README.md) · [M05_4_IMPLEMENTATION_REPORT.md](./reports/milestone-05/04-final-regression-demo-readiness/M05_4_IMPLEMENTATION_REPORT.md)
+  - [FINAL_ISSUE_CLOSURE.md](./reports/milestone-05/04-final-regression-demo-readiness/FINAL_ISSUE_CLOSURE.md) · [FINAL_REGRESSION_REPORT.md](./reports/milestone-05/04-final-regression-demo-readiness/FINAL_REGRESSION_REPORT.md)
+  - [FRONTEND_DEMO_RUNBOOK.md](./reports/milestone-05/04-final-regression-demo-readiness/FRONTEND_DEMO_RUNBOOK.md) · [FRONTEND_MOCK_MVP_HANDOFF.md](./reports/milestone-05/04-final-regression-demo-readiness/FRONTEND_MOCK_MVP_HANDOFF.md)
+  - [HUMAN_USABILITY_TEST_PLAN.md](./reports/milestone-05/04-final-regression-demo-readiness/HUMAN_USABILITY_TEST_PLAN.md) · [M05_4_EXIT_GATE.md](./reports/milestone-05/04-final-regression-demo-readiness/M05_4_EXIT_GATE.md)
+  - Evidence & Screenshots: [tests/evidence/m05_4_regression_evidence.json](./reports/milestone-05/04-final-regression-demo-readiness/tests/evidence/m05_4_regression_evidence.json) · [screenshots/](./reports/milestone-05/04-final-regression-demo-readiness/screenshots/)
