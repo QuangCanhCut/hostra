@@ -4,6 +4,7 @@ import { cn } from '@/lib/cn'
 export interface CardProps extends HTMLAttributes<HTMLDivElement> {
   padding?: 'none' | 'sm' | 'md' | 'lg'
   elevated?: boolean
+  featured?: boolean
   children: ReactNode
 }
 
@@ -17,6 +18,7 @@ const PADDING_CLASSES = {
 export function Card({
   padding = 'md',
   elevated = false,
+  featured = false,
   className,
   children,
   ...rest
@@ -24,7 +26,10 @@ export function Card({
   return (
     <div
       className={cn(
-        'rounded-[12px] border border-[var(--border-default)] bg-[var(--bg-surface)]',
+        'heritage-card rounded-[var(--radius-card)] border min-w-0',
+        featured
+          ? 'border-[var(--border-strong)]'
+          : 'border-[var(--border-default)]',
         elevated ? 'shadow-[var(--shadow-elevated)]' : 'shadow-[var(--shadow-card)]',
         PADDING_CLASSES[padding],
         className,

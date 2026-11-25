@@ -77,11 +77,11 @@ export function Drawer({ open, onClose, title, subtitle, children }: DrawerProps
       <div
         ref={panelRef}
         tabIndex={-1}
-        className="relative z-10 flex h-full w-full max-w-lg flex-col border-l border-[var(--border-strong)] bg-[var(--bg-elevated)] shadow-[var(--shadow-elevated)] outline-none"
+        className="heritage-card relative z-10 flex h-full w-full max-w-[460px] flex-col border-l border-[var(--border-strong)] shadow-[var(--shadow-elevated)] outline-none"
       >
         <div className="flex items-start justify-between gap-3 border-b border-[var(--border-default)] px-5 py-4">
           <div className="min-w-0">
-            <h2 className="text-base font-bold text-[var(--text-primary)] truncate">
+            <h2 className="font-display text-lg font-bold text-[var(--text-primary)] truncate">
               {title}
             </h2>
             {subtitle ? (

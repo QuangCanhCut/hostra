@@ -28,7 +28,7 @@ export function Tabs<T extends string>({
       role="tablist"
       aria-label={ariaLabel}
       className={cn(
-        'flex items-center gap-1 overflow-x-auto border-b border-[var(--border-default)]',
+        'flex items-center gap-1.5 overflow-x-auto border-b border-[var(--border-default)]',
         className,
       )}
     >
@@ -42,10 +42,10 @@ export function Tabs<T extends string>({
             aria-selected={isActive}
             onClick={() => onChange(item.id)}
             className={cn(
-              'relative inline-flex min-h-[44px] shrink-0 items-center gap-2 px-3.5 py-2 text-sm font-medium transition-colors cursor-pointer',
+              'relative inline-flex min-h-[44px] shrink-0 items-center gap-2 rounded-t-[8px] px-3.5 py-2 text-sm font-medium transition-colors cursor-pointer',
               isActive
-                ? 'text-[var(--text-primary)] font-semibold'
-                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]',
+                ? 'text-[var(--accent-gold)] font-semibold bg-[var(--bg-raised)]/60'
+                : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)]/50',
             )}
           >
             <span>{item.label}</span>
@@ -54,8 +54,8 @@ export function Tabs<T extends string>({
                 className={cn(
                   'rounded-full px-2 py-0.5 text-xs tabular-nums',
                   isActive
-                    ? 'bg-[var(--brand-amber)] text-[var(--text-on-amber)] font-semibold'
-                    : 'bg-[var(--bg-subtle)] text-[var(--text-secondary)]',
+                    ? '[background:var(--cta-primary-bg)] text-[var(--cta-primary-fg)] font-semibold'
+                    : 'bg-[var(--bg-subtle)] text-[var(--text-muted)]',
                 )}
               >
                 {item.count}
@@ -65,7 +65,7 @@ export function Tabs<T extends string>({
             {isActive ? (
               <span
                 aria-hidden="true"
-                className="absolute inset-x-0 bottom-0 h-0.5 bg-[var(--brand-amber)]"
+                className="absolute inset-x-0 bottom-0 h-0.5 bg-[var(--accent-gold)]"
               />
             ) : null}
           </button>

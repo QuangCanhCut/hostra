@@ -24,13 +24,13 @@ export interface ButtonLinkProps extends Omit<LinkProps, 'children'> {
 
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
   primary:
-    'bg-[var(--brand-amber)] text-[var(--text-on-amber)] hover:bg-[var(--brand-amber-hover)] font-semibold border border-transparent shadow-xs',
+    '[background:var(--cta-primary-bg)] hover:[background:var(--cta-primary-bg-hover)] text-[var(--cta-primary-fg)] font-semibold border border-[var(--cta-primary-border)] shadow-[var(--cta-primary-shadow)]',
   secondary:
-    'bg-[var(--bg-surface)] text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] font-medium border border-[var(--border-strong)]',
+    'bg-transparent text-[var(--text-primary)] hover:bg-[var(--bg-raised)] font-semibold border border-[var(--border-strong)]',
   ghost:
     'bg-transparent text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] font-medium border border-transparent',
   destructive:
-    'bg-[var(--brand-danger)] text-white hover:bg-[var(--brand-danger-hover)] font-semibold border border-transparent',
+    'bg-[var(--brand-danger)] text-white hover:bg-[var(--brand-danger-hover)] font-semibold border border-[var(--brand-danger-border)]',
 }
 
 const SIZE_CLASSES: Record<ButtonSize, string> = {
@@ -41,7 +41,7 @@ const SIZE_CLASSES: Record<ButtonSize, string> = {
 
 /* Lớp nền chung giúp Button và ButtonLink đồng nhất hoàn toàn về kích thước và vòng focus */
 const BASE_BUTTON_CLASSES =
-  'inline-flex items-center justify-center whitespace-nowrap transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--bg-canvas)]'
+  'inline-flex items-center justify-center whitespace-nowrap transition-all duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--bg-canvas)]'
 
 export function Button({
   variant = 'primary',
@@ -63,7 +63,7 @@ export function Button({
       disabled={isDisabled}
       className={cn(
         BASE_BUTTON_CLASSES,
-        'disabled:opacity-55 disabled:cursor-not-allowed',
+        'disabled:opacity-50 disabled:cursor-not-allowed',
         VARIANT_CLASSES[variant],
         SIZE_CLASSES[size],
         className,

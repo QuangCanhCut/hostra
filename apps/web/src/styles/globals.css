@@ -3,7 +3,7 @@
 
 @layer base {
   html {
-    font-family: 'Be Vietnam Pro', 'Inter', system-ui, -apple-system, sans-serif;
+    font-family: var(--font-ui);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     color: var(--text-primary);
@@ -14,13 +14,15 @@
     margin: 0;
     min-height: 100vh;
     background-color: var(--bg-canvas);
+    background-image: var(--bg-canvas-glow);
+    background-attachment: fixed;
     color: var(--text-primary);
     font-size: 14px;
-    line-height: 1.55;
+    line-height: 1.5;
   }
 
   h1, h2, h3, h4 {
-    line-height: 1.28;
+    line-height: 1.25;
     letter-spacing: -0.015em;
   }
 
@@ -30,8 +32,26 @@
   }
 }
 
+.font-display {
+  font-family: var(--font-display);
+}
+
 .tabular-nums {
   font-variant-numeric: tabular-nums;
+}
+
+.heritage-card {
+  background: var(--bg-card-gradient);
+}
+
+.heritage-sidebar-mask {
+  mask-image: linear-gradient(transparent 0%, #000 28%, #000 78%, transparent 100%);
+  -webkit-mask-image: linear-gradient(transparent 0%, #000 28%, #000 78%, transparent 100%);
+}
+
+.heritage-resource-mask {
+  mask-image: linear-gradient(90deg, transparent 0%, #000 46%);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 46%);
 }
 
 @media (prefers-reduced-motion: reduce) {

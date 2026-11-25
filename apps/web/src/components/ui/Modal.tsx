@@ -93,13 +93,13 @@ export function Modal({
         ref={panelRef}
         tabIndex={-1}
         className={cn(
-          'relative z-10 flex max-h-[90vh] w-full flex-col rounded-[16px] border border-[var(--border-strong)] bg-[var(--bg-elevated)] shadow-[var(--shadow-elevated)] outline-none',
+          'heritage-card relative z-10 flex max-h-[90vh] w-full flex-col rounded-[var(--radius-modal)] border border-[var(--border-strong)] shadow-[var(--shadow-elevated)] outline-none',
           size === 'lg' ? 'max-w-2xl' : 'max-w-lg',
         )}
       >
         <div className="flex items-start justify-between gap-3 border-b border-[var(--border-default)] px-5 py-4">
           <div>
-            <h2 className="text-base font-bold text-[var(--text-primary)]">{title}</h2>
+            <h2 className="font-display text-lg font-bold text-[var(--text-primary)]">{title}</h2>
             {description ? (
               <p className="mt-0.5 text-xs text-[var(--text-secondary)]">{description}</p>
             ) : null}

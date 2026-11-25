@@ -12,12 +12,12 @@ const ThemeContext = createContext<ThemeContextValue | null>(null)
 const STORAGE_KEY = 'hostra-ui-theme-v1'
 
 function readInitialTheme(): ThemeMode {
-  if (typeof window === 'undefined') return 'light'
+  if (typeof window === 'undefined') return 'dark'
   const urlTheme = new URLSearchParams(window.location.search).get('theme')
   if (urlTheme === 'dark' || urlTheme === 'light') return urlTheme
   const stored = window.localStorage?.getItem(STORAGE_KEY)
   if (stored === 'dark' || stored === 'light') return stored
-  return 'light'
+  return 'dark'
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {

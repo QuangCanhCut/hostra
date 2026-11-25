@@ -1,4 +1,4 @@
-import { ArrowRight, CalendarPlus, Radio, ShieldAlert, Sparkles } from 'lucide-react'
+import { ArrowRight, CalendarPlus, Radio, ShieldAlert } from 'lucide-react'
 import { Card } from '@/components/ui/Card'
 import { ButtonLink } from '@/components/ui/Button'
 import { StatusBadge } from '@/components/ui/StatusBadge'
@@ -15,30 +15,44 @@ export interface FeaturedSessionCardProps {
   capabilities?: UserCapabilities
 }
 
+function resolvePresenterThumb(presenterName: string): string {
+  const lower = presenterName.toLowerCase()
+  if (lower.includes('mai')) return '/demo/presenters/mai.jpg'
+  if (lower.includes('an')) return '/demo/presenters/an.jpg'
+  if (lower.includes('linh')) return '/demo/presenters/linh.jpg'
+  return '/heritage/presenter-heritage.webp'
+}
+
 export function FeaturedSessionCard({
   session,
   capabilities,
 }: FeaturedSessionCardProps) {
   if (!session) {
     return (
-      <Card padding="md" className="flex h-full flex-col justify-between">
-        <div>
-          <h2 className="text-base font-bold text-[var(--text-primary)]">
-            Phiên nổi bật
-          </h2>
-          <p className="mt-0.5 text-xs text-[var(--text-secondary)]">
-            Theo dõi nhanh trạng thái phiên livestream mới nhất
-          </p>
+      <Card padding="md" featured className="flex h-full flex-col justify-between gap-4">
+        <div className="flex items-start gap-2.5">
+          <Radio
+            className="mt-0.5 h-5 w-5 shrink-0 text-[var(--accent-gold)]"
+            aria-hidden="true"
+          />
+          <div>
+            <h2 className="text-[18px] font-semibold leading-snug text-[var(--text-primary)]">
+              Phiên nổi bật
+            </h2>
+            <p className="mt-0.5 text-xs text-[var(--text-muted)]">
+              Theo dõi nhanh trạng thái phiên livestream mới nhất.
+            </p>
+          </div>
         </div>
 
-        <div className="my-5 flex flex-col items-center rounded-[10px] border border-dashed border-[var(--border-strong)] bg-[var(--bg-subtle)] p-6 text-center">
-          <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--bg-surface)] text-[var(--text-secondary)]">
+        <div className="my-2 flex flex-col items-center rounded-[10px] border border-dashed border-[var(--border-strong)] bg-[var(--bg-subtle)]/60 p-6 text-center">
+          <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--bg-surface)] text-[var(--accent-gold)] border border-[var(--border-default)]">
             <Radio className="h-5 w-5" aria-hidden="true" />
           </div>
           <p className="mt-3 text-sm font-semibold text-[var(--text-primary)]">
             Chưa có phiên livestream nào
           </p>
-          <p className="mt-1 text-xs text-[var(--text-secondary)]">
+          <p className="mt-1 text-xs text-[var(--text-muted)]">
             {capabilities?.canCreateSession
               ? 'Sau khi có AI Presenter và 2–5 sản phẩm OCOP, bạn có thể tạo phiên mới.'
               : 'Bạn chưa được phân công vào phiên livestream nào trong workspace này.'}
@@ -92,12 +106,18 @@ export function FeaturedSessionCard({
           }
 
   return (
-    <Card padding="md" className="flex h-full flex-col justify-between gap-4">
-      <div className="space-y-3">
-        <div className="flex items-center justify-between gap-2">
-          <h2 className="text-base font-bold text-[var(--text-primary)]">
-            Phiên gần nhất
-          </h2>
+    <Card padding="md" featured className="flex h-full flex-col justify-between gap-4">
+      <div className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Radio
+              className="h-5 w-5 shrink-0 text-[var(--accent-gold)]"
+              aria-hidden="true"
+            />
+            <h2 className="text-[18px] font-semibold leading-snug text-[var(--text-primary)]">
+              Phiên gần nhất
+            </h2>
+          </div>
           <StatusBadge
             label={lifecycleBadge.label}
             tone={lifecycleBadge.tone}
@@ -105,51 +125,54 @@ export function FeaturedSessionCard({
           />
         </div>
 
-        {/* Non-video summary card per Dashboard D5 (No Video Preview / No LiveKit subscribe on Dashboard) */}
-        <div className="rounded-[10px] border border-[var(--border-default)] bg-[var(--bg-subtle)] p-4 space-y-3">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-xs font-semibold text-[var(--text-muted)]">
+        {/* Non-video summary card per Dashboard D5 (ảnh tĩnh chân dung, không subscribe LiveKit hay nút Play giả) */}
+        <div className="space-y-3">
+          <div className="flex items-start gap-3.5">
+            <img
+              src={resolvePresenterThumb(session.presenterName)}
+              alt={`Ảnh chân dung tĩnh của ${session.presenterName}`}
+              className="h-[104px] w-[88px] shrink-0 rounded-[10px] border border-[var(--border-default)] object-cover object-top sm:h-[118px] sm:w-[106px]"
+            />
+
+            <div className="min-w-0 flex-1 space-y-1.5">
+              <p className="text-xs font-medium text-[var(--text-muted)] tabular-nums">
                 {session.code} · {session.skuCount} sản phẩm
               </p>
-              <h3 className="mt-0.5 text-sm font-bold text-[var(--text-primary)]">
+              <h3 className="text-[15px] font-semibold leading-snug text-[var(--text-primary)]">
                 {session.title}
               </h3>
-            </div>
-            <div
-              aria-hidden="true"
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-[var(--brand-navy)] text-[var(--brand-amber)]"
-            >
-              <Sparkles className="h-5 w-5" />
-            </div>
-          </div>
 
-          <div className="text-xs text-[var(--text-secondary)] space-y-1">
-            <p>
-              Presenter: <span className="font-medium text-[var(--text-primary)]">{session.presenterName}</span>
-            </p>
-            {session.activeSkuName ? (
-              <p>
-                Đang giới thiệu:{' '}
-                <span className="font-medium text-[var(--text-primary)]">
-                  {session.activeSkuName}
-                </span>
-              </p>
-            ) : null}
-          </div>
+              <div className="space-y-0.5 text-xs text-[var(--text-secondary)]">
+                <p className="truncate">
+                  Presenter:{' '}
+                  <span className="font-medium text-[var(--text-primary)]">
+                    {session.presenterName}
+                  </span>
+                </p>
+                {session.activeSkuName ? (
+                  <p className="truncate">
+                    Đang giới thiệu:{' '}
+                    <span className="font-medium text-[var(--text-primary)]">
+                      {session.activeSkuName}
+                    </span>
+                  </p>
+                ) : null}
+              </div>
 
-          {/* Tách độc lập trạng thái AI & Media; dùng dạng nhẹ (subtle) khi hoạt động bình thường (PO-D03) */}
-          <div className="flex flex-wrap gap-2 pt-1">
-            <StatusBadge
-              label={aiBadge.label}
-              tone={aiBadge.tone}
-              subtle={session.aiState === 'ACTIVE'}
-            />
-            <StatusBadge
-              label={mediaBadge.label}
-              tone={mediaBadge.tone}
-              subtle={session.mediaHealth === 'HEALTHY'}
-            />
+              {/* Tách độc lập trạng thái AI & Media; giữ phân cấp rõ ràng theo PO-D03 */}
+              <div className="flex flex-wrap gap-1.5 pt-1.5">
+                <StatusBadge
+                  label={aiBadge.label}
+                  tone={aiBadge.tone}
+                  subtle={session.aiState === 'ACTIVE'}
+                />
+                <StatusBadge
+                  label={mediaBadge.label}
+                  tone={mediaBadge.tone}
+                  subtle={session.mediaHealth === 'HEALTHY'}
+                />
+              </div>
+            </div>
           </div>
 
           {session.fallbackDescription ? (

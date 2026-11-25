@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight, BookOpenCheck, Search } from 'lucide-react'
 import { Card } from '@/components/ui/Card'
+import { PageHeader } from '@/components/ui/PageHeader'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
@@ -29,14 +30,10 @@ export function KnowledgeLibraryPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-[var(--text-primary)]">
-          Tri thức sản phẩm & Claims
-        </h1>
-        <p className="mt-1 text-sm text-[var(--text-secondary)]">
-          Đối chiếu tài liệu nguồn với từng nhóm thông tin (Giá, Thông số, Nguồn gốc, Chính sách, Marketing Claims) trước khi phê duyệt.
-        </p>
-      </div>
+      <PageHeader
+        title="Tri thức sản phẩm & Claims"
+        subtitle="Đối chiếu tài liệu nguồn với từng nhóm thông tin (Giá, Thông số, Nguồn gốc, Chính sách, Marketing Claims) trước khi phê duyệt."
+      />
 
       <div className="relative max-w-xs">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]" />
@@ -45,7 +42,7 @@ export function KnowledgeLibraryPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Tìm SKU hoặc tên sản phẩm..."
-          className="h-10 w-full rounded-[8px] border border-[var(--border-strong)] bg-[var(--bg-surface)] pl-9 pr-3 text-sm"
+          className="min-h-[42px] w-full rounded-[8px] border border-[var(--border-default)] bg-[var(--bg-canvas)] pl-9 pr-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)]/70 focus:border-[var(--border-strong)]"
         />
       </div>
 

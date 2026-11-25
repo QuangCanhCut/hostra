@@ -67,7 +67,7 @@ export function PresenterPortrait({
           className="h-full w-full object-cover object-top"
         />
       ) : (
-        <div className="flex h-full w-full items-center justify-center text-sm font-semibold text-slate-700">
+        <div className="flex h-full w-full items-center justify-center text-sm font-semibold text-[#352619]">
           {name}
         </div>
       )}
@@ -92,7 +92,7 @@ export function ProductThumb({
   return (
     <div
       className={cn(
-        'flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-[10px] border border-[var(--border-default)] dark:opacity-90',
+        'flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-[10px] border border-[var(--border-default)]',
         className,
       )}
       style={{ backgroundColor: palette.bg }}
