@@ -7,6 +7,7 @@ import { useAuth } from '@/features/auth/hooks/useAuth'
 
 const ROUTE_TITLES: Array<{ match: string; label: string }> = [
   { match: '/studio/dashboard', label: 'Tổng quan' },
+  { match: '/studio/onboarding', label: 'Thiết lập không gian làm việc' },
   { match: '/studio/presenters', label: 'AI Presenter' },
   { match: '/studio/products', label: 'Sản phẩm & OCOP' },
   { match: '/studio/knowledge', label: 'Tri thức & Claims' },
@@ -27,12 +28,12 @@ export function AppShell() {
   const { data: auth } = useAuth()
   const [collapsed, setCollapsed] = useState(() => {
     if (typeof window === 'undefined') return false
-    return window.matchMedia('(min-width: 768px) and (max-width: 1199px)').matches
+    return window.matchMedia('(min-width: 768px) and (max-width: 1150px)').matches
   })
   const [mobileOpen, setMobileOpen] = useState(false)
 
   useEffect(() => {
-    const media = window.matchMedia('(min-width: 768px) and (max-width: 1199px)')
+    const media = window.matchMedia('(min-width: 768px) and (max-width: 1150px)')
     const sync = () => setCollapsed(media.matches)
     sync()
     media.addEventListener('change', sync)
@@ -41,8 +42,8 @@ export function AppShell() {
 
   return (
     <div
-      className="flex min-h-screen bg-[var(--bg-canvas)] text-[var(--text-primary)]"
-      style={{ '--sidebar-width': collapsed ? '72px' : '232px' } as React.CSSProperties}
+      className="flex min-h-screen text-[var(--text-primary)]"
+      style={{ '--sidebar-width': collapsed ? '72px' : '248px' } as React.CSSProperties}
     >
       <Sidebar
         collapsed={collapsed}
@@ -62,7 +63,7 @@ export function AppShell() {
           workspace={auth?.workspace}
         />
 
-        <main className="mx-auto w-full max-w-[1440px] flex-1 px-4 py-6 sm:px-6 lg:px-8">
+        <main className="mx-auto w-full max-w-[1700px] flex-1 px-4 py-5 sm:px-6 lg:px-7 lg:py-6">
           <Outlet />
         </main>
       </div>

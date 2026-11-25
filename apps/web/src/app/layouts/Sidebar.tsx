@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { NavLink } from 'react-router-dom'
 import {
   BarChart3,
@@ -36,6 +37,9 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/studio/reports', label: 'Báo cáo', icon: BarChart3 },
 ]
 
+const FOCUSABLE_SELECTOR =
+  'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+
 export interface SidebarProps {
   collapsed: boolean
   onToggleCollapse: () => void
@@ -55,31 +59,77 @@ export function Sidebar({
   workspace,
   capabilities,
 }: SidebarProps) {
+  const mobileDrawerRef = useRef<HTMLDivElement>(null)
   const visibleItems = NAV_ITEMS.filter(
     (item) => !item.ownerOnly || capabilities?.canManageMembers,
   )
+
+  /* Focus trap, Escape handler & scroll lock cho Mobile Drawer */
+  useEffect(() => {
+    if (!mobileOpen) return
+    const previousFocus = document.activeElement as HTMLElement | null
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+
+    const raf = window.requestAnimationFrame(() => {
+      const nodes = mobileDrawerRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)
+      if (nodes && nodes.length > 0) nodes[0].focus()
+      else mobileDrawerRef.current?.focus()
+    })
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        onCloseMobile()
+        return
+      }
+      if (event.key === 'Tab' && mobileDrawerRef.current) {
+        const nodes = Array.from(
+          mobileDrawerRef.current.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR),
+        )
+        if (nodes.length === 0) return
+        const first = nodes[0]
+        const last = nodes[nodes.length - 1]
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault()
+          last.focus()
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault()
+          first.focus()
+        }
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      window.cancelAnimationFrame(raf)
+      window.removeEventListener('keydown', handleKeyDown)
+      document.body.style.overflow = previousOverflow
+      previousFocus?.focus?.()
+    }
+  }, [mobileOpen, onCloseMobile])
 
   const sidebarContent = (isMobileDrawer: boolean) => {
     const isCompact = !isMobileDrawer && collapsed
 
     return (
-      <div className="flex h-full flex-col bg-[var(--bg-sidebar)] text-[var(--text-sidebar)]">
-        {/* Header thanh điều hướng: khi thu gọn (72px) xếp gọn logo, đặt nút mở rộng riêng bên dưới để không bị ép còn 16px ở 1024px */}
+      <div className="relative flex h-full flex-col overflow-hidden [background:var(--bg-sidebar)] text-[var(--text-sidebar)]">
+        {/* Header thanh điều hướng */}
         <div
           className={cn(
-            'flex border-b border-white/10',
+            'relative z-10 flex border-b border-[var(--bg-sidebar-border)]/70',
             isCompact
               ? 'flex-col items-center gap-2 px-2 py-3'
-              : 'h-16 items-center justify-between px-4',
+              : 'h-[60px] items-center justify-between px-4',
           )}
         >
-          <BrandLogo collapsed={isCompact} />
+          <BrandLogo collapsed={isCompact} tone="on-dark" />
           {isMobileDrawer ? (
             <button
               type="button"
               onClick={onCloseMobile}
               aria-label="Đóng thanh điều hướng"
-              className="flex h-10 w-10 items-center justify-center rounded-[8px] text-slate-300 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] cursor-pointer"
+              className="flex h-10 w-10 items-center justify-center rounded-[8px] text-[#e6d8c5] hover:bg-[var(--bg-sidebar-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f2c47d] cursor-pointer"
             >
               <X className="h-5 w-5" />
             </button>
@@ -88,7 +138,7 @@ export function Sidebar({
               type="button"
               onClick={onToggleCollapse}
               aria-label={isCompact ? 'Mở rộng thanh điều hướng' : 'Thu gọn thanh điều hướng'}
-              className="hidden lg:flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] text-slate-300 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] cursor-pointer"
+              className="hidden lg:flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] text-[#c3b4a2] hover:bg-[var(--bg-sidebar-hover)] hover:text-[#fff4de] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f2c47d] cursor-pointer"
             >
               {isCompact ? (
                 <ChevronRight className="h-4 w-4" />
@@ -99,7 +149,11 @@ export function Sidebar({
           )}
         </div>
 
-        <nav aria-label="Điều hướng Merchant Studio" className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
+        {/* Danh mục điều hướng chính */}
+        <nav
+          aria-label="Điều hướng Merchant Studio"
+          className="relative z-10 flex-1 overflow-y-auto px-3 py-4 space-y-1"
+        >
           {visibleItems.map((item) => {
             const Icon = item.icon
             return (
@@ -110,37 +164,51 @@ export function Sidebar({
                 title={isCompact ? item.label : undefined}
                 className={({ isActive }) =>
                   cn(
-                    'flex min-h-[44px] items-center gap-3 rounded-[10px] px-3 py-2 text-sm font-medium transition-colors duration-150',
+                    'flex min-h-[44px] items-center gap-3 rounded-[8px] border px-3 py-2 text-sm font-medium transition-all duration-150',
                     isCompact && 'justify-center px-2',
                     isActive
-                      ? 'bg-[var(--bg-sidebar-active)] text-[var(--text-sidebar-active)]'
-                      : 'text-slate-300 hover:bg-[var(--bg-sidebar-hover)] hover:text-white',
+                      ? '[background:var(--bg-sidebar-active)] border-[var(--bg-sidebar-active-border)] text-[var(--text-sidebar-active)] shadow-[inset_0_0_12px_rgba(213,163,103,0.22)]'
+                      : 'border-transparent text-[#e6d8c5] hover:bg-[var(--bg-sidebar-hover)] hover:text-[#fff4de]',
                   )
                 }
               >
-                <Icon className="h-[18px] w-[18px] shrink-0" aria-hidden="true" />
+                <Icon
+                  className="h-[18px] w-[18px] shrink-0 text-[#ead8bc]"
+                  aria-hidden="true"
+                />
                 {!isCompact ? <span className="truncate">{item.label}</span> : null}
               </NavLink>
             )
           })}
         </nav>
 
-        <div className="border-t border-white/10 p-3">
+        {/* Ảnh phong cảnh vùng cao trang trí mờ dần ở đáy thanh điều hướng (không tương tác) */}
+        {!isCompact ? (
+          <img
+            src="/heritage/sidebar-landscape.webp"
+            alt=""
+            aria-hidden="true"
+            className="pointer-events-none select-none absolute bottom-[66px] left-0 h-[28%] w-full object-cover opacity-65 heritage-sidebar-mask"
+          />
+        ) : null}
+
+        {/* Thẻ vai trò & workspace hiện tại */}
+        <div className="relative z-10 p-3">
           <div
             className={cn(
-              'flex items-center gap-2.5 rounded-[10px] bg-white/5 px-2.5 py-2.5',
+              'flex items-center gap-2.5 rounded-[10px] border border-[#5a4530] bg-[var(--bg-sidebar-profile)] px-2.5 py-2.5 backdrop-blur-xs',
               isCompact && 'justify-center px-1.5',
             )}
           >
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--brand-amber)] text-xs font-bold text-[var(--brand-navy)]">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#e5b875] text-xs font-bold text-[#25170d]">
               {actor?.initials ?? 'H'}
             </div>
             {!isCompact ? (
               <div className="min-w-0 flex-1 leading-tight">
-                <p className="truncate text-xs font-semibold text-white">
+                <p className="truncate text-xs font-semibold text-[#f5ebdd]">
                   {actor?.roleLabel ?? 'Merchant'}
                 </p>
-                <p className="truncate text-[11px] text-slate-400">
+                <p className="truncate text-[11px] text-[#c3b4a2]">
                   {workspace?.displayName ?? 'Workspace chính'}
                 </p>
               </div>
@@ -156,8 +224,8 @@ export function Sidebar({
       {/* Desktop & Tablet persistent sidebar */}
       <aside
         className={cn(
-          'hidden md:block shrink-0 border-r border-white/5 transition-[width] duration-200',
-          collapsed ? 'w-[72px]' : 'w-[232px]',
+          'hidden md:block shrink-0 border-r border-[var(--bg-sidebar-border)] bg-[var(--bg-sidebar-solid)] transition-[width] duration-200',
+          collapsed ? 'w-[72px]' : 'w-[248px]',
         )}
       >
         <div className="sticky top-0 h-screen">{sidebarContent(false)}</div>
@@ -165,13 +233,22 @@ export function Sidebar({
 
       {/* Mobile drawer */}
       {mobileOpen ? (
-        <div className="fixed inset-0 z-40 flex md:hidden" role="dialog" aria-modal="true" aria-label="Menu điều hướng">
+        <div
+          className="fixed inset-0 z-40 flex md:hidden"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Menu điều hướng"
+        >
           <div
             className="fixed inset-0 bg-[var(--overlay-scrim)]"
             onClick={onCloseMobile}
             aria-hidden="true"
           />
-          <div className="relative z-10 w-[264px] max-w-[82vw] h-full shadow-2xl">
+          <div
+            ref={mobileDrawerRef}
+            tabIndex={-1}
+            className="relative z-10 h-full w-[264px] max-w-[82vw] border-r border-[var(--bg-sidebar-border)] shadow-2xl outline-none"
+          >
             {sidebarContent(true)}
           </div>
         </div>

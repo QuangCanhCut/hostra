@@ -172,7 +172,7 @@ export function LiveControlRoomPage() {
       {/* Z01 & Z02: Tiêu đề gọn gàng & Thanh trạng thái vận hành (đã dọn thuật ngữ kỹ thuật & nút mô phỏng khỏi frame chính) */}
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h1 className="text-xl font-bold text-[var(--text-primary)] sm:text-2xl">
+          <h1 className="font-display text-[24px] font-bold leading-[1.16] tracking-[-0.02em] text-[var(--text-primary)] sm:text-[30px]">
             Phòng điều khiển livestream · {snap.sessionCode}
           </h1>
           <p className="mt-0.5 text-sm text-[var(--text-secondary)]">
@@ -298,10 +298,10 @@ export function LiveControlRoomPage() {
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
         {/* Left Column (60%) */}
         <div className="lg:col-span-7 space-y-4">
-          <Card padding="none" className="overflow-hidden">
-            <div className="relative aspect-video w-full bg-[#0B1322]">
+          <Card featured padding="none" className="overflow-hidden">
+            <div className="relative aspect-video w-full bg-[var(--media-stage-bg)]">
               {snap.mediaHealth === 'DEGRADED' ? (
-                <div className="flex h-full w-full flex-col items-center justify-center gap-3 p-6 text-center text-white">
+                <div className="flex h-full w-full flex-col items-center justify-center gap-3 p-6 text-center text-[#f5ebdd]">
                   <ProductThumb
                     skuId={snap.activeSkuId}
                     name={snap.activeSkuName}
@@ -310,7 +310,7 @@ export function LiveControlRoomPage() {
                   <div className="space-y-1">
                     <StatusBadge label="Cảnh sản phẩm dự phòng · Âm thanh xác minh" tone="warning" />
                     <p className="text-sm font-bold">{snap.activeSkuName}</p>
-                    <p className="text-xs text-slate-300">
+                    <p className="text-xs text-[#c3b4a2]">
                       {formatVnd(snap.activeSkuPriceVnd)} · Luồng phát vẫn duy trì liên tục
                     </p>
                   </div>
@@ -328,17 +328,17 @@ export function LiveControlRoomPage() {
                       tone={lifecycleCopy.tone}
                       pulse={lifecycleCopy.pulse}
                     />
-                    <span className="rounded-full bg-slate-900/80 px-2.5 py-0.5 text-[11px] font-medium text-white">
+                    <span className="rounded-full border border-[#5a4632]/70 bg-[#120d0a]/80 px-2.5 py-0.5 text-[11px] font-medium text-[#f5ebdd] backdrop-blur-xs">
                       Xem trước phòng phát
                     </span>
                   </div>
                   {snap.aiState === 'PAUSED' ? (
-                    <div className="absolute inset-0 flex items-center justify-center bg-slate-950/55 p-4 text-center">
-                      <div className="rounded-[12px] bg-slate-900/90 px-4 py-3 text-white space-y-1">
-                        <p className="text-sm font-bold text-[var(--brand-amber)]">
+                    <div className="absolute inset-0 flex items-center justify-center bg-[#120d0a]/65 p-4 text-center backdrop-blur-[2px]">
+                      <div className="rounded-[12px] border border-[#725334]/75 bg-[#1a130e]/95 px-4 py-3 text-[#f5ebdd] shadow-[0_12px_28px_rgba(0,0,0,0.45)] space-y-1">
+                        <p className="text-sm font-bold text-[#f2c47d]">
                           AI đang tạm dừng · Luồng live vẫn hoạt động
                         </p>
-                        <p className="text-xs text-slate-300">
+                        <p className="text-xs text-[#c3b4a2]">
                           Đang phát cảnh an toàn cho người xem. Nhấn “Tiếp tục AI” khi sẵn sàng.
                         </p>
                       </div>
@@ -401,7 +401,7 @@ export function LiveControlRoomPage() {
               className="flex w-full items-center justify-between text-left cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] rounded-[6px]"
             >
               <div className="flex items-center gap-2">
-                <Activity className="h-4 w-4 text-[var(--brand-amber)]" />
+                <Activity className="h-4 w-4 text-[var(--accent-gold)]" />
                 <h2 className="text-sm font-bold text-[var(--text-primary)]">
                   Nội dung AI sắp nói
                 </h2>
@@ -451,9 +451,9 @@ export function LiveControlRoomPage() {
               type="button"
               onClick={() => setMobileTab('comments')}
               className={cn(
-                'flex-1 rounded-[8px] py-2 text-xs font-semibold cursor-pointer',
+                'flex-1 rounded-[8px] py-2 text-xs font-semibold cursor-pointer transition-colors',
                 mobileTab === 'comments'
-                  ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-xs'
+                  ? 'bg-[var(--bg-raised)] text-[var(--accent-gold)] shadow-xs'
                   : 'text-[var(--text-secondary)]',
               )}
             >
@@ -463,9 +463,9 @@ export function LiveControlRoomPage() {
               type="button"
               onClick={() => setMobileTab('queue')}
               className={cn(
-                'flex-1 rounded-[8px] py-2 text-xs font-semibold cursor-pointer',
+                'flex-1 rounded-[8px] py-2 text-xs font-semibold cursor-pointer transition-colors',
                 mobileTab === 'queue'
-                  ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-xs'
+                  ? 'bg-[var(--bg-raised)] text-[var(--accent-gold)] shadow-xs'
                   : 'text-[var(--text-secondary)]',
               )}
             >
@@ -600,9 +600,9 @@ export function LiveControlRoomPage() {
       {/* Z06: Sticky Runtime Control Bar (CR-D3=A) — scoped inside <main> so it never overlaps Sidebar */}
       <div
         data-testid="runtime-control-bar"
-        className="sticky bottom-0 z-30 -mx-4 sm:-mx-6 lg:-mx-8 border-t border-[var(--border-strong)] bg-[var(--bg-surface)]/95 backdrop-blur px-4 sm:px-6 lg:px-8 py-3 shadow-[0_-4px_12px_rgba(15,23,42,0.06)]"
+        className="sticky bottom-0 z-30 -mx-4 sm:-mx-6 lg:-mx-7 border-t border-[var(--border-strong)] bg-[var(--bg-surface)]/95 backdrop-blur px-4 sm:px-6 lg:px-7 py-3 shadow-[0_-8px_24px_rgba(0,0,0,0.28)]"
       >
-        <div className="mx-auto flex max-w-[1440px] flex-wrap items-center justify-between gap-2">
+        <div className="mx-auto flex max-w-[1700px] flex-wrap items-center justify-between gap-2">
           <div className="flex flex-wrap items-center gap-2">
             {snap.aiState === 'PAUSED' ? (
               <Button
@@ -689,8 +689,8 @@ export function LiveControlRoomPage() {
                     className={cn(
                       'w-full rounded-[10px] border p-3.5 text-left transition-colors cursor-pointer disabled:opacity-55 disabled:cursor-not-allowed',
                       isSelected
-                        ? 'border-[var(--brand-amber)] bg-[var(--bg-hero)]'
-                        : 'border-[var(--border-default)]',
+                        ? 'border-[var(--accent-gold)] bg-[var(--bg-raised)]'
+                        : 'border-[var(--border-default)] hover:border-[var(--border-strong)]',
                     )}
                   >
                     <div className="flex items-center justify-between gap-2">

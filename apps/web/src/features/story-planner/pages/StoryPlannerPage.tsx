@@ -159,7 +159,7 @@ export function StoryPlannerPage() {
             Quay lại {plan.sessionCode}
           </Link>
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-2xl font-bold text-[var(--text-primary)]">
+            <h1 className="font-display text-[26px] sm:text-[32px] font-bold leading-[1.16] tracking-[-0.02em] text-[var(--text-primary)]">
               Lập kế hoạch nội dung · {plan.sessionCode}
             </h1>
             <StatusBadge label={approvalBadge.label} tone={approvalBadge.tone} />
@@ -214,10 +214,10 @@ export function StoryPlannerPage() {
                   <li
                     key={arc.id}
                     className={cn(
-                      'rounded-[10px] border p-3.5 transition-colors',
+                      'rounded-[10px] border border-l-[3px] p-3.5 transition-colors',
                       isSelected
-                        ? 'border-[var(--brand-amber)] bg-[var(--bg-hero)]'
-                        : 'border-[var(--border-default)] bg-[var(--bg-surface)]',
+                        ? 'border-[var(--border-strong)] border-l-[var(--accent-gold)] bg-[var(--bg-raised)]'
+                        : 'border-[var(--border-default)] border-l-[var(--border-strong)] bg-[var(--bg-surface)]',
                     )}
                   >
                     <div className="flex items-start justify-between gap-3">
@@ -227,7 +227,7 @@ export function StoryPlannerPage() {
                         className="min-w-0 flex-1 text-left cursor-pointer"
                       >
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[var(--brand-navy)] text-xs font-bold text-white tabular-nums">
+                          <span className="inline-flex h-6 w-6 items-center justify-center rounded-full [background:var(--cta-primary-bg)] text-xs font-bold text-[var(--cta-primary-fg)] tabular-nums">
                             0{arc.position}
                           </span>
                           <span className="text-sm font-bold text-[var(--text-primary)]">

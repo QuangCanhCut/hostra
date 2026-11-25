@@ -189,10 +189,10 @@ export function SessionWizardPage() {
             <ArrowLeft className="h-3.5 w-3.5" />
             Quay lại Phiên livestream
           </Link>
-          <h1 className="text-2xl font-bold text-[var(--text-primary)]">
+          <h1 className="font-display text-[26px] sm:text-[32px] font-bold leading-[1.16] tracking-[-0.02em] text-[var(--text-primary)]">
             {isEditing ? `Chỉnh sửa ${existingSession?.code ?? 'phiên'}` : 'Tạo phiên livestream mới'}
           </h1>
-          <p className="mt-1 text-sm text-[var(--text-secondary)]">
+          <p className="mt-1 text-sm text-[var(--text-muted)]">
             Chọn Presenter, kéo-thả 2–5 sản phẩm và lưu nháp bất cứ lúc nào. Khởi chạy chỉ thực hiện ở trang Readiness riêng.
           </p>
         </div>
@@ -215,13 +215,22 @@ export function SessionWizardPage() {
                 type="button"
                 onClick={() => setStep(s.num)}
                 className={cn(
-                  'flex w-full items-center gap-2 rounded-[10px] px-3 py-2.5 text-left text-xs font-semibold cursor-pointer',
+                  'flex w-full items-center gap-2 rounded-[8px] border px-3 py-2.5 text-left text-xs font-semibold cursor-pointer transition-colors',
                   step === s.num
-                    ? 'bg-[var(--bg-hero)] border border-[var(--bg-hero-border)] text-[var(--text-primary)]'
-                    : 'text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)]',
+                    ? 'border-[var(--border-strong)] bg-[var(--bg-raised)] text-[var(--accent-gold)]'
+                    : 'border-transparent text-[var(--text-muted)] hover:bg-[var(--bg-subtle)]',
                 )}
               >
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--bg-subtle)] text-xs font-bold">
+                <span
+                  className={cn(
+                    'flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold tabular-nums',
+                    step === s.num
+                      ? '[background:var(--cta-primary-bg)] text-[var(--cta-primary-fg)]'
+                      : s.num < step
+                        ? 'bg-[var(--status-success-bg)] text-[var(--status-success-fg)]'
+                        : 'bg-[var(--bg-subtle)] text-[var(--text-muted)]',
+                  )}
+                >
                   {s.num < step ? <Check className="h-3.5 w-3.5" /> : s.num}
                 </span>
                 <span className="truncate">{s.label}</span>
@@ -356,7 +365,7 @@ export function SessionWizardPage() {
                         className="flex items-center justify-between gap-2 rounded-[10px] border border-[var(--border-default)] bg-[var(--bg-surface)] p-3"
                       >
                         <div className="flex min-w-0 items-center gap-2.5">
-                          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--brand-navy)] text-xs font-bold text-white tabular-nums">
+                          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full [background:var(--cta-primary-bg)] text-xs font-bold text-[var(--cta-primary-fg)] tabular-nums">
                             {idx + 1}
                           </span>
                           <div className="min-w-0">

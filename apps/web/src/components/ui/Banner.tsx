@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react'
-import { AlertOctagon, AlertTriangle, Info } from 'lucide-react'
+import { AlertOctagon, AlertTriangle, CheckCircle2, Info } from 'lucide-react'
 import { cn } from '@/lib/cn'
 
 export interface BannerProps {
-  severity: 'danger' | 'warning' | 'info'
+  severity: 'danger' | 'warning' | 'info' | 'success'
   title: string
   description: string
   action?: ReactNode
@@ -16,6 +16,8 @@ const SEVERITY_STYLES = {
   warning:
     'bg-[var(--status-warning-bg)] text-[var(--status-warning-fg)] border-[var(--status-warning-border)]',
   info: 'bg-[var(--status-info-bg)] text-[var(--status-info-fg)] border-[var(--status-info-border)]',
+  success:
+    'bg-[var(--status-success-bg)] text-[var(--status-success-fg)] border-[var(--status-success-border)]',
 }
 
 export function Banner({
@@ -30,13 +32,15 @@ export function Banner({
       ? AlertOctagon
       : severity === 'warning'
         ? AlertTriangle
-        : Info
+        : severity === 'success'
+          ? CheckCircle2
+          : Info
 
   return (
     <div
       role={severity === 'danger' ? 'alert' : 'status'}
       className={cn(
-        'flex flex-col gap-3 rounded-[12px] border p-4 sm:flex-row sm:items-center sm:justify-between',
+        'flex flex-col gap-3 rounded-[var(--radius-card)] border px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between',
         SEVERITY_STYLES[severity],
         className,
       )}

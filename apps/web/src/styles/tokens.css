@@ -1,117 +1,205 @@
-/* HOSTRA AI — Visual Baseline v0.4 (APPROVED) + Global Design System v0.2 Semantic Tokens */
+/* HOSTRA AI — Heritage Luxury Visual System v0.5 (Dark Primary + Light Companion)
+ * Semantic tokens preserve backward-compatible variable names across all modules
+ * while migrating visual identity from v0.4 Navy/Amber to v0.5 Espresso/Bronze/Gold.
+ */
 
-:root {
-  /* Brand primitives (immutable) */
-  --brand-navy: #0f172a;
-  --brand-amber: #f5c430;
-  --brand-amber-hover: #e5b320;
-  --brand-soft-yellow: #fbe580;
+:root,
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  /* Typography — ưu tiên font có đủ dấu tiếng Việt (Noto Serif online, Cambria/Times New Roman offline trước Georgia) */
+  --font-ui: 'Be Vietnam Pro', 'Inter', system-ui, -apple-system, sans-serif;
+  --font-display: 'Noto Serif', 'Cambria', 'Times New Roman', Georgia, serif;
+
+  /* Heritage Luxury Dark Palette (Primary showcase) */
+  --bg-canvas: #14110e;
+  --bg-surface: #211a14;
+  --bg-raised: #2b2119;
+  --bg-subtle: #30251c;
+  --bg-elevated: #281f17;
+  --bg-canvas-glow: radial-gradient(ellipse at 62% 0%, #2b2119 0%, #14110e 62%);
+  --bg-card-gradient: linear-gradient(135deg, #2b2119 0%, #211a14 72%);
+
+  /* Hero Banner (warm espresso frame) */
+  --bg-hero: linear-gradient(100deg, #23190f 22%, #26190d 51%, #2e2013 100%);
+  --bg-hero-border: #896641;
+
+  /* Persistent Dark Espresso Sidebar */
+  --bg-sidebar: linear-gradient(180deg, #18130f 0%, #211a14 100%);
+  --bg-sidebar-solid: #1a1410;
+  --bg-sidebar-border: #59432e;
+  --bg-sidebar-hover: rgba(137, 102, 65, 0.22);
+  --bg-sidebar-active: linear-gradient(110deg, #88613a 0%, #463020 100%);
+  --bg-sidebar-active-border: #b98b53;
+  --bg-sidebar-profile: rgba(48, 37, 28, 0.92);
+  --text-sidebar: #e6d8c5;
+  --text-sidebar-muted: #c3b4a2;
+  --text-sidebar-active: #fff4de;
+
+  /* Foreground text */
+  --text-primary: #f5ebdd;
+  --text-secondary: #d4c4b0;
+  --text-muted: #c3b4a2;
+
+  /* Accent & Brand CTA (Champagne Gold on Dark) */
+  --accent-gold: #f2c47d;
+  --accent-gold-light: #f8d99f;
+  --accent-gold-strong: #e3a957;
+  --accent-gold-dark: #b88a50;
+  --cta-primary-bg: linear-gradient(110deg, #f8d99f 0%, #e3a957 100%);
+  --cta-primary-bg-hover: linear-gradient(110deg, #fce4b5 0%, #eab568 100%);
+  --cta-primary-border: #d6a05f;
+  --cta-primary-fg: #21160c;
+  --cta-primary-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 2px 10px rgba(0, 0, 0, 0.25);
+
+  /* Backward-compatible brand aliases */
+  --brand-navy: #211a14;
+  --brand-amber: #f2c47d;
+  --brand-amber-hover: #e3a957;
+  --brand-soft-yellow: #f8d99f;
   --brand-white: #ffffff;
-  --brand-cool-gray: #e2e8f0;
-  --brand-danger: #dc2626;
-  --brand-danger-hover: #b91c1c;
-
-  /* Light mode semantic surfaces */
-  --bg-canvas: #f7f9fc;
-  --bg-surface: #ffffff;
-  --bg-subtle: #f1f5f9;
-  --bg-elevated: #ffffff;
-  --bg-hero: #fffbeb;
-  --bg-hero-border: #fde68a;
-  --bg-sidebar: #0f172a;
-  --bg-sidebar-hover: rgba(255, 255, 255, 0.08);
-  --bg-sidebar-active: rgba(245, 196, 48, 0.16);
-
-  /* Light mode text */
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --text-muted: #64748b;
-  --text-on-amber: #0f172a;
-  --text-on-navy: #ffffff;
-  --text-sidebar: #cbd5e1;
-  --text-sidebar-active: #fbe580;
+  --brand-cool-gray: #503e2d;
+  --brand-danger: #9b2e28;
+  --brand-danger-hover: #b33831;
+  --brand-danger-border: #ce5849;
+  --text-on-amber: #21160c;
+  --text-on-navy: #f5ebdd;
 
   /* Borders & Focus */
-  --border-default: #e6ecf3;
-  --border-strong: #cbd5e1;
-  --focus-ring: #1d4ed8;
-  --overlay-scrim: rgba(15, 23, 42, 0.56);
+  --border-default: #503e2d;
+  --border-strong: #896641;
+  --focus-ring: #f2c47d;
+  --overlay-scrim: rgba(12, 9, 6, 0.72);
 
-  /* Semantic statuses (Light) */
-  --status-success-bg: #dcfce7;
-  --status-success-fg: #166534;
-  --status-success-border: #bbf7d0;
+  /* Semantic Statuses (strictly distinct from brand gold) */
+  --status-success-bg: #223922;
+  --status-success-fg: #a9d79a;
+  --status-success-border: rgba(169, 215, 154, 0.28);
 
-  --status-warning-bg: #fef3c7;
-  --status-warning-fg: #92400e;
-  --status-warning-border: #fde68a;
+  --status-warning-bg: #433214;
+  --status-warning-fg: #f5ce78;
+  --status-warning-border: rgba(245, 206, 120, 0.30);
 
-  --status-danger-bg: #fee2e2;
-  --status-danger-fg: #991b1b;
-  --status-danger-border: #fecaca;
+  --status-danger-bg: #61231f;
+  --status-danger-fg: #ffb2a4;
+  --status-danger-border: rgba(255, 178, 164, 0.32);
 
-  --status-info-bg: #dbeafe;
-  --status-info-fg: #1d4ed8;
-  --status-info-border: #bfdbfe;
+  --status-info-bg: #25333b;
+  --status-info-fg: #a8d4e8;
+  --status-info-border: rgba(168, 212, 232, 0.28);
 
-  --status-neutral-bg: #f1f5f9;
-  --status-neutral-fg: #475569;
-  --status-neutral-border: #e2e8f0;
+  --status-neutral-bg: #30251c;
+  --status-neutral-fg: #c3b4a2;
+  --status-neutral-border: #503e2d;
 
-  /* Geometry & Motion */
+  /* Media / Document surfaces */
+  --media-stage-bg: #100e0c;
+  --doc-paper-bg: #f8f1e5;
+  --doc-paper-fg: #34291d;
+  --doc-highlight-bg: #f1df91;
+  --doc-highlight-fg: #392a16;
+
+  /* Geometry, Elevation & Motion */
   --radius-input: 8px;
+  --radius-md: 10px;
   --radius-card: 12px;
+  --radius-lg: 14px;
   --radius-modal: 16px;
-  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04);
-  --shadow-elevated: 0 10px 28px rgba(15, 23, 42, 0.12);
+  --shadow-card: 0 8px 26px rgba(0, 0, 0, 0.22);
+  --shadow-elevated: 0 20px 56px rgba(0, 0, 0, 0.48);
   --motion-fast: 150ms;
   --motion-base: 200ms;
 }
 
-[data-theme='dark'] {
-  --bg-canvas: #0b1322;
-  --bg-surface: #121f32;
-  --bg-subtle: #19283e;
-  --bg-elevated: #1d2f49;
-  --bg-hero: #17253a;
-  --bg-hero-border: rgba(245, 196, 48, 0.32);
-  --bg-sidebar: #09101d;
-  --bg-sidebar-hover: rgba(255, 255, 255, 0.07);
-  --bg-sidebar-active: rgba(245, 196, 48, 0.16);
+[data-theme='light'] {
+  color-scheme: light;
 
-  --text-primary: #f8fafc;
-  --text-secondary: #cbd5e1;
-  --text-muted: #94a3b8;
-  --text-on-amber: #0f172a;
-  --text-on-navy: #ffffff;
-  --text-sidebar: #cbd5e1;
-  --text-sidebar-active: #fbe580;
+  /* Heritage Luxury Light Companion (Warm Parchment & Deep Bronze) */
+  --bg-canvas: #f6f1e9;
+  --bg-surface: #fffaf3;
+  --bg-raised: #f3e8d8;
+  --bg-subtle: #ede1cf;
+  --bg-elevated: #fffcf7;
+  --bg-canvas-glow: radial-gradient(ellipse at 62% 0%, #f3e8d8 0%, #f6f1e9 62%);
+  --bg-card-gradient: linear-gradient(135deg, #fffcf7 0%, #fffaf3 72%);
 
-  --border-default: #273952;
-  --border-strong: #364c6b;
-  --focus-ring: #fbe580;
-  --overlay-scrim: rgba(2, 6, 23, 0.72);
+  --bg-hero: linear-gradient(100deg, #23190f 22%, #26190d 51%, #2e2013 100%);
+  --bg-hero-border: #a87c45;
 
-  --status-success-bg: #103322;
-  --status-success-fg: #86efac;
-  --status-success-border: #1b4d34;
+  /* Sidebar stays deep espresso across both modes per Heritage Luxury handoff */
+  --bg-sidebar: linear-gradient(180deg, #18130f 0%, #211a14 100%);
+  --bg-sidebar-solid: #1a1410;
+  --bg-sidebar-border: #59432e;
+  --bg-sidebar-hover: rgba(137, 102, 65, 0.22);
+  --bg-sidebar-active: linear-gradient(110deg, #88613a 0%, #463020 100%);
+  --bg-sidebar-active-border: #b98b53;
+  --bg-sidebar-profile: rgba(48, 37, 28, 0.92);
+  --text-sidebar: #e6d8c5;
+  --text-sidebar-muted: #c3b4a2;
+  --text-sidebar-active: #fff4de;
 
-  --status-warning-bg: #3b270b;
-  --status-warning-fg: #fde68a;
-  --status-warning-border: #5c3d12;
+  /* Foreground text */
+  --text-primary: #2a2018;
+  --text-secondary: #534538;
+  --text-muted: #665748;
 
-  --status-danger-bg: #451a21;
-  --status-danger-fg: #fca5a5;
-  --status-danger-border: #6b2630;
+  /* Accent & Brand CTA (Rich Bronze with high contrast white text) */
+  --accent-gold: #8b571e;
+  --accent-gold-light: #a87c45;
+  --accent-gold-strong: #744717;
+  --accent-gold-dark: #5e3811;
+  --cta-primary-bg: linear-gradient(110deg, #96602b 0%, #7c4c1b 100%);
+  --cta-primary-bg-hover: linear-gradient(110deg, #855221 0%, #683e14 100%);
+  --cta-primary-border: #7c4c1b;
+  --cta-primary-fg: #ffffff;
+  --cta-primary-shadow: 0 2px 8px rgba(89, 56, 21, 0.18);
 
-  --status-info-bg: #172554;
-  --status-info-fg: #93c5fd;
-  --status-info-border: #1e3a8a;
+  /* Backward-compatible brand aliases */
+  --brand-navy: #2a2018;
+  --brand-amber: #8b571e;
+  --brand-amber-hover: #744717;
+  --brand-soft-yellow: #f3e8d8;
+  --brand-white: #ffffff;
+  --brand-cool-gray: #d8c6ad;
+  --brand-danger: #9b2e28;
+  --brand-danger-hover: #7f231e;
+  --brand-danger-border: #9b2e28;
+  --text-on-amber: #ffffff;
+  --text-on-navy: #fffaf3;
 
-  --status-neutral-bg: #19283e;
-  --status-neutral-fg: #cbd5e1;
-  --status-neutral-border: #2c405c;
+  /* Borders & Focus */
+  --border-default: #d8c6ad;
+  --border-strong: #a87c45;
+  --focus-ring: #8b571e;
+  --overlay-scrim: rgba(42, 32, 24, 0.56);
 
-  --shadow-card: 0 1px 2px rgba(2, 6, 23, 0.35);
-  --shadow-elevated: 0 16px 36px rgba(2, 6, 23, 0.55);
+  /* Semantic Statuses (Light — WCAG AA contrast) */
+  --status-success-bg: #dcebdc;
+  --status-success-fg: #275b35;
+  --status-success-border: #b8d7b8;
+
+  --status-warning-bg: #f7e8c9;
+  --status-warning-fg: #815207;
+  --status-warning-border: #e5cb96;
+
+  --status-danger-bg: #f7dfda;
+  --status-danger-fg: #9b2d25;
+  --status-danger-border: #e6bdb4;
+
+  --status-info-bg: #e1edf4;
+  --status-info-fg: #225675;
+  --status-info-border: #bdd6e5;
+
+  --status-neutral-bg: #ede1cf;
+  --status-neutral-fg: #5c4e40;
+  --status-neutral-border: #d8c6ad;
+
+  --media-stage-bg: #18130f;
+  --doc-paper-bg: #fffaf3;
+  --doc-paper-fg: #2a2018;
+  --doc-highlight-bg: #f1df91;
+  --doc-highlight-fg: #392a16;
+
+  --shadow-card: 0 5px 18px rgba(89, 56, 21, 0.08);
+  --shadow-elevated: 0 16px 36px rgba(42, 32, 24, 0.16);
 }
