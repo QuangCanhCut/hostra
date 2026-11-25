@@ -1,53 +1,84 @@
-# P07 — Đánh giá Cổng Sẵn sàng Thực nghiệm (Experiment Readiness Gate)
+# P07 — Đánh giá 4 Cổng Sẵn sàng Thực nghiệm (Staged Readiness Gates)
 
 | Thuộc tính | Giá trị |
 | :--- | :--- |
 | **Mã tài liệu** | `P07-DOC-05` |
-| **Phiên bản / Ngày** | `v0.1.1 (Updated Post-Consistency Review)` — `25/11/2026` |
-| **Mục tiêu** | Kiểm tra điều kiện tiên quyết trước khi thu thập dữ liệu (`D0–D6`) và trước khi khởi chạy `P07-E01` |
-| **Kết luận hiện tại** | **`DATASET PLAN READY FOR REVIEW` · `E01 EXPERIMENT NOT READY YET`** *(Đã đồng bộ 5 tài liệu kỹ thuật & lập kế hoạch thu thập dữ liệu thực tế; chưa có dataset trong `data/` và chờ Owner phê duyệt các quyết định `PROPOSED`)* |
+| **Phiên bản / Ngày** | `v0.1.3 (Preflight + Product-Agnostic Generalization)` — `26/11/2026` |
+| **Mục tiêu** | Tách bạch các mức độ sẵn sàng theo từng bước thực tế (`Source Discovery -> Data Pilot -> Main Dataset -> E01`) để nhóm triển khai ngay bước khảo sát và thu thập thử mà không bị nghẽn bởi các yêu cầu của giai đoạn sau |
+| **Phán quyết tóm tắt** | **`Gate 1 (Source Discovery): READY`** · **`Gate 2 (Data Acquisition Pilot 50–100): CONDITIONALLY READY`** · **`Gate 3 (Main Dataset): BLOCKED (Chờ kết quả Pilot)`** · **`Gate 4 (E01 Run): BLOCKED (Chờ Dataset & E01 Harness)`** |
 | **Nguồn tham chiếu** | [p07-problem-and-requirements.md](./p07-problem-and-requirements.md), [p07-contract-v0.1.md](./p07-contract-v0.1.md), [p07-annotation-guideline-v0.1.md](./p07-annotation-guideline-v0.1.md), [p07-data-acquisition-and-annotation-plan-v0.1.md](./p07-data-acquisition-and-annotation-plan-v0.1.md), [p07-dataset-and-evaluation-protocol.md](./p07-dataset-and-evaluation-protocol.md) |
 
 ---
 
-## 1. Quy ước Trạng thái Cổng Sẵn sàng
+## 1. Quy ước Trạng thái & Triết lý Mở khóa Theo Tầng
 
-- **`READY`**: Đã có tài liệu/quyết định/cấu trúc hoàn chỉnh và kiểm chứng được ngay trong repository.
-- **`NEEDS WORK`**: Đã có đặc tả thiết kế `PROPOSED v0.1`, cần thực hiện bước xây dựng dữ liệu, viết harness kiểm thử hoặc nhận phê duyệt của Owner trước khi chạy `E01`.
-- **`BLOCKED`**: Đang bị chặn bởi một quyết định/nguồn lực bên ngoài chưa được chốt.
-- **`VALIDATION PENDING`**: Bản chất là câu hỏi nghiên cứu phải chờ kết quả chạy thực nghiệm `E01–E04` mới kết luận được (không chặn việc bắt đầu `E01`).
+Thay vì gộp mọi yêu cầu của toàn bộ chuỗi `E01–E04` và tích hợp `P08` thành một hàng rào duy nhất gây tê liệt tiến độ, P07 quản trị mức sẵn sàng qua **4 Cổng tuần tự (`Gate 1` → `Gate 4`)**:
 
----
-
-## 2. Bảng Kiểm tra 11 Hạng mục Trước khi Bắt đầu `P07-E01`
-
-| # | Hạng mục kiểm tra | Trạng thái | Căn cứ hiện có trong Repository | Việc cần hoàn tất để chuyển sang `READY` |
-| :-: | :--- | :---: | :--- | :--- |
-| 1 | **Problem Definition & Module Boundaries** | `IN REVIEW` *(Thiết kế hoàn chỉnh)* | Đã đặc tả đầy đủ tại [p07-problem-and-requirements.md](./p07-problem-and-requirements.md), tách rõ khử trùng tại Intake, điều duyệt 4 nhãn tại P07 và quyền sở hữu `ResponseGroup` tại `P08/P09`. | Xác nhận của Owner đối với phạm vi P07 (giữ cố định 10 bất biến miền `INV-P07-01..10`). |
-| 2 | **Input/Output Semantics & Ownership Alignment** | `NEEDS WORK` *(Chờ duyệt `PROPOSED v0.1`)* | Đã đồng bộ tại [p07-contract-v0.1.md](./p07-contract-v0.1.md): loại bỏ `DUPLICATE_EVENT` khỏi `moderation_status`, dùng `is_idempotent_replay` cho retry cùng `comment_id`, tách `ResponseGroupProposal` (P07) khỏi `AuthoritativeResponseGroup` (`P08/P09` quản lý `QUEUED -> COMMITTED -> PLAYING -> ANSWERED`). | Owner duyệt hợp đồng `PROPOSED v0.1` trước khi hiện thực hóa `src/schemas.py`. |
-| 3 | **Intent Taxonomy v0.1 (9 lớp + 4 nhãn Moderation + 7 SKU modes)** | `NEEDS WORK` *(Chờ duyệt & Pilot IAA)* | Đã chuẩn hóa 100% quy tắc `null` và gold examples tại [p07-annotation-guideline-v0.1.md](./p07-annotation-guideline-v0.1.md), phân biệt rạch ròi `UNCLEAR_OR_OTHER` (Intent) và `OUT_OF_CATALOG` (SKU Grounding). | Duyệt bản `PROPOSED v0.1`, chạy Pilot gán nhãn `50–100` mẫu (`D2`) rồi mới khóa cứng (`D3`). |
-| 4 | **Annotation Guideline & Acquisition SOP** | `NEEDS WORK` *(Kế hoạch đã có, chưa chạy Pilot)* | Đã ban hành quy trình vận hành thu thập 10 bước, schema thô và SOP gán nhãn chi tiết tại [p07-data-acquisition-and-annotation-plan-v0.1.md](./p07-data-acquisition-and-annotation-plan-v0.1.md). | Thực hiện thu thập lô dữ liệu đầu tiên (`D1`) và chạy Pilot IAA 2 người gán nhãn độc lập (`D2`). |
-| 5 | **Dataset v0.1 & Connected-Component Anti-Leakage Splits** | `BLOCKED` *(Chưa thu thập dữ liệu)* | Thư mục `data/{raw,annotations,processed}/` hiện có **`0` mẫu bình luận P07**. Thuật toán chống leak theo thành phần liên thông (`Union-Find` trên `paraphrase_cluster_id`, `viewer_thread_id`, `near_dup_cluster_id`) đã đặc tả tại [p07-dataset-and-evaluation-protocol.md](./p07-dataset-and-evaluation-protocol.md). | Hoàn tất các mốc `D0 -> D6` theo kế hoạch thu thập dữ liệu: thu thập nguồn `real_permissioned` / `human_simulated_live` (+ `synthetic` bổ trợ có kiểm soát), gán nhãn, kiểm tra `0` leak và xuất `dataset_manifest.json` (`SHA-256`). |
-| 6 | **Evaluation Metrics & Pre-registered Thresholds** | `NEEDS WORK` | Đã định nghĩa trọn bộ chỉ số (`Macro-F1`, `Wrong-SKU Rate`, `Cross-SKU Bad Merge Rate`, `Subtopic Bad Merge Rate`, `P50/P95 ms`, `Cost`) và quy tắc báo cáo tách riêng từng nguồn (`real` vs `human_simulated` vs `synthetic`). | Hard Gates (`0` leak/bad-merge/provenance-loss/post-committed-merge) đã rõ; các ngưỡng `THRESHOLD REQUIRES REVIEW` cần chốt trước khi mở `held-out test`. |
-| 7 | **Baselines (`B0` Rules, `B1` LLM, `G0` Coarse Grouping)** | `NEEDS WORK` | Thư mục `src/baselines/` đang trống; đã làm rõ `G0` (`intent + SKU + version`) chỉ là baseline đối chứng cho `E03`, chưa phải giải pháp gom nhóm đã chứng minh. | Cài đặt `B0`, `G0` trên CPU và thống nhất LLM API/model dùng cho nhánh đối chứng `B1`/`H1` (`VALIDATION PENDING`). |
-| 8 | **Experiment Configurations (`E01–E04`)** | `NEEDS WORK` | Đã đặc tả đầy đủ biến kiểm soát, few-shot `8/16/32` × 3 seeds (`42, 100, 2026`), giấy phép `vinai/phobert-base` (MIT) vs `SetFit` tại [p07-dataset-and-evaluation-protocol.md](./p07-dataset-and-evaluation-protocol.md); `configs/` còn trống. | Tạo các tệp cấu hình khóa tham số trong `configs/` sau mốc `D6`. |
-| 9 | **Reproducibility & Environment Setup** | `NEEDS WORK` | Đã chuẩn hóa schema `ExperimentManifest`; chưa khóa phiên bản gói NLP và công cụ tách từ tiếng Việt cho `PhoBERT-base`. | Chốt bộ tách từ giấy phép sạch (khuyến nghị `pyvi` MIT) và môi trường chạy trước `E01`. |
-| 10 | **Safety & Negative Test Suite** | `NEEDS WORK` | Đã xác định đầy đủ các ca âm tính (cross-tenant, cross-viewer bleed, ambiguous SKU, out-of-catalog, cross-SKU/subtopic merge, post-committed merge, retry dedup vs spam flood, prompt injection); `tests/` đang trống. | Viết bộ `pytest` kiểm tra hợp đồng, validator schema dữ liệu và negative tests trước khi chạy benchmark. |
-| 11 | **Integration Assumptions với P08/P09** | `IN REVIEW` *(Thiết kế thí nghiệm đã đồng bộ)* | Đã thống nhất P07 chỉ phát `ResponseGroupProposal`, còn `P08/P09` độc quyền quản lý `ResponseGroup` (`QUEUED -> COMMITTED -> PLAYING -> ANSWERED` chỉ sau `PlaybackCompleted` ACK). | Hiện thực `P08MockScheduler` tuân thủ đúng vòng đời trên khi chạy `P07-E04`. |
+- **`READY`**: Đủ tài liệu, biểu mẫu và quy tắc an toàn trong repository để thực hiện ngay hôm nay.
+- **`CONDITIONALLY READY`**: Thiết kế kỹ thuật/SOP trong repo đã hoàn tất; chỉ cần xác nhận vận hành của Owner và kiểm tra quyền sử dụng trên từng nguồn cụ thể trước khi thu dữ liệu.
+- **`BLOCKED`**: Chưa thể thực hiện vì phụ thuộc trực tiếp vào dữ liệu thực tế/bằng chứng của cổng liền trước.
+- **`PRE-INTEGRATION REQUIRED` / `VALIDATION PENDING`**: Thuộc giai đoạn nối hệ thống production hoặc chờ kết quả benchmark — **tuyệt đối không dùng để chặn việc khảo sát dữ liệu hay chạy `P07-E01`**.
 
 ---
 
-## 3. Kết luận Sẵn sàng (Readiness Verdict) & Lộ trình Mở khóa `P07-E01`
+## 2. Đánh giá Chi tiết 4 Cổng Sẵn sàng (`Gate 1` → `Gate 4`)
 
-### Phán quyết hiện tại:
-- **Mức sẵn sàng cho Kế hoạch Thu thập & Gán nhãn Dữ liệu (`D0`):** **`PLANNING-COMPLETE / IN REVIEW`** — Đã có đầy đủ SOP thu thập, quy tắc pháp lý/PII, schema dữ liệu thô, kịch bản diễn tập `human_simulated_live` và SOP gán nhãn tại [p07-data-acquisition-and-annotation-plan-v0.1.md](./p07-data-acquisition-and-annotation-plan-v0.1.md) để bạn duyệt và bắt đầu `D0/D1`.
-- **Mức sẵn sàng để chạy Huấn luyện/Benchmark `P07-E01`:** **`NOT READY TO RUN E01 YET` (`BLOCKED` bởi dữ liệu chưa thu thập `D0–D6` và mã cơ sở chưa viết)**.
+### `Gate 1` — Source Discovery Ready (Khảo sát Nguồn Dữ liệu Thực tế Đa dạng Sản phẩm)
+- **Trạng thái hiện tại:** **`READY`** *(Có thể bắt đầu ngay lập tức)*
+- **Những gì đã sẵn sàng:**
+  - Đã xác định rõ miền khảo sát mở rộng (livestream thực phẩm đóng gói, nông sản chế biến, đặc sản vùng miền/OCOP, đồ uống, ngũ cốc, bánh mứt, gia vị... **không bó hẹp trong 5 SKU mẫu của P05**; bộ 5 SKU của P05 chỉ dùng làm fixture tích hợp tham chiếu).
+  - Đã có danh mục kênh tiếp cận hợp pháp (`Source A` ưu tiên số 1 qua nhiều merchant/phiên khác nhau, phiên live kín có phép của HOSTRA, và `Source B` diễn tập đa danh mục sản phẩm), các hành vi bị cấm tuyệt đối (cấm cào tự động/trái ToS), và khuôn mẫu `Source Registry` tại [p07-data-acquisition-and-annotation-plan-v0.1.md](./p07-data-acquisition-and-annotation-plan-v0.1.md) (§2, §3, §11).
+- **Lưu ý giải phóng tiến độ:** Nhánh dữ liệu **không cần chờ** viết code phân loại ML, không cần chốt `P08MockScheduler` và không cần đóng băng hợp đồng production để bắt đầu liên hệ shop đối tác khảo sát định dạng log bình luận.
 
-### Ba điều kiện bắt buộc để mở khóa `P07-E01`
-1. **Blocker A1 — Phê duyệt Hồ sơ Thiết kế & Kế hoạch Dữ liệu `v0.1`:** Bạn review và chốt các lựa chọn `PROPOSED` (nguồn dữ liệu ưu tiên ở `D0`, bộ 9 lớp Intent, chỉ tiêu số lượng mẫu và công cụ gán nhãn).
-2. **Blocker A2 — Thực thi Lộ trình Dữ liệu `D0 -> D6`:** Thu thập dữ liệu có quyền sử dụng/đồng ý hợp lệ, khử PII, chạy Pilot gán nhãn `50–100` mẫu (`D2`), khóa taxonomy (`D3`), hoàn tất gán nhãn chính thức (`D4`), và chạy chia tập chống rò rỉ theo thành phần liên thông (`D5–D6`).
-3. **Blocker A3 — Xây dựng Harness Kiểm thử & Baseline trên CPU:** Hiện thực schema validator, kiểm toán chống rò rỉ dữ liệu, bộ chuẩn hóa/phân giải SKU, baseline `B0` và chốt công cụ tách từ tiếng Việt (`pyvi` MIT) cùng LLM adapter cho `B1`/`H1`.
+---
 
-### Các việc có thể làm song song ngay sau khi chốt `D0`
-- **Nhánh Dữ liệu (`D1 -> D4`):** Liên hệ xin phép nguồn thực tế (`Source A`) song song với việc tổ chức các phiên diễn tập nội bộ 5 SKU (`Source B`) và gán nhãn Pilot.
-- **Nhánh Công cụ Kiểm định Dữ liệu (Không cần model ML):** Viết trước script kiểm tra schema JSONL, khử PII bán tự động, tính Cohen's `κ` và thuật toán `Union-Find` chia split chống rò rỉ để dùng ngay ở các mốc `D2` và `D5`.
+### `Gate 2` — Data Acquisition Pilot Ready (Thu thập & Kiểm tra Thử `50–100` Bình luận)
+- **Trạng thái hiện tại:** **`CONDITIONALLY READY`** *(Tài liệu & biểu mẫu đã sẵn sàng; cần chốt vận hành nội bộ trước khi nhận file)*
+- **Những gì đã sẵn sàng trong bộ tài liệu `v0.1.2`:**
+  - Cẩm nang tác nghiệp 12 bước **`Quick Start — Data Acquisition Pilot`** và đủ 4 khuôn mẫu bảng (`Source Registry`, `Raw Comment Collection Sheet`, `Pilot Data Quality Report`, `Annotation Sheet`) tại [p07-data-acquisition-and-annotation-plan-v0.1.md](./p07-data-acquisition-and-annotation-plan-v0.1.md) (§11).
+  - Schema nghiên cứu offline hỗ trợ cờ khuyết ngữ cảnh (`metadata_availability`, `evaluation_eligibility`, `NOT_EVALUABLE`), quy tắc 3 mức khử trùng (bỏ luật xóa `< 2s` sai lầm) và bộ 6 quy tắc biên trong [p07-annotation-guideline-v0.1.md](./p07-annotation-guideline-v0.1.md) (§2.4).
+- **3 điều kiện tác nghiệp cần tích đạt ngay trước khi thu `50–100` bình luận:**
+  1. Owner duyệt bộ tài liệu hiệu chỉnh `v0.1.2` này và chỉ định rõ **Data Steward** + **2 người gán nhãn độc lập (`Annotator A`, `Annotator B`)**.
+  2. Nguồn được chọn chạy Pilot phải hoàn tất xác minh điều khoản nền tảng & văn bản đồng ý (`permission_status == "GRANTED"`).
+  3. Tạo thư mục lưu trữ cục bộ ngoài Git (hoặc cấu hình `.gitignore` chặn cứng `*unscrubbed*`, `permission_records/`) trước khi tải tệp bình luận gốc về máy.
+
+---
+
+### `Gate 3` — Main Dataset Acquisition Ready (Thu thập & Gán nhãn Tập Chính `D4–D6`)
+- **Trạng thái hiện tại:** **`BLOCKED`** *(Chờ bằng chứng thực tế từ `Gate 2`)*
+- **Điều kiện bắt buộc để mở khóa `Gate 3`:**
+  1. Hoàn thành thu thập thử `50–100` bình luận đã khử sạch PII (`SCRUBBED_VERIFIED`) và gán nhãn mù 2 người ở `Gate 2`.
+  2. Có **`Pilot Data Quality Report`** trả lời bằng số liệu thật: tỷ lệ khuyết `active_sku` / `catalog` của nguồn thật là bao nhiêu, các lớp Intent nào bị thiếu tự nhiên, tần suất câu siêu ngắn lặp mặt chữ là bao nhiêu, và độ đồng thuận `κ` đạt mức nào.
+  3. Họp phân xử các dòng lệch ở Pilot, tinh chỉnh quy tắc biên lần cuối, **đóng băng Taxonomy `v0.1`**, cách ly gói Pilot (`inspected_in_pilot = true`, không đưa vào `held-out test`), và hiệu chỉnh lại con số quy mô phiên/người tham gia/số mẫu mục tiêu cho tập chính.
+  4. Chuẩn bị xong các công cụ kiểm định dữ liệu bằng Python (`schema & eligibility validator`, `PII check`, `Cohen's kappa`, kiểm toán tương quan giả `Product × Intent`, và `Guarded Union-Find splitter` tách được cả `test_seen_product` và `test_unseen_product` mà không vi phạm bất kỳ ràng buộc chống rò rỉ nào).
+
+---
+
+### `Gate 4` — `P07-E01` Experiment Execution Ready (So sánh Classifier Độc lập Sản phẩm & Tiền xử lý Ablation)
+- **Trạng thái hiện tại:** **`BLOCKED`** *(Chờ hoàn tất `Gate 3` và harness `E01`)*
+- **Điều kiện bắt buộc để mở khóa `Gate 4`:**
+  1. Tập dữ liệu chính đã qua kiểm định đồ thị chống rò rỉ (`0` rò rỉ `split_group_id` / `viewer_thread_id` / `participant_id` / `paraphrase_cluster_id` / `template_family_id`, đã kiểm tra tương quan giả `Product × Intent`), tách rõ `test_seen_product` và **`test_unseen_product`**, khóa mã băm `SHA-256` trong `dataset_manifest_v0.1.json` và tạo sẵn các tập con `{8, 16, 32} × 3 seeds`.
+  2. Chốt công cụ tách từ tiếng Việt giấy phép thương mại sạch cho `vinai/phobert-base` (MIT, ví dụ `pyvi` MIT; cấm dùng `phobert-base-v2` AGPLv3) và cấu hình LLM đối chứng cho `B1`/`H1`.
+  3. Hiện thực xong mã cơ sở của riêng `E01`: 4 biến thể tiền xử lý (`Raw`, `Normalized`, `Product Masked`, `Normalized + Product Masked` — `PROPOSED / VALIDATION PENDING`), baseline `B0_rules_only`, `B1_rules_plus_llm_all`, runner đo `Seen-Product Macro-F1`, `Unseen-Product Macro-F1`, `Generalization Gap`, độ trễ `batch_size = 1` và trình xuất `ExperimentManifest` (`hard_gates` khởi tạo `"NOT_RUN"`).
+  4. Chủ nhiệm nghiên cứu chốt các ngưỡng đánh giá đang gắn nhãn `THRESHOLD REQUIRES REVIEW` trước khi mở két `held-out test`.
+- **Làm rõ quan trọng để không làm nghẽn `E01`:**
+  > Việc khởi chạy **`P07-E01` KHÔNG yêu cầu** phải hoàn thành trước bộ dữ liệu nhiễu chuyên biệt của `E02`, bộ cặp câu `E03`, bộ mô phỏng tải `E04` (`P08MockScheduler`), hay cơ chế Transactional Outbox / tích hợp `P08` thực tế (`PRE-INTEGRATION REQUIRED`). Sau khi `Gate 3` khóa tập dữ liệu cốt lõi, `E01` có thể chạy ngay lập tức trong khi các phần mở rộng của `E02–E04` được hoàn thiện cuốn chiếu.
+
+---
+
+## 3. Bảng Tra cứu Nhanh Trạng thái 12 Hạng mục Kỹ thuật P07
+
+| # | Hạng mục | Cổng áp dụng | Trạng thái hiện tại | Ghi chú hành động |
+| :-: | :--- | :---: | :---: | :--- |
+| 1 | Định nghĩa bài toán & 10 Bất biến miền (`INV-P07-01..10`) | `Gate 1–4` | `IN REVIEW` (`v0.1.2`) | Đã làm rõ gom nhóm đa viewer cùng phiên vs cô lập ngữ cảnh cá nhân (`INV-P07-08`). |
+| 2 | Sổ đăng ký nguồn, quy tắc ToS/BVDLCN & khử PII cục bộ | `Gate 1–2` | `READY FOR PILOT` | Đã hiệu chỉnh trung thực giới hạn quyền của chủ shop và giả danh hóa. |
+| 3 | Cẩm nang `Quick Start — Data Acquisition Pilot` & 4 Templates | `Gate 2` | `READY FOR PILOT` | Đủ 12 mục vận hành để bàn giao ngay cho nhánh dữ liệu thu `50–100` mẫu. |
+| 4 | Offline Research Schema (`metadata_availability` & `evaluation_eligibility`) | `Gate 2–3` | `IN REVIEW` (`v0.1.2`) | Giữ được mẫu thực tế khuyết SKU cho `E01` (`NOT_EVALUABLE` ≠ `UNCLEAR`). |
+| 5 | Taxonomy 4/9/7 & 6 Quy tắc biên (`Annotation Guideline v0.1.2`) | `Gate 2–3` | `PROPOSED FOR PILOT` | Chạy thử trên `50–100` mẫu Pilot trước khi đóng băng ở mốc `D3`. |
+| 6 | Hợp đồng `P07-DOC-02 v0.1.2` (`secondary_intents` + khôi phục `proposal_id`) | `Gate 4` / `E03–E04` | `PROPOSED` | Đã sửa JSON example, thêm `session_epoch`, `knowledge_snapshot_ids` và recovery khi retry. |
+| 7 | Tập dữ liệu Pilot (`50–100` bình luận) & Báo cáo chất lượng | `Gate 2 -> 3` | `NOT STARTED` | Bắt đầu ngay sau khi Owner duyệt bản `v0.1.2` này. |
+| 8 | Tập dữ liệu chính `v0.1`, `Unseen Product Holdout` & Chia tập `Guarded Union-Find` | `Gate 3 -> 4` | `BLOCKED` | Chờ kết quả Pilot `Gate 2`; bảo toàn 100% chống rò rỉ khi tách `test_unseen_product` và kiểm tra tương quan giả `Product × Intent`. |
+| 9 | Công cụ kiểm định dữ liệu (Validator, PII, Kappa, Diagnostics, Spurious Check) | `Gate 2–3` | `NEEDS WORK` | Nhánh kỹ thuật có thể viết song song trong lúc nhánh dữ liệu đi khảo sát nguồn. |
+| 10 | Baselines (`B0`, `B1`), 4-Way Preprocessing Ablation (`V0..V3`) & Harness `P07-E01` | `Gate 4` | `NEEDS WORK` | Không mặc định `Product Masking` tốt nhất trước khi đo trên `Seen` vs `Unseen Products`. |
+| 11 | Bộ cặp `E03` & `P08MockScheduler` cho `E04` | Sau `E01` (`E03–E04`) | `DEFERRED TO E03/E04` | Không chặn `Gate 1`, `Gate 2`, `Gate 3` hay `Gate 4 (E01)`. |
+| 12 | Transactional Outbox & Đối chiếu nội dung đa ý `P06↔P08` | Production Stage | `PRE-INTEGRATION REQUIRED` | Giải quyết khi tích hợp vào `apps/api/`, không chặn nghiên cứu PoC. |
