@@ -1,8 +1,79 @@
 # HOSTRA AI — Hướng dẫn cấu trúc repository và quy trình phát triển
 
-> **Tài liệu dành cho thành viên dự án.** README này giải thích vai trò của **toàn bộ** thư mục trong monorepo `hostra-ai/`, đường đi của dữ liệu, cách sử dụng từng khu vực và quy tắc phối hợp. Đây là **hướng dẫn tổ chức repository được đề xuất**, không phải xác nhận tất cả thư mục, file hay chức năng bên dưới đã được triển khai.
+> **Tài liệu dành cho thành viên dự án.** README này giải thích cách cài đặt nhanh cho thành viên mới, vai trò của **toàn bộ** thư mục trong monorepo `hostra-ai/`, đường đi của dữ liệu và quy tắc phối hợp.
 >
-> **Nguồn tham chiếu:** `HOSTRA_AI_Solution_Architecture_Baseline_v1.2` (16/11/2026), `HOSTRA_AI_Technical_Research_and_PoC_Plan_v1.0` (16/11/2026), `HOSTRA_AI_Technical_Risk_Assessment_v1.1` (16/11/2026) và Project Overview v1.0 (tài liệu cũ cần đồng bộ). Xem `docs/README.md` để tra cứu trạng thái tài liệu.
+> **Nguồn tham chiếu:** `HOSTRA_AI_Solution_Architecture_Baseline_v1.2` (16/11/2026), `HOSTRA_AI_Technical_Research_and_PoC_Plan_v1.0` (16/11/2026), `HOSTRA_AI_Technical_Risk_Assessment_v1.1` (16/11/2026). Xem `docs/README.md` và `docs/05-implementation/development-guides/ENVIRONMENT_SETUP_AUDIT.md` để tra cứu trạng thái môi trường.
+
+---
+
+## 0. Hướng dẫn Thiết lập Nhanh cho Thành viên Mới (Quick Start)
+
+### Trạng thái triển khai thực tế hiện tại
+- **Đã chạy được ngay (Frontend Mock MVP):** `apps/web/` (React + Vite + TypeScript + MSW — đã hoàn thành M01–M05.2).
+- **Đã có code PoC chạy độc lập (Python CPU):** `experiments/sales-intelligence/knowledge-verification/` (P05 E01–E04).
+- **Chưa triển khai mã nguồn (mới có thư mục khung):** `apps/api/` (`pyproject.toml` đang trống), `workers/*`, các experiment AI Media GPU (`P01`–`P04`).
+
+### Yêu cầu công cụ
+- **Git**
+- **Node.js ≥ 20 LTS** (khuyến nghị Node 20 theo tệp `.nvmrc`) và **npm** (repository dùng **npm** + `apps/web/package-lock.json`, **không** dùng pnpm/yarn).
+- **Python 3.11 – 3.13** *(chỉ cần khi chạy thí nghiệm P05 trong `experiments/`)* và **Docker Desktop** *(chỉ cần khi chạy P05-E02 PostgreSQL/pgvector)*.
+
+### Bước 1 — Clone repository
+```powershell
+git clone https://github.com/QuangCanhCut/hostra.git hostra-ai
+cd hostra-ai
+```
+
+### Bước 2 — Cài đặt & chạy Frontend Mock MVP (`apps/web/`)
+> **Lưu ý quan trọng:** `package.json` nằm trong `apps/web/`, **không** nằm ở thư mục gốc. Luôn `cd apps/web` trước khi chạy `npm`.
+
+```powershell
+cd apps/web
+npm ci          # Hoặc `npm install` nếu cập nhật dependency
+npm run dev     # Khởi chạy tại http://localhost:5173 (tự kích hoạt MSW mock)
+```
+
+- **Mở bảng công cụ mô phỏng (đổi Owner/Operator, kịch bản, reset mock):** Thêm `?devTools=1` vào URL hoặc nhấn phím tắt **`Ctrl + Shift + D`**.
+
+### Bước 3 — Chạy kiểm tra chất lượng Frontend (Typecheck, Lint, Test, Build)
+```powershell
+cd apps/web
+npm run typecheck   # Kiểm tra kiểu TypeScript (tsc -b --noEmit)
+npm run lint        # Kiểm tra ESLint
+npm run test        # Chạy toàn bộ unit & integration tests (Vitest)
+npm run build       # Build production vào apps/web/dist/
+npm run test:e2e    # Chạy Playwright E2E (trên Windows mặc định dùng Google Chrome đã cài sẵn)
+```
+
+### Bước 4 — Thiết lập môi trường Python cho thí nghiệm P05 (tùy chọn)
+Root `pyproject.toml` hiện **chỉ cấu hình đường dẫn cho Pyrefly/Pyright**, chưa quản lý dependency chung. Để chạy PoC `P05` (`experiments/sales-intelligence/knowledge-verification/`), tạo môi trường ảo riêng tại thư mục gốc:
+
+```powershell
+# Windows PowerShell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+
+# Cài tối thiểu cho E03 & E04 (thuần CPU, không cần Docker)
+pip install pydantic
+
+# Bổ sung cho E01 (Docling extraction + sinh tài liệu mẫu) và E02 (PostgreSQL)
+pip install docling python-docx fpdf2 "psycopg[binary]"
+
+# Chạy thử E03 (Publication Gate) & E04 (TOCTOU)
+python experiments/sales-intelligence/knowledge-verification/e03_claims_gate/run_e03.py
+python experiments/sales-intelligence/knowledge-verification/e04_toctou/run_e04.py
+```
+
+*(Linux/macOS thay bước kích hoạt bằng `source .venv/bin/activate`.)*
+
+### Xử lý các lỗi thường gặp trên Windows
+1. **`npm error ENOENT: Could not read package.json` ở thư mục gốc:** Bạn đang đứng ở root `hostra-ai/`. Hãy chạy `cd apps/web` trước rồi mới chạy `npm run dev`.
+2. **PowerShell báo lỗi không chạy được `Activate.ps1` (`ExecutionPolicy`):** Chạy 1 lần `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` rồi kích hoạt lại `.venv`.
+3. **PowerShell 5.1 báo lỗi ký tự `&&`:** PowerShell 5.1 không hỗ trợ `&&`; hãy tách từng dòng lệnh hoặc dùng `;`.
+4. **Playwright báo thiếu Chromium khi chạy `npm run test:e2e`:** `playwright.config.ts` mặc định dùng Google Chrome sẵn trên Windows (`channel: 'chrome'`). Nếu máy không cài Chrome, chạy `npx playwright install chromium` và đặt `PW_CHANNEL=` trống.
+5. **Cảnh báo `ExperimentalWarning: localStorage is not available` khi chạy Vitest trên Node 25/26:** Chỉ là cảnh báo của Node.js phiên bản mới (test vẫn chạy qua polyfill trong `tests/setup.ts`); dùng **Node 20 LTS** (theo `.nvmrc`) để không gặp cảnh báo này.
+
+---
 
 ## 1. HOSTRA đang xây dựng sản phẩm gì?
 

@@ -4,7 +4,7 @@
 
 **Module:** P05 · **Rủi ro:** R08, R16, R17 · **Gate:** G3, G4 · **Mốc tham chiếu:** M4.
 
-**Tiến độ khởi tạo:** NOT STARTED — chưa có evidence chạy thí nghiệm trong thư mục tại lần kiểm kê này. **Quyết định công nghệ:** SELECTED FOR PoC; tính khả thi và các kết quả vẫn TO VALIDATE. Owner/reviewer cần nhóm phân công.
+**Tiến độ hiện tại:** IN EXPERIMENT — đã hoàn thành vòng chạy PoC đầu tiên cho cả 4 thí nghiệm (`P05-E01..E04`) trên dữ liệu `synthetic` tại local CPU; xem tổng hợp tại [REPORT_P05_POC_v0.1.md](REPORT_P05_POC_v0.1.md). **Quyết định công nghệ:** SELECTED FOR PoC; chưa chuyển sang `VALIDATED` do cần bổ sung tài liệu thật/PDF scan, mở rộng `E02` lên 100–200 câu và chờ reviewer duyệt.
 
 ## 1. Tổng quan bài toán
 
@@ -103,12 +103,12 @@ Các liên kết ngoài sau được lấy từ hồ sơ Stage 03; đây là đi
 
 ## 11. Checklist tiến độ nghiên cứu
 
-- [ ] Đọc nguồn và chốt câu hỏi/phạm vi P05, owner và reviewer.
-- [ ] Xác minh quyền dữ liệu/model; chuẩn bị bộ test và baseline.
-- [ ] Khóa cấu hình, cách đo, rubric và các ngưỡng cần nhóm phê duyệt.
-- [ ] Chạy P05-E01, lưu output/metrics/evidence và ghi cả trường hợp thất bại.
-- [ ] Chạy P05-E02, lưu output/metrics/evidence và ghi cả trường hợp thất bại.
-- [ ] Chạy P05-E03, lưu output/metrics/evidence và ghi cả trường hợp thất bại.
-- [ ] Chạy P05-E04, lưu output/metrics/evidence và ghi cả trường hợp thất bại.
-- [ ] Kiểm tra hard gates và đối chiếu dependency/contract với nhóm liên quan.
-- [ ] Chạy lại được kết quả, review giới hạn và ghi quyết định có bằng chứng.
+- [x] Đọc nguồn và chốt câu hỏi/phạm vi P05 (cần bổ sung tên reviewer khi chốt nghiệm thu).
+- [x] Chuẩn bị bộ test `synthetic` và baseline (`schemas.py`, `data/catalog_seed.json`, `e01_extraction/ground_truth.json`, `e02_retrieval/e02_questions.json`).
+- [ ] Bổ sung tài liệu merchant thật (gồm PDF scan) và khóa ngưỡng chất lượng cuối cùng với reviewer.
+- [x] Chạy P05-E01 (vòng 1 synthetic — 92.5% Exact Match), lưu output/metrics/evidence tại `runs/P05-E01_20261121T073009Z.json`.
+- [x] Chạy P05-E02 (vòng 1 synthetic 45 câu — Hybrid RRF R@1=0.822, R@3=1.000, P95=41.3ms), lưu evidence tại `runs/P05-E02_20261121T055725Z.json`.
+- [x] Chạy P05-E03 (vòng 1 synthetic — 13/13 PASS, 0 unsafe commits), lưu evidence tại `runs/P05-E03_20261121T050419Z.json`.
+- [x] Chạy P05-E04 (vòng 1 synthetic — 4/4 PASS, 0 stale leaks), lưu evidence tại `runs/P05-E04_20261121T050420Z.json`.
+- [x] Kiểm tra hard gates G3/G4 trên bộ negative/TOCTOU và lập báo cáo vòng 1 tại [REPORT_P05_POC_v0.1.md](REPORT_P05_POC_v0.1.md).
+- [ ] Chạy lại trên dữ liệu thật + PostgreSQL transaction tích hợp P08, review giới hạn và chốt quyết định `VALIDATED`.

@@ -1,0 +1,117 @@
+/* HOSTRA AI — Visual Baseline v0.4 (APPROVED) + Global Design System v0.2 Semantic Tokens */
+
+:root {
+  /* Brand primitives (immutable) */
+  --brand-navy: #0f172a;
+  --brand-amber: #f5c430;
+  --brand-amber-hover: #e5b320;
+  --brand-soft-yellow: #fbe580;
+  --brand-white: #ffffff;
+  --brand-cool-gray: #e2e8f0;
+  --brand-danger: #dc2626;
+  --brand-danger-hover: #b91c1c;
+
+  /* Light mode semantic surfaces */
+  --bg-canvas: #f7f9fc;
+  --bg-surface: #ffffff;
+  --bg-subtle: #f1f5f9;
+  --bg-elevated: #ffffff;
+  --bg-hero: #fffbeb;
+  --bg-hero-border: #fde68a;
+  --bg-sidebar: #0f172a;
+  --bg-sidebar-hover: rgba(255, 255, 255, 0.08);
+  --bg-sidebar-active: rgba(245, 196, 48, 0.16);
+
+  /* Light mode text */
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+  --text-on-amber: #0f172a;
+  --text-on-navy: #ffffff;
+  --text-sidebar: #cbd5e1;
+  --text-sidebar-active: #fbe580;
+
+  /* Borders & Focus */
+  --border-default: #e6ecf3;
+  --border-strong: #cbd5e1;
+  --focus-ring: #1d4ed8;
+  --overlay-scrim: rgba(15, 23, 42, 0.56);
+
+  /* Semantic statuses (Light) */
+  --status-success-bg: #dcfce7;
+  --status-success-fg: #166534;
+  --status-success-border: #bbf7d0;
+
+  --status-warning-bg: #fef3c7;
+  --status-warning-fg: #92400e;
+  --status-warning-border: #fde68a;
+
+  --status-danger-bg: #fee2e2;
+  --status-danger-fg: #991b1b;
+  --status-danger-border: #fecaca;
+
+  --status-info-bg: #dbeafe;
+  --status-info-fg: #1d4ed8;
+  --status-info-border: #bfdbfe;
+
+  --status-neutral-bg: #f1f5f9;
+  --status-neutral-fg: #475569;
+  --status-neutral-border: #e2e8f0;
+
+  /* Geometry & Motion */
+  --radius-input: 8px;
+  --radius-card: 12px;
+  --radius-modal: 16px;
+  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-elevated: 0 10px 28px rgba(15, 23, 42, 0.12);
+  --motion-fast: 150ms;
+  --motion-base: 200ms;
+}
+
+[data-theme='dark'] {
+  --bg-canvas: #0b1322;
+  --bg-surface: #121f32;
+  --bg-subtle: #19283e;
+  --bg-elevated: #1d2f49;
+  --bg-hero: #17253a;
+  --bg-hero-border: rgba(245, 196, 48, 0.32);
+  --bg-sidebar: #09101d;
+  --bg-sidebar-hover: rgba(255, 255, 255, 0.07);
+  --bg-sidebar-active: rgba(245, 196, 48, 0.16);
+
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --text-on-amber: #0f172a;
+  --text-on-navy: #ffffff;
+  --text-sidebar: #cbd5e1;
+  --text-sidebar-active: #fbe580;
+
+  --border-default: #273952;
+  --border-strong: #364c6b;
+  --focus-ring: #fbe580;
+  --overlay-scrim: rgba(2, 6, 23, 0.72);
+
+  --status-success-bg: #103322;
+  --status-success-fg: #86efac;
+  --status-success-border: #1b4d34;
+
+  --status-warning-bg: #3b270b;
+  --status-warning-fg: #fde68a;
+  --status-warning-border: #5c3d12;
+
+  --status-danger-bg: #451a21;
+  --status-danger-fg: #fca5a5;
+  --status-danger-border: #6b2630;
+
+  --status-info-bg: #172554;
+  --status-info-fg: #93c5fd;
+  --status-info-border: #1e3a8a;
+
+  --status-neutral-bg: #19283e;
+  --status-neutral-fg: #cbd5e1;
+  --status-neutral-border: #2c405c;
+
+  --shadow-card: 0 1px 2px rgba(2, 6, 23, 0.35);
+  --shadow-elevated: 0 16px 36px rgba(2, 6, 23, 0.55);
+}

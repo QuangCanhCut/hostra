@@ -1,0 +1,131 @@
+{
+  "dataset_meta": {
+    "dataset_id": "p05-e01-synthetic-docs-v0.1",
+    "data_origin": "synthetic_for_poc_validation",
+    "is_synthetic": true,
+    "total_documents": 10,
+    "note": "10 tài liệu sản phẩm thực phẩm đóng gói (5 DOCX + 5 PDF) gắn nhãn synthetic phục vụ đo độ chính xác extraction của Docling trong P05-E01."
+  },
+  "documents": [
+    {
+      "doc_id": "doc01_honey_table.docx",
+      "format": "docx",
+      "layout": "table_standard",
+      "sku_id": "SKU-HONEY-01",
+      "gold": {
+        "price_vnd": 159000,
+        "weight": "500ml",
+        "expiry": "24 tháng",
+        "origin": "Đắk Lắk"
+      }
+    },
+    {
+      "doc_id": "doc02_tea_prose.docx",
+      "format": "docx",
+      "layout": "prose_only",
+      "sku_id": "SKU-TEA-02",
+      "gold": {
+        "price_vnd": 245000,
+        "weight": "100g",
+        "expiry": "18 tháng",
+        "origin": "Hà Giang"
+      }
+    },
+    {
+      "doc_id": "doc03_cashew_mixed.docx",
+      "format": "docx",
+      "layout": "mixed_table_faq",
+      "sku_id": "SKU-CASHEW-03",
+      "gold": {
+        "price_vnd": 185000,
+        "weight": "500g",
+        "expiry": "12 tháng",
+        "origin": "Bình Phước"
+      }
+    },
+    {
+      "doc_id": "doc04_mango_table.docx",
+      "format": "docx",
+      "layout": "table_comma_price",
+      "sku_id": "SKU-MANGO-04",
+      "gold": {
+        "price_vnd": 129000,
+        "weight": "0.5 kg",
+        "expiry": "12 tháng",
+        "origin": "Khánh Hòa"
+      }
+    },
+    {
+      "doc_id": "doc05_coffee_informal.docx",
+      "format": "docx",
+      "layout": "bullet_notes",
+      "sku_id": "SKU-COFFEE-05",
+      "gold": {
+        "price_vnd": 210000,
+        "weight": "250g",
+        "expiry": "12 tháng",
+        "origin": "Đắk Lắk"
+      }
+    },
+    {
+      "doc_id": "doc06_honey_spec.pdf",
+      "format": "pdf",
+      "layout": "pdf_table",
+      "sku_id": "SKU-HONEY-01",
+      "gold": {
+        "price_vnd": 159000,
+        "weight": "500ml",
+        "expiry": "24 tháng",
+        "origin": "Đắk Lắk"
+      }
+    },
+    {
+      "doc_id": "doc07_tea_catalog.pdf",
+      "format": "pdf",
+      "layout": "pdf_prose",
+      "sku_id": "SKU-TEA-02",
+      "gold": {
+        "price_vnd": 245000,
+        "weight": "100g",
+        "expiry": "18 tháng",
+        "origin": "Hà Giang"
+      }
+    },
+    {
+      "doc_id": "doc08_cashew_label.pdf",
+      "format": "pdf",
+      "layout": "pdf_label",
+      "sku_id": "SKU-CASHEW-03",
+      "gold": {
+        "price_vnd": 185000,
+        "weight": "500g",
+        "expiry": "12 tháng",
+        "origin": "Bình Phước"
+      }
+    },
+    {
+      "doc_id": "doc09_ginger_tea.pdf",
+      "format": "pdf",
+      "layout": "pdf_table",
+      "sku_id": "SKU-GINGER-06",
+      "gold": {
+        "price_vnd": 95000,
+        "weight": "200g",
+        "expiry": "18 tháng",
+        "origin": "Lâm Đồng"
+      }
+    },
+    {
+      "doc_id": "doc10_macadamia_sheet.pdf",
+      "format": "pdf",
+      "layout": "pdf_table",
+      "sku_id": "SKU-MACA-07",
+      "gold": {
+        "price_vnd": 320000,
+        "weight": "500 gram",
+        "expiry": "12 tháng",
+        "origin": "Lâm Đồng"
+      }
+    }
+  ]
+}
