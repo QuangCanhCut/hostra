@@ -24,6 +24,10 @@ import math
 from datetime import datetime, timedelta, timezone
 from typing import Final, Optional
 
+from pydantic import BaseModel, ConfigDict
+
+from p06.schemas.story import StrictBool, StrictPositiveInt
+
 # Tốc độ nói tiếng Việt trung bình tự nhiên trong livestream (~155 từ/phút ≈ 2.6 từ/giây).
 DEFAULT_SPEECH_WORDS_PER_SEC: Final[float] = 2.6
 MIN_SPEECH_DURATION_MS: Final[int] = 1000
@@ -32,6 +36,35 @@ MS_PER_SECOND: Final[int] = 1000
 
 # Mốc thời gian khởi tạo mặc định tất định phục vụ kiểm thử tái lập.
 DEFAULT_VIRTUAL_START_AT: Final[datetime] = datetime(2026, 11, 26, 12, 0, 0, tzinfo=timezone.utc)
+
+
+def _validate_max_duration_ms(max_duration_ms: Optional[int]) -> Optional[int]:
+    """Kiểm định tham số ngưỡng thời lượng tối đa (ms), từ chối `bool` và số <= 0."""
+    if max_duration_ms is None:
+        return None
+    if isinstance(max_duration_ms, bool) or not isinstance(max_duration_ms, int) or max_duration_ms <= 0:
+        raise ValueError(
+            f"max_duration_ms phải là số nguyên dương hoặc None, nhận được {max_duration_ms}."
+        )
+    return max_duration_ms
+
+
+class SpeechDurationEstimate(BaseModel):
+    """Kết quả ước lượng thời lượng phát tiếng nói kèm thông tin vượt ngưỡng (khắc phục A-MAJ-06).
+
+    Attributes:
+        raw_ms: Thời lượng ước lượng thực tế chưa cắt ngầm (`>= MIN_SPEECH_DURATION_MS`).
+        clamped_ms: Thời lượng đã kẹp theo `limit_ms` (bằng `raw_ms` nếu `limit_ms is None`).
+        exceeds_limit: `True` nếu `limit_ms is not None` và `raw_ms > limit_ms`.
+        limit_ms: Ngưỡng giới hạn tối đa (ms) dùng để đối chiếu, hoặc `None` nếu không giới hạn.
+    """
+
+    model_config = ConfigDict(extra="forbid", frozen=True, revalidate_instances="always")
+
+    raw_ms: StrictPositiveInt
+    clamped_ms: StrictPositiveInt
+    exceeds_limit: StrictBool
+    limit_ms: Optional[StrictPositiveInt] = None
 
 
 class VirtualClock:
@@ -113,26 +146,8 @@ class VirtualClock:
         return (self._current_at - self._start_at).total_seconds()
 
     @staticmethod
-    def estimate_speech_duration_ms(
-        text: str,
-        words_per_sec: float = DEFAULT_SPEECH_WORDS_PER_SEC,
-    ) -> int:
-        """Ước lượng thời lượng phát tiếng nói (ms) một cách tất định từ số từ trong lời thoại.
-
-        Lý do thiết kế: Thay vì chờ phát âm thanh thực tế hay dùng `sleep()`, mô phỏng quy đổi số từ
-        sang mili-giây và kẹp trong `[MIN_SPEECH_DURATION_MS, MAX_SPEECH_DURATION_MS]` để bảo toàn
-        giới hạn chunk `<= 30s`.
-
-        Args:
-            text: Văn bản lời thoại cần ước lượng thời lượng.
-            words_per_sec: Tốc độ đọc giả định (từ/giây, phải `> 0`).
-
-        Returns:
-            int: Thời lượng ước lượng tính bằng mili-giây.
-
-        Raises:
-            ValueError: Nếu `text` rỗng hoặc `words_per_sec` không hợp lệ.
-        """
+    def _compute_raw_duration_ms(text: str, words_per_sec: float) -> int:
+        """Tính thời lượng thô (ms) không kẹp ngưỡng trên từ số từ và tốc độ đọc."""
         if not isinstance(text, str) or not text.strip():
             raise ValueError("text dùng để ước lượng thời lượng không được rỗng.")
         if (
@@ -145,4 +160,92 @@ class VirtualClock:
 
         word_count = len(text.split())
         raw_ms = int(round((word_count / float(words_per_sec)) * MS_PER_SECOND))
-        return max(MIN_SPEECH_DURATION_MS, min(MAX_SPEECH_DURATION_MS, raw_ms))
+        return max(MIN_SPEECH_DURATION_MS, raw_ms)
+
+    @staticmethod
+    def estimate_raw_speech_duration_ms(
+        text: str,
+        words_per_sec: float = DEFAULT_SPEECH_WORDS_PER_SEC,
+    ) -> int:
+        """Ước lượng thời lượng phát tiếng nói thực tế (ms) và KHÔNG bao giờ cắt ngầm ở ngưỡng 30s.
+
+        Args:
+            text: Văn bản lời thoại cần ước lượng thời lượng.
+            words_per_sec: Tốc độ đọc giả định (từ/giây, phải `> 0`).
+
+        Returns:
+            int: Thời lượng ước lượng không cắt ngưỡng trên (`>= MIN_SPEECH_DURATION_MS`).
+
+        Raises:
+            ValueError: Nếu `text` rỗng hoặc `words_per_sec` không hợp lệ.
+        """
+        return VirtualClock._compute_raw_duration_ms(text, words_per_sec)
+
+    @staticmethod
+    def evaluate_speech_duration(
+        text: str,
+        words_per_sec: float = DEFAULT_SPEECH_WORDS_PER_SEC,
+        max_duration_ms: Optional[int] = MAX_SPEECH_DURATION_MS,
+    ) -> SpeechDurationEstimate:
+        """Đánh giá thời lượng nói kèm cờ `exceeds_limit` mà không âm thầm cắt mất dữ liệu thật.
+
+        Args:
+            text: Văn bản lời thoại cần ước lượng.
+            words_per_sec: Tốc độ đọc giả định (từ/giây, phải `> 0`).
+            max_duration_ms: Ngưỡng đối chiếu tối đa (ms), mặc định `MAX_SPEECH_DURATION_MS`.
+
+        Returns:
+            SpeechDurationEstimate: Kết quả gồm `raw_ms`, `clamped_ms`, `exceeds_limit`, `limit_ms`.
+
+        Raises:
+            ValueError: Nếu `text`, `words_per_sec`, hoặc `max_duration_ms` không hợp lệ.
+        """
+        validated_limit = _validate_max_duration_ms(max_duration_ms)
+        raw_ms = VirtualClock._compute_raw_duration_ms(text, words_per_sec)
+        if validated_limit is None:
+            return SpeechDurationEstimate(
+                raw_ms=raw_ms,
+                clamped_ms=raw_ms,
+                exceeds_limit=False,
+                limit_ms=None,
+            )
+        exceeds = raw_ms > validated_limit
+        return SpeechDurationEstimate(
+            raw_ms=raw_ms,
+            clamped_ms=min(validated_limit, raw_ms),
+            exceeds_limit=exceeds,
+            limit_ms=validated_limit,
+        )
+
+    @staticmethod
+    def estimate_speech_duration_ms(
+        text: str,
+        words_per_sec: float = DEFAULT_SPEECH_WORDS_PER_SEC,
+        max_duration_ms: Optional[int] = None,
+        enforce_limit: bool = False,
+    ) -> int:
+        """Ước lượng thời lượng phát tiếng nói (ms) tất định và an toàn không cắt ngầm (A-MAJ-06).
+
+        Lý do thiết kế: Phiên bản trước tự động kẹp về 30.000ms có thể che giấu lỗi LLM sinh
+        câu quá dài; hàm mới luôn trả về thời lượng thô thực tế trừ khi `enforce_limit=True`
+        yêu cầu ném `ValueError` khi vượt `max_duration_ms`.
+
+        Args:
+            text: Văn bản lời thoại cần ước lượng thời lượng.
+            words_per_sec: Tốc độ đọc giả định (từ/giây, phải `> 0`).
+            max_duration_ms: Ngưỡng kiểm tra tùy chọn (ms) khi `enforce_limit=True`.
+            enforce_limit: Nếu `True` và `raw_ms > max_duration_ms`, ném `ValueError` thay vì cắt.
+
+        Returns:
+            int: Thời lượng ước lượng thực tế tính bằng mili-giây (`>= MIN_SPEECH_DURATION_MS`).
+
+        Raises:
+            ValueError: Nếu `text`/`words_per_sec`/`max_duration_ms` không hợp lệ hoặc vượt ngưỡng khi `enforce_limit=True`.
+        """
+        validated_limit = _validate_max_duration_ms(max_duration_ms)
+        raw_ms = VirtualClock._compute_raw_duration_ms(text, words_per_sec)
+        if validated_limit is not None and enforce_limit and raw_ms > validated_limit:
+            raise ValueError(
+                f"Thời lượng ước lượng ({raw_ms}ms) vượt quá giới hạn cho phép ({validated_limit}ms)."
+            )
+        return raw_ms

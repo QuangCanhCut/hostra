@@ -119,6 +119,7 @@ class MockLLMProvider(LLMProvider):
         keyed_responses: Optional[Mapping[str, Sequence[MockResponseStep]]] = None,
         seed: Optional[int] = None,
         seeded_variants: Optional[Sequence[MockResponseStep]] = None,
+        seeded_variants_by_schema: Optional[Mapping[str, Sequence[MockResponseStep]]] = None,
     ) -> None:
         """Khởi tạo `MockLLMProvider` với các kịch bản phản hồi được khai báo tường minh.
 
@@ -128,6 +129,7 @@ class MockLLMProvider(LLMProvider):
             keyed_responses: Bản đồ các hàng đợi bước phản hồi theo `fixture_key` hoặc tên schema.
             seed: Hạt giống tất định dùng với `hashlib.sha256` khi chọn từ `seeded_variants`.
             seeded_variants: Tập các bước phản hồi để chọn tất định theo `(seed, request_id, schema)`.
+            seeded_variants_by_schema: Tập biến thể theo tên `output_schema.__name__` để chọn tất định.
 
         Raises:
             ProviderConfigError: Nếu `model_id` rỗng hoặc `seed` sai kiểu (`bool`/`str`).
@@ -145,6 +147,11 @@ class MockLLMProvider(LLMProvider):
         }
         self._seed: Optional[int] = seed
         self._seeded_variants: tuple[MockResponseStep, ...] = tuple(seeded_variants or ())
+        self._seeded_variants_by_schema: dict[str, tuple[MockResponseStep, ...]] = {
+            schema_name: tuple(steps)
+            for schema_name, steps in (seeded_variants_by_schema or {}).items()
+            if steps
+        }
 
     @property
     def provider_name(self) -> str:
@@ -200,28 +207,28 @@ class MockLLMProvider(LLMProvider):
         self,
         request: GenerationRequest,
         output_schema: type[BaseModel],
+        variants: Optional[Sequence[MockResponseStep]] = None,
     ) -> MockResponseStep:
-        """Chọn một `MockResponseStep` tất định từ `seeded_variants` bằng SHA-256.
+        """Chọn một `MockResponseStep` tất định từ tập biến thể bằng SHA-256.
 
         Lý do dùng `hashlib.sha256` thay vì `hash()` tích hợp của Python:
             Hàm `hash()` của Python bị ngẫu nhiên hóa giữa các tiến trình bởi `PYTHONHASHSEED`,
             làm mất tính tái lập của kiểm thử; `SHA-256` bảo đảm cùng `(seed, request_id, schema)`
             luôn chọn đúng một biến thể trên mọi máy và mọi phiên bản Python.
         """
+        pool = variants if variants is not None else self._seeded_variants
         effective_seed = request.seed if request.seed is not None else self._seed
         seed_material = f"{effective_seed}:{request.request_id}:{output_schema.__name__}"
         digest = hashlib.sha256(seed_material.encode("utf-8")).digest()
-        index = int.from_bytes(digest[:8], byteorder="big", signed=False) % len(
-            self._seeded_variants
-        )
-        return self._seeded_variants[index]
+        index = int.from_bytes(digest[:8], byteorder="big", signed=False) % len(pool)
+        return pool[index]
 
     def _resolve_next_step(
         self,
         request: GenerationRequest,
         output_schema: type[BaseModel],
     ) -> MockResponseStep:
-        """Lấy bước phản hồi kế tiếp theo thứ tự ưu tiên: fixture_key -> schema -> sequence -> seeded."""
+        """Lấy bước phản hồi kế tiếp theo thứ tự ưu tiên: fixture_key -> schema -> sequence -> seeded_by_schema -> seeded."""
         fixture_key = request.metadata.get("fixture_key")
         if isinstance(fixture_key, str) and fixture_key in self._keyed_queues:
             queue = self._keyed_queues[fixture_key]
@@ -274,8 +281,12 @@ class MockLLMProvider(LLMProvider):
                 )
             return self._sequence.popleft()
 
+        schema_variants = self._seeded_variants_by_schema.get(schema_key)
+        if schema_variants:
+            return self._select_seeded_variant(request, output_schema, variants=schema_variants)
+
         if self._seeded_variants:
-            return self._select_seeded_variant(request, output_schema)
+            return self._select_seeded_variant(request, output_schema, variants=self._seeded_variants)
 
         telemetry = self._build_telemetry(
             request=request,
@@ -286,7 +297,8 @@ class MockLLMProvider(LLMProvider):
             raw_response_valid=False,
         )
         raise ProviderError(
-            "MockLLMProvider chưa được cấu hình response_sequence, keyed_responses hoặc seeded_variants.",
+            "MockLLMProvider chưa được cấu hình response_sequence, keyed_responses, "
+            "seeded_variants_by_schema hoặc seeded_variants.",
             telemetry=telemetry,
         )
 

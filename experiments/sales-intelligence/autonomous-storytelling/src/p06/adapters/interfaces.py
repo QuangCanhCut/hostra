@@ -24,7 +24,8 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
+import copy
 from datetime import datetime
 from enum import Enum
 from typing import Any, Optional
@@ -84,7 +85,7 @@ class SkuEvidenceView(BaseModel):
         ineligible_reasons: Lý do không đủ điều kiện (rỗng khi và chỉ khi `is_eligible=True`).
     """
 
-    model_config = ConfigDict(extra="forbid", frozen=True)
+    model_config = ConfigDict(extra="forbid", frozen=True, revalidate_instances="always")
 
     tenant_id: NonBlankStr
     sku_id: NonBlankStr
@@ -107,6 +108,21 @@ class SkuEvidenceView(BaseModel):
     prohibited_claims: tuple[NonBlankStr, ...] = ()
     is_eligible: StrictBool
     ineligible_reasons: tuple[NonBlankStr, ...] = ()
+
+    @model_validator(mode="before")
+    @classmethod
+    def _deep_copy_nested_containers(cls, data: Any) -> Any:
+        """Sao chép sâu các dict lồng trong `approved_chunks` và `allowed_claims` để chống đột biến ngoài."""
+        if isinstance(data, cls):
+            return copy.deepcopy(data.model_dump())
+        if isinstance(data, Mapping):
+            copied = dict(data)
+            if "approved_chunks" in copied and copied["approved_chunks"] is not None:
+                copied["approved_chunks"] = copy.deepcopy(copied["approved_chunks"])
+            if "allowed_claims" in copied and copied["allowed_claims"] is not None:
+                copied["allowed_claims"] = copy.deepcopy(copied["allowed_claims"])
+            return copied
+        return data
 
     @model_validator(mode="after")
     def validate_evidence_view_invariants(self) -> SkuEvidenceView:
@@ -175,7 +191,7 @@ class CandidateVerificationResult(BaseModel):
         per_sku_decisions: Chi tiết kết quả đánh giá theo từng `sku_id` (đặc biệt cho `MULTI_SKU_COMPARE`).
     """
 
-    model_config = ConfigDict(extra="forbid", frozen=True)
+    model_config = ConfigDict(extra="forbid", frozen=True, revalidate_instances="always")
 
     status: CandidateVerificationStatus
     candidate: SpeechCandidate
@@ -183,6 +199,19 @@ class CandidateVerificationResult(BaseModel):
     details: tuple[NonBlankStr, ...] = ()
     gate_decision_id: OptionalNonBlankStr = None
     per_sku_decisions: dict[str, dict[str, Any]] = Field(default_factory=dict)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _deep_copy_per_sku_decisions(cls, data: Any) -> Any:
+        """Sao chép sâu `per_sku_decisions` để đột biến từ caller không làm thay đổi DTO bất biến."""
+        if isinstance(data, cls):
+            return copy.deepcopy(data.model_dump())
+        if isinstance(data, Mapping):
+            copied = dict(data)
+            if "per_sku_decisions" in copied and copied["per_sku_decisions"] is not None:
+                copied["per_sku_decisions"] = copy.deepcopy(copied["per_sku_decisions"])
+            return copied
+        return data
 
     @model_validator(mode="after")
     def validate_verification_result(self) -> CandidateVerificationResult:
@@ -230,7 +259,7 @@ class PlaybackAckResult(BaseModel):
         failure_reason: Mô tả lỗi hoặc lý do mất tín hiệu (bắt buộc khi `FAILED`/`UNKNOWN`).
     """
 
-    model_config = ConfigDict(extra="forbid", frozen=True)
+    model_config = ConfigDict(extra="forbid", frozen=True, revalidate_instances="always")
 
     outcome: PlaybackOutcomeStatus
     event: Optional[PlaybackCompleted] = None
@@ -302,7 +331,7 @@ class PlaybackApplyResult(BaseModel):
         reason: Lý do chi tiết nếu bị từ chối hoặc bỏ qua (`None` khi `APPLIED`).
     """
 
-    model_config = ConfigDict(extra="forbid", frozen=True)
+    model_config = ConfigDict(extra="forbid", frozen=True, revalidate_instances="always")
 
     status: AckApplyStatus
     applied: StrictBool
@@ -341,12 +370,18 @@ class KnowledgeVerifierPort(ABC):
     """
 
     @abstractmethod
-    def get_sku_evidence(self, tenant_id: str, sku_id: str) -> SkuEvidenceView:
+    def get_sku_evidence(
+        self,
+        tenant_id: str,
+        sku_id: str,
+        at_time: Optional[datetime] = None,
+    ) -> SkuEvidenceView:
         """Truy xuất bản chụp tri thức và trạng thái điều kiện của một SKU theo tenant.
 
         Args:
             tenant_id: Mã tenant yêu cầu truy xuất (bắt buộc kiểm tra cô lập).
             sku_id: Mã SKU cần lấy bằng chứng.
+            at_time: Mốc thời gian kiểm tra cửa sổ hiệu lực (`valid_from..valid_until`, mặc định UTC hiện tại).
 
         Returns:
             SkuEvidenceView: Bản chụp thông tin, bằng chứng đã duyệt và cờ `is_eligible`.

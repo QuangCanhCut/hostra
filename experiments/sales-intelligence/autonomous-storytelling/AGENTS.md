@@ -59,43 +59,37 @@ Theo cơ chế phát hiện tùy biến của Antigravity (`agy-customizations`)
 
 ## 6. Directory Structure & Responsibilities
 
-Khung tài liệu/cấu hình, Phase 1 (`E01-T01..T02` + Audit) và Phase 2 (`E01-T03..T05`) đã hoàn tất (`92/92` tests pass); các bước `E01-T06..T09` đang chờ triển khai:
+Khung tài liệu/cấu hình và Phase 1–3 (`E01-T01..T07`, kiểm toán Phase 1–2, Agent Core & Memory/Baseline) đã hoàn tất (`189/189` tests pass); `E01-T08..T09` (CLI runner, evaluation metrics) đang chờ triển khai:
 
 ```text
 autonomous-storytelling/
 ├── AGENTS.md                 # Quy tắc tác nghiệp P06 (thuần Markdown, không frontmatter, <24KB)
 ├── README.md                 # Tổng quan module, giả thuyết, checklist & điều hướng
 ├── pyproject.toml / .env.example
-├── docs/
-│   ├── README.md
-│   ├── 00-context-and-scaffolding-report.md
-│   ├── 01-p06-structure-and-mission-guide.md
-│   ├── 02-open-decisions-alignment-and-e01-plan.md
-│   ├── 03-phase1-foundation-e01-t01-t02-report.md
-│   └── 04-phase2-research-infrastructure-e01-t03-t05-report.md
+├── docs/                     # README.md + báo cáo 00..05 (05 = Phase 3 Agent Core E01-T06..T07)
 ├── research/                 # problem_definition.md, research_questions.md, methodology.md, context_and_dependencies.md, decision_log.md, literature_review.md
 ├── configs/
 │   ├── default.yaml
 │   ├── experiments/          # p06_e01.yaml .. p06_e04.yaml
 │   └── models/               # mock.yaml, ollama_qwen3_1.7b.yaml, ollama_qwen3_4b.yaml, gemini_flash.yaml
 ├── data/                     # [DONE E01-T04] products/{e01_verified_skus,e01_negative_skus}.json, merchant_goals/e01_goals.json, story_plans/e01_story_plans.json
-├── prompts/                  # Prompt templates có version & SHA-256 hash
+├── prompts/                  # [DONE E01-T07] {story_planner,story_generation,rewrite}.txt (PROMPT_VERSION + SHA-256 LF)
 ├── notebooks/                # CHỈ khám phá/visualize; CẤM chứa core business logic
 ├── src/p06/                  # Toàn bộ logic tái sử dụng (experiments phải import từ đây)
-│   ├── schemas/              # [DONE E01-T02+Audit] __init__.py, story.py, candidate.py, events.py, state.py (p06-mock-v0.1, frozen=True)
-│   ├── providers/            # [DONE E01-T03] __init__.py, base.py, mock_provider.py, ollama_provider.py, gemini_provider.py, factory.py
-│   ├── planning/             # StoryPlanner, arc sequencing, mandatory topic coverage tracker
-│   ├── agent/nodes/          # LangGraph StateGraph nodes (load, plan, draft, verify_p05, rewrite, bridge)
-│   ├── memory/               # 4-part memory: PlayedHistory (W∈{5,10,20}), TopicCoverage, ViewerContext, SemanticMemory
-│   ├── guardrails/           # [DONE E01-T05] __init__.py, prohibited_echo_guard.py, fallback_selector.py
-│   ├── adapters/             # [DONE E01-T05] __init__.py, interfaces.py, p05_knowledge_adapter.py + mocks/playback_bus.py (cô lập)
-│   ├── baselines/            # Script-first baseline đối chiếu công bằng
-│   └── simulation/           # [DONE E01-T05] __init__.py, virtual_clock.py, playback_harness.py
-├── experiments/              # Runner độc lập cho p06_e01..p06_e04
+│   ├── schemas/              # [DONE E01-T02+Audit] story, candidate, events, state (p06-mock-v0.1, frozen=True)
+│   ├── providers/            # [DONE E01-T03] base, mock_provider, ollama_provider, gemini_provider, factory
+│   ├── planning/             # [DONE E01-T07] draft_dtos, prompt_loader, story_planner, arc_sequencer
+│   ├── agent/                # [DONE E01-T07] deps, routing, graph + nodes/ (8 nodes LangGraph StateGraph)
+│   ├── memory/               # [DONE E01-T06] played_history (W∈{5,10,20}), topic_coverage, viewer_context, semantic_memory, repetition_detector
+│   ├── guardrails/           # [DONE E01-T05+Audit] prohibited_echo_guard.py, fallback_selector.py
+│   ├── adapters/             # [DONE E01-T05+Audit] interfaces, p05_knowledge_adapter + mocks/playback_bus (cô lập)
+│   ├── baselines/            # [DONE E01-T06] script_first.py (UPFRONT_LLM & DETERMINISTIC_TALKING_POINTS)
+│   └── simulation/           # [DONE E01-T05+T06] virtual_clock.py, playback_harness.py (atomic ACK progress)
+├── experiments/              # Runner độc lập cho p06_e01..p06_e04 (`E01-T08`)
 ├── evaluation/
-│   ├── metrics/              # Automatic metrics (coverage, repetition, replay_count, latency, tokens)
+│   ├── metrics/              # Automatic metrics (`E01-T08`)
 │   └── rubrics/              # human_eval_rubric_v0.1.md (6 tiêu chí 1–5 + pilot calibration)
-├── tests/                    # unit/, contract/, integration/ (Phase 2 E01-T05 + Wave D: 92/92 passed)
+├── tests/                    # unit/, contract/, integration/ (Phase 3: 189/189 offline Mock passed)
 ├── runs/                     # runs/<exp_id>/<run_id>/ (manifest.json + logs + failures/)
 └── reports/                  # Báo cáo tổng hợp so baseline & đề xuất GO/CHANGE/NO-GO/INCONCLUSIVE
 ```
@@ -185,8 +179,9 @@ Mọi tác vụ triển khai từ `E01-T03..E01-T09` trở đi bắt buộc tuâ
 | :--- | :---: | :--- |
 | Tài liệu nền, `P06-OPEN-1..6`, Rubric v0.1, Model configs & Kế hoạch E01 (`02-...`) | `IN RESEARCH` | Hoàn tất alignment tài liệu & kế hoạch `E01-T01..T09` |
 | `E01-T01..E01-T02` (Môi trường `.venv`, Schemas `p06-mock-v0.1` & Audit Hardening) | `COMPLETED` | Python `3.13.2`, `src/p06/schemas/` (`frozen=True`, `from_graph_result`), `33/33` pytest pass; [`03-...`](./docs/03-phase1-foundation-e01-t01-t02-report.md) |
-| `E01-T03..E01-T05` (3-Tier `LLMProvider`, Dataset Synthetic, `P05KnowledgeAdapter`, Guardrails & Playback Harness) | `COMPLETED` | `src/p06/{providers,adapters,guardrails,simulation}/` + `data/` + Wave D review (`5 MINOR` resolved) -> `92/92` pytest pass; [`04-...`](./docs/04-phase2-research-infrastructure-e01-t03-t05-report.md) |
-| `E01-T06..E01-T09` (4-Part Memory, `ScriptFirstBaseline`, `StoryPlanner`, Prompts, LangGraph Workflow & CLI Runner) | `NOT STARTED` | Triển khai tuần tự theo `02-open-decisions-alignment-and-e01-plan.md` |
+| `E01-T03..E01-T05` (3-Tier `LLMProvider`, Dataset Synthetic, `P05KnowledgeAdapter`, Guardrails & Playback Harness) | `COMPLETED` | `src/p06/{providers,adapters,guardrails,simulation}/` + `data/` + Phase 2 Audit Hardening (`106/106` pass); [`04-...`](./docs/04-phase2-research-infrastructure-e01-t03-t05-report.md) |
+| `E01-T06..E01-T07` (4-Part Memory, `RepetitionDetector`, `ScriptFirstBaseline`, `StoryPlanner`, Prompts & LangGraph 8-Node Core) | `COMPLETED` | `src/p06/{memory,baselines,planning,agent}/` + `prompts/` + 17 smoke tests (`189/189` Mock offline pass); [`05-...`](./docs/05-phase3-agent-core-e01-t06-t07-report.md) |
+| `E01-T08..E01-T09` (Automatic Metrics, CLI Experiment Runner & Pilot Calibration) | `NOT STARTED` | Bước kế tiếp trước khi chạy `P06-E01` trên Ollama/Gemini |
 | `P06-E01`, `P06-E04`, `P06-E03`, `P06-E02` & Phase 5 Handoff `M4` | `NOT STARTED` | Chưa có manifest trong `runs/`; Owner/Reviewer `PENDING ASSIGNMENT` |
 
 - **Done một thí nghiệm:** Runner tái lập, tests pass, đủ `manifest.json` + logs + `failures/` trong `runs/`, đối chiếu baseline & giới hạn mock/synthetic; kết luận `GO/CHANGE/NO-GO/INCONCLUSIVE` theo bằng chứng thật.

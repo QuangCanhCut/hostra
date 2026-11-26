@@ -25,7 +25,7 @@ from collections.abc import Mapping
 from typing import Final, Optional
 
 from p06.adapters.interfaces import PlaybackAckBusPort, PlaybackAckResult
-from p06.schemas.candidate import SpeechCandidate
+from p06.schemas.candidate import CoverageMode, SpeechCandidate
 from p06.schemas.events import (
     PlaybackCompleted,
     PlaybackEventSource,
@@ -49,6 +49,7 @@ class MockPlaybackAckBus(PlaybackAckBusPort):
         scripted_failure_reasons: Optional[Mapping[str, str]] = None,
         failure_latency_ms: int = DEFAULT_FAILURE_LATENCY_MS,
         event_id_prefix: str = "sim-pb",
+        max_speech_duration_ms: Optional[int] = None,
     ) -> None:
         """Khởi tạo bus giả lập phát sóng gắn với `VirtualClock` và mã lần chạy mô phỏng.
 
@@ -60,9 +61,11 @@ class MockPlaybackAckBus(PlaybackAckBusPort):
             scripted_failure_reasons: Lý do lỗi tùy chỉnh cho từng `turn_id`.
             failure_latency_ms: Thời gian trôi trên đồng hồ ảo khi lượt phát thất bại/mất tín hiệu.
             event_id_prefix: Tiền tố tạo `playback_event_id` tuần tự tất định.
+            max_speech_duration_ms: Giới hạn tối đa tùy chọn (ms) để chặn lời thoại quá dài khi phát.
 
         Raises:
-            ValueError: Nếu `simulation_run_id`/`event_id_prefix` rỗng hoặc `failure_latency_ms < 0`.
+            ValueError: Nếu `simulation_run_id`/`event_id_prefix` rỗng, `failure_latency_ms < 0`,
+                hoặc `max_speech_duration_ms` không hợp lệ.
         """
         if not isinstance(simulation_run_id, str) or not simulation_run_id.strip():
             raise ValueError("simulation_run_id không được rỗng.")
@@ -70,6 +73,12 @@ class MockPlaybackAckBus(PlaybackAckBusPort):
             raise ValueError("event_id_prefix không được rỗng.")
         if isinstance(failure_latency_ms, bool) or failure_latency_ms < 0:
             raise ValueError("failure_latency_ms phải là số nguyên không âm.")
+        if max_speech_duration_ms is not None and (
+            isinstance(max_speech_duration_ms, bool)
+            or not isinstance(max_speech_duration_ms, int)
+            or max_speech_duration_ms <= 0
+        ):
+            raise ValueError("max_speech_duration_ms phải là số nguyên dương hoặc None.")
 
         self._clock = clock
         self._simulation_run_id = simulation_run_id.strip()
@@ -82,6 +91,7 @@ class MockPlaybackAckBus(PlaybackAckBusPort):
         )
         self._failure_latency_ms = failure_latency_ms
         self._event_id_prefix = event_id_prefix.strip()
+        self._max_speech_duration_ms: Optional[int] = max_speech_duration_ms
         self._event_seq: int = 0
         self._playout_generation: int = 0
 
@@ -140,10 +150,31 @@ class MockPlaybackAckBus(PlaybackAckBusPort):
         )
 
         if outcome == PlaybackOutcomeStatus.COMPLETED:
-            duration_ms = self._clock.estimate_speech_duration_ms(candidate.text)
+            duration_ms = self._clock.estimate_raw_speech_duration_ms(candidate.text)
+            if self._max_speech_duration_ms is not None and duration_ms > self._max_speech_duration_ms:
+                raise ValueError(
+                    f"Thời lượng lời thoại ({duration_ms}ms) vượt quá giới hạn tối đa "
+                    f"({self._max_speech_duration_ms}ms)."
+                )
             occurred_at = self._clock.advance_ms(duration_ms)
             self._event_seq += 1
             self._playout_generation += 1
+
+            # Chỉ quảng bá độ phủ chủ đề/comment khi candidate thực sự mang CoverageMode FULL hoặc PARTIAL.
+            should_promote_coverage = candidate.proposed_coverage.coverage_mode in {
+                CoverageMode.FULL,
+                CoverageMode.PARTIAL,
+            }
+            confirmed_topics = (
+                list(candidate.proposed_coverage.covered_topic_ids)
+                if should_promote_coverage
+                else []
+            )
+            confirmed_comments = (
+                list(candidate.proposed_coverage.covered_comment_ids)
+                if should_promote_coverage
+                else []
+            )
 
             event = PlaybackCompleted(
                 playback_event_id=f"{self._event_id_prefix}-{self._event_seq:04d}",
@@ -155,8 +186,8 @@ class MockPlaybackAckBus(PlaybackAckBusPort):
                 chunk_id=candidate.source_chunk_id,
                 playout_generation=self._playout_generation,
                 sku_refs=list(candidate.sku_refs),
-                confirmed_topic_ids=list(candidate.proposed_coverage.covered_topic_ids),
-                confirmed_comment_ids=list(candidate.proposed_coverage.covered_comment_ids),
+                confirmed_topic_ids=confirmed_topics,
+                confirmed_comment_ids=confirmed_comments,
                 spoken_text=candidate.text,
                 actual_duration_ms=duration_ms,
                 occurred_at=occurred_at,

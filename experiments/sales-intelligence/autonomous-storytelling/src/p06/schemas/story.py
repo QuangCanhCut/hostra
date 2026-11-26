@@ -203,7 +203,7 @@ class StoryTopic(BaseModel):
         talking_points: Các gạch đầu dòng gợi ý ý chính cho LLM khi sinh chunk.
     """
 
-    model_config = ConfigDict(extra="forbid", frozen=True)
+    model_config = ConfigDict(extra="forbid", frozen=True, revalidate_instances="always")
 
     topic_id: NonBlankStr
     title: NonBlankStr
@@ -229,7 +229,7 @@ class StoryArc(BaseModel):
         reviewed_by_merchant: Cờ ghi nhận merchant đã xem qua arc này hay chưa.
     """
 
-    model_config = ConfigDict(extra="forbid", frozen=True)
+    model_config = ConfigDict(extra="forbid", frozen=True, revalidate_instances="always")
 
     arc_id: NonBlankStr
     position: StrictPositiveInt
@@ -291,7 +291,7 @@ class StoryPlan(BaseModel):
         is_synthetic: Đánh dấu dữ liệu tổng hợp phục vụ PoC/thí nghiệm hay dữ liệu thực.
     """
 
-    model_config = ConfigDict(extra="forbid", frozen=True)
+    model_config = ConfigDict(extra="forbid", frozen=True, revalidate_instances="always")
 
     contract_version: ContractVersion = CONTRACT_VERSION
     plan_id: NonBlankStr
@@ -481,7 +481,7 @@ class StoryChunk(BaseModel):
         created_at: Thời điểm tạo bản nháp (UTC).
     """
 
-    model_config = ConfigDict(extra="forbid", frozen=True)
+    model_config = ConfigDict(extra="forbid", frozen=True, revalidate_instances="always")
 
     contract_version: ContractVersion = CONTRACT_VERSION
     chunk_id: NonBlankStr

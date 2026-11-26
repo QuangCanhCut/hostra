@@ -27,7 +27,7 @@
 from __future__ import annotations
 
 import copy
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from datetime import datetime
 from enum import Enum
 from typing import Annotated, Any, Final, Optional
@@ -56,6 +56,32 @@ DEFAULT_MAX_REWRITE_RETRIES: Final[int] = 2
 MAX_REWRITE_RETRIES_LIMIT: Final[int] = 5
 
 
+def _normalize_value_for_revalidation(value: Any) -> Any:
+    """Chuẩn hóa đệ quy mọi `BaseModel` và container khả biến để ép tái kiểm định và chống aliasing.
+
+    Lý do kỹ thuật: Khi truyền trực tiếp một instance Pydantic (hoặc list/dict chứa instance đó)
+    vào `validated_update()` / `from_graph_result()`, việc chuyển `BaseModel -> deepcopy(model_dump())`
+    và deep-copy container bảo đảm toàn bộ `@model_validator` lồng nhau đều chạy lại và không
+    còn tham chiếu chung với container bên ngoài (`[A-BLK-01]`).
+    """
+    if isinstance(value, BaseModel):
+        return copy.deepcopy(value.model_dump())
+    if isinstance(value, list):
+        return [_normalize_value_for_revalidation(item) for item in value]
+    if isinstance(value, tuple):
+        return tuple(_normalize_value_for_revalidation(item) for item in value)
+    if isinstance(value, set):
+        return {_normalize_value_for_revalidation(item) for item in value}
+    if isinstance(value, frozenset):
+        return frozenset(_normalize_value_for_revalidation(item) for item in value)
+    if isinstance(value, Mapping):
+        return {
+            _normalize_value_for_revalidation(k): _normalize_value_for_revalidation(v)
+            for k, v in value.items()
+        }
+    return copy.deepcopy(value)
+
+
 class AgentTurnOutcome(str, Enum):
     """Trạng thái kết thúc của một lượt thực thi LangGraph trong P06 (P06-E04).
 
@@ -82,13 +108,15 @@ class PlayedTurnSummary(BaseModel):
         chunk_id: Mã `StoryChunk` (nếu có).
         sku_refs: Danh sách SKU đã nhắc trong lượt.
         topic_ids: Danh sách `topic_id` đã được xác nhận phủ qua phát sóng.
+        covered_claim_ids: Danh sách `claim_id` đã được phủ trong lượt phát phục vụ chống lặp E01-T06.
+        confirmed_comment_ids: Danh sách `comment_id` đã được xác nhận trả lời xong trong lượt.
         intent: Ý định giao tiếp của lượt vừa phát.
         spoken_text: Toàn văn lời đã thực sự phát tới người xem.
         occurred_at: Thời điểm hoàn tất phát sóng.
         is_simulated: Phân biệt lượt chạy mô phỏng với thực tế.
     """
 
-    model_config = ConfigDict(extra="forbid", frozen=True)
+    model_config = ConfigDict(extra="forbid", frozen=True, revalidate_instances="always")
 
     playback_event_id: NonBlankStr
     turn_id: NonBlankStr
@@ -96,6 +124,8 @@ class PlayedTurnSummary(BaseModel):
     chunk_id: OptionalNonBlankStr = None
     sku_refs: list[NonBlankStr] = Field(default_factory=list)
     topic_ids: list[NonBlankStr] = Field(default_factory=list)
+    covered_claim_ids: list[NonBlankStr] = Field(default_factory=list)
+    confirmed_comment_ids: list[NonBlankStr] = Field(default_factory=list)
     intent: NonBlankStr
     spoken_text: NonBlankStr
     occurred_at: datetime
@@ -106,12 +136,14 @@ class PlayedTurnSummary(BaseModel):
         cls,
         event: PlaybackCompleted,
         intent: str,
+        covered_claim_ids: Sequence[str] = (),
     ) -> PlayedTurnSummary:
         """Chuyển đổi một sự kiện `PlaybackCompleted` sang bản ghi tóm tắt cho bộ nhớ ngắn hạn.
 
         Args:
             event: Sự kiện xác nhận phát sóng hợp lệ từ P04 hoặc harness mô phỏng.
             intent: Ý định giao tiếp gắn với ứng viên đã phát trong sự kiện đó.
+            covered_claim_ids: Danh sách `claim_id` đã phủ ở lượt phát tương ứng (nếu có).
 
         Returns:
             PlayedTurnSummary: Bản ghi tóm tắt bất biến sẵn sàng nạp vào `played_history`.
@@ -126,6 +158,8 @@ class PlayedTurnSummary(BaseModel):
             chunk_id=event.chunk_id,
             sku_refs=list(event.sku_refs),
             topic_ids=list(event.confirmed_topic_ids),
+            covered_claim_ids=list(covered_claim_ids),
+            confirmed_comment_ids=list(event.confirmed_comment_ids),
             intent=intent,
             spoken_text=event.spoken_text,
             occurred_at=event.occurred_at,
@@ -142,7 +176,7 @@ class RewriteBudgetState(BaseModel):
         last_failure_reasons: Lý do bị P05 chặn ở lần gần nhất, dùng làm phản hồi cho node rewrite.
     """
 
-    model_config = ConfigDict(extra="forbid", frozen=True)
+    model_config = ConfigDict(extra="forbid", frozen=True, revalidate_instances="always")
 
     max_retries: Annotated[StrictInt, Field(ge=0, le=MAX_REWRITE_RETRIES_LIMIT)] = (
         DEFAULT_MAX_REWRITE_RETRIES
@@ -207,7 +241,7 @@ class AgentState(BaseModel):
         node_trace: Vết tên các node đã đi qua trong lượt để phục vụ kiểm thử và báo cáo E04.
     """
 
-    model_config = ConfigDict(extra="forbid", frozen=True)
+    model_config = ConfigDict(extra="forbid", frozen=True, revalidate_instances="always")
 
     contract_version: ContractVersion = CONTRACT_VERSION
     is_authoritative_session_state: StrictFalse = False
@@ -390,7 +424,8 @@ class AgentState(BaseModel):
 
         Lý do kỹ thuật: `BaseModel.model_copy(update=...)` của Pydantic v2 bỏ qua toàn bộ field
         validator và `@model_validator(mode="after")`, dễ tạo ra state vi phạm bất biến `I-02`/`I-06`
-        nhưng không bị phát hiện. Phương thức này luôn đi qua `deepcopy` + `model_validate()`.
+        nhưng không bị phát hiện. Phương thức này chuẩn hóa đệ quy mọi `BaseModel`/container khả biến
+        và đi qua `model_validate()` để ép chạy lại toàn bộ validator lồng nhau (`[A-BLK-01]`).
 
         Args:
             **changes: Các trường cần cập nhật theo cặp tên trường -> giá trị mới.
@@ -402,7 +437,11 @@ class AgentState(BaseModel):
             ValidationError: Nếu có trường thừa, sai kiểu, hoặc làm gãy bất biến liên trường.
         """
         payload = copy.deepcopy(self.model_dump())
-        payload.update(changes)
+        normalized_changes = {
+            key: _normalize_value_for_revalidation(value)
+            for key, value in changes.items()
+        }
+        payload.update(normalized_changes)
         return type(self).model_validate(payload)
 
     @classmethod
@@ -411,7 +450,8 @@ class AgentState(BaseModel):
 
         Lý do kỹ thuật: LangGraph `StateGraph(AgentState).compile().invoke()` trả về `dict` thô
         và không tự chạy `@model_validator(mode="after")` trên trạng thái cuối cùng sau node cuối.
-        Mọi caller gọi đồ thị bắt buộc phải đi qua cổng `from_graph_result()` để chặn state lỗi.
+        Mọi caller gọi đồ thị bắt buộc phải đi qua cổng `from_graph_result()` để chặn state lỗi
+        và loại bỏ aliasing container từ các node.
 
         Args:
             result: Kết quả thô (`Mapping`) hoặc `AgentState` trả về từ LangGraph `invoke()`.
@@ -426,7 +466,8 @@ class AgentState(BaseModel):
         if isinstance(result, cls):
             return cls.model_validate(copy.deepcopy(result.model_dump()))
         if isinstance(result, Mapping):
-            return cls.model_validate(dict(result))
+            normalized = _normalize_value_for_revalidation(dict(result))
+            return cls.model_validate(normalized)
         raise TypeError(
             f"AgentState.from_graph_result chỉ nhận Mapping hoặc AgentState, nhận được {type(result).__name__}."
         )

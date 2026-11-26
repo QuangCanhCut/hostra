@@ -116,7 +116,7 @@ Các liên kết ngoài sau được lấy từ hồ sơ Stage 03; đây là đi
 
 ## 12. Cấu trúc thư mục nghiên cứu & Điều hướng tài liệu
 
-**Trạng thái hiện tại:** `E01-T01..T05: COMPLETED` (`92/92` pytest tests pass: schemas `p06-mock-v0.1` đã kiểm toán, 3-tier `LLMProvider`, dataset synthetic 3 SKU `OCOP: VERIFIED` mô phỏng + 4 negative fixtures, `P05KnowledgeAdapter`, guardrails & `SimulatedPlaybackHarness`); `E01-T06..E01-T09` và các lượt chạy thực nghiệm `P06-E01`..`P06-E04` đang ở trạng thái `NOT STARTED`.
+**Trạng thái hiện tại:** `E01-T01..T07: COMPLETED` (`189/189` offline Mock pytest tests pass: Phase 2 Audit Hardening, 4-part Memory + rule-based `RepetitionDetector`, `ScriptFirstBaseline`, Versioned Prompts + SHA-256 LF, `StoryPlanner` & 8-node LangGraph `StateGraph(AgentState)` với 17 kịch bản smoke tích hợp); `E01-T08..E01-T09` (metrics & CLI experiment runner) và các lượt chạy thực nghiệm thật `P06-E01`..`P06-E04` vẫn đang ở trạng thái `NOT STARTED`.
 
 - **Quy tắc chung repository:** [AGENTS.md](../../../AGENTS.md) · **Quy tắc module P06:** [P06 AGENTS.md](AGENTS.md)
 - **Tài liệu báo cáo & Hướng dẫn dự án (`docs/`):**
@@ -126,6 +126,7 @@ Các liên kết ngoài sau được lấy từ hồ sơ Stage 03; đây là đi
   - [Đồng bộ `P06-OPEN-1..6`, Kiến trúc 3 tầng LLM & Kế hoạch `P06-E01` (Session 02)](docs/02-open-decisions-alignment-and-e01-plan.md) (`02-open-decisions-alignment-and-e01-plan.md`)
   - [Báo cáo Phase 1 — Môi trường (`E01-T01`) & Core Schemas `p06-mock-v0.1` (`E01-T02`)](docs/03-phase1-foundation-e01-t01-t02-report.md) (`03-phase1-foundation-e01-t01-t02-report.md`)
   - [Báo cáo Kiểm toán Phase 1 & Hạ tầng Phase 2 (`E01-T03..E01-T05`)](docs/04-phase2-research-infrastructure-e01-t03-t05-report.md) (`04-phase2-research-infrastructure-e01-t03-t05-report.md`)
+  - [Báo cáo Phase 3 — AI Agent Core, Memory System & 8-Node LangGraph (`E01-T06..E01-T07`)](docs/05-phase3-agent-core-e01-t06-t07-report.md) (`05-phase3-agent-core-e01-t06-t07-report.md`)
 - **Tài liệu nghiên cứu (`research/`):**
   - [Định nghĩa bài toán](research/problem_definition.md) (`problem_definition.md`)
   - [Câu hỏi nghiên cứu](research/research_questions.md) (`research_questions.md`)

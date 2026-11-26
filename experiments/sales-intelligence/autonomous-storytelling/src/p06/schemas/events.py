@@ -106,7 +106,7 @@ class PlaybackCompleted(BaseModel):
         simulation_run_id: Mã lần chạy thí nghiệm giả lập (chỉ có khi là sự kiện mô phỏng).
     """
 
-    model_config = ConfigDict(extra="forbid", frozen=True)
+    model_config = ConfigDict(extra="forbid", frozen=True, revalidate_instances="always")
 
     contract_version: ContractVersion = CONTRACT_VERSION
     playback_event_id: NonBlankStr
@@ -189,7 +189,7 @@ class StoryCheckpoint(BaseModel):
         updated_at: Thời điểm cập nhật checkpoint (UTC).
     """
 
-    model_config = ConfigDict(extra="forbid", frozen=True)
+    model_config = ConfigDict(extra="forbid", frozen=True, revalidate_instances="always")
 
     contract_version: ContractVersion = CONTRACT_VERSION
     tenant_id: NonBlankStr

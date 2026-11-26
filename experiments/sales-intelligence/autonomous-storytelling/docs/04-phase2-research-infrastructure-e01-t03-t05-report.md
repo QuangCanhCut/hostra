@@ -184,7 +184,7 @@ Phần này hệ thống hóa 15 khái niệm kỹ thuật Agent Engineering xu�
 13. **Fake Clock (Đồng hồ Ảo Tất định):** Thay thế thời gian thực (`time.time()`, `time.sleep()`) bằng đối tượng đồng hồ điều khiển được theo từng mili-giây.
     - *Ví dụ P06:* `VirtualClock.advance_sec(...)` mô phỏng trọn phiên live 30 phút (`1800s`) chỉ trong tích tắc CPU với mốc UTC lặp lại chính xác 100%.
 14. **Idempotency (Tính Lũy đẳng):** Xử lý một sự kiện lặp lại nhiều lần (do network retry hoặc duplicate message) phải cho ra đúng trạng thái như xử lý đúng 1 lần đầu, không ghi trùng dữ liệu.
-    - *Ví dụ P06:* `SimulatedPlaybackHarness` lưu tập `playback_event_id` và `turn_id` đã xử lý; nếu nhận lại cùng `playback_event_id`, hàm trả `AckApplyStatus.REJECTED_DUPLICATE_EVENT` và giữ nguyên `StoryCheckpoint`.
+    - *Ví dụ P06:* `SimulatedPlaybackHarness` lưu tập `playback_event_id` và `turn_id` đã xử lý; nếu nhận lại cùng `playback_event_id`, hàm trả `AckApplyStatus.REJECTED_DUPLICATE` và giữ nguyên `StoryCheckpoint`.
 15. **Fail-closed Behavior (Đóng An toàn Khi Thiếu Căn cứ):** Khi gặp trường hợp chưa rõ, thiếu dữ liệu, sai ngữ cảnh hoặc lỗi kiểm tra, hệ thống mặc định **từ chối/chặn** thay vì cho qua.
     - *Ví dụ P06:* `SHOP_WIDE_POLICY` bị từ chối với `UNSUPPORTED_SHOP_POLICY_VERIFICATION`; `UNRESOLVED_SKU` chặn mọi chuỗi rò tên SKU/giá; `SafeFallbackSelector` trả `None` nếu toàn bộ fallback trượt kiểm định live.
 

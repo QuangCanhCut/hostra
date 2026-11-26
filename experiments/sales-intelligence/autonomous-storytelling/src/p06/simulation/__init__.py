@@ -26,6 +26,7 @@ from p06.simulation.virtual_clock import (
     DEFAULT_VIRTUAL_START_AT,
     MAX_SPEECH_DURATION_MS,
     MIN_SPEECH_DURATION_MS,
+    SpeechDurationEstimate,
     VirtualClock,
 )
 
@@ -36,5 +37,6 @@ __all__ = [
     "MIN_SPEECH_DURATION_MS",
     "PendingTurnRecord",
     "SimulatedPlaybackHarness",
+    "SpeechDurationEstimate",
     "VirtualClock",
 ]

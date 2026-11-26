@@ -425,7 +425,13 @@ class TestSpeechCandidateScopeAndLifecycle:
             draft_cand.mark_rejected(reasons=["   "])
         assert draft_cand.verification_status == CandidateVerificationStatus.DRAFT
 
-        rejected_cand = verified_cand.mark_rejected(
+        # [B-MAJ-01]: không cho phép mark_verified / mark_rejected lại trên ứng viên không phải DRAFT.
+        with pytest.raises(ValueError):
+            verified_cand.mark_verified(gate_decision_id="gate-allow-02", verified_at=verified_at)
+        with pytest.raises(ValueError):
+            verified_cand.mark_rejected(reasons=["PRICE_MISMATCH"])
+
+        rejected_cand = draft_cand.mark_rejected(
             reasons=["PRICE_MISMATCH"],
             increment_rewrite=True,
         )
@@ -434,6 +440,10 @@ class TestSpeechCandidateScopeAndLifecycle:
         assert rejected_cand.verified_at is None
         assert rejected_cand.rewrite_attempt == 1
         assert verified_cand.is_ready_for_tts() is True
+        with pytest.raises(ValueError):
+            rejected_cand.mark_verified(gate_decision_id="gate-allow-03", verified_at=verified_at)
+        with pytest.raises(ValueError):
+            rejected_cand.mark_rejected(reasons=["ANOTHER_REASON"])
 
         # Text rỗng, trường tùy chọn chỉ khoảng trắng và list items rỗng bị chặn.
         blank_text = _base_candidate_kwargs()

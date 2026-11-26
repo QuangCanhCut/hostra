@@ -39,7 +39,7 @@ Môi trường thực thi được xác minh trực tiếp trong `.venv` tại r
 
 ## 3. Kiến trúc & Hợp đồng Dữ liệu `p06-mock-v0.1` (`E01-T02`)
 
-Toàn bộ schema được xuất khẩu tập trung tại [`src/p06/schemas/__init__.py`](../src/p06/schemas/__init__.py) qua `__all__`, áp dụng `from __future__ import annotations`, `ConfigDict(extra="forbid", validate_assignment=True)`, docstring tiếng Việt giáo dục (5 câu hỏi đầu module + Google-style) và chú thích bảo toàn các bất biến kiến trúc `I-01`–`I-09`:
+Toàn bộ schema được xuất khẩu tập trung tại [`src/p06/schemas/__init__.py`](../src/p06/schemas/__init__.py) qua `__all__`, áp dụng `from __future__ import annotations`, `ConfigDict(extra="forbid", frozen=True, revalidate_instances="always")`, docstring tiếng Việt giáo dục (5 câu hỏi đầu module + Google-style) và chú thích bảo toàn các bất biến kiến trúc `I-01`–`I-09`:
 
 | Tệp Schema | Các thành phần chính | Bất biến & Quy tắc cốt lõi được khóa |
 | :--- | :--- | :--- |

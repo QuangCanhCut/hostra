@@ -136,7 +136,7 @@ class SkuVersionBinding(BaseModel):
         mentions_ocop: Cờ đánh dấu lời thoại có nhắc tới chứng nhận OCOP của SKU hay không.
     """
 
-    model_config = ConfigDict(extra="forbid", frozen=True)
+    model_config = ConfigDict(extra="forbid", frozen=True, revalidate_instances="always")
 
     sku_id: NonBlankStr
     product_version_id: OptionalNonBlankStr = None
@@ -164,7 +164,7 @@ class ProposedResponseCoverage(BaseModel):
         is_authoritative: Luôn là `False`, khẳng định đây mới chỉ là đề xuất từ P06.
     """
 
-    model_config = ConfigDict(extra="forbid", frozen=True)
+    model_config = ConfigDict(extra="forbid", frozen=True, revalidate_instances="always")
 
     response_group_id: OptionalNonBlankStr = None
     covered_topic_ids: list[NonBlankStr] = Field(default_factory=list)
@@ -254,7 +254,7 @@ class SpeechCandidate(BaseModel):
         created_at: Thời điểm tạo ứng viên (UTC).
     """
 
-    model_config = ConfigDict(extra="forbid", frozen=True)
+    model_config = ConfigDict(extra="forbid", frozen=True, revalidate_instances="always")
 
     contract_version: ContractVersion = CONTRACT_VERSION
     candidate_id: NonBlankStr
@@ -418,6 +418,7 @@ class SpeechCandidate(BaseModel):
 
         Lý do kỹ thuật: Vì mọi schema dùng `frozen=True`, phương thức này sao chép sâu payload
         và chạy `model_validate()` để bảo đảm bản gốc không bao giờ bị biến đổi nửa vời nếu lỗi.
+        Chỉ cho phép chuyển từ `DRAFT` sang `VERIFIED` để tránh đóng dấu lại ứng viên đã chốt.
 
         Args:
             gate_decision_id: Mã quyết định `ALLOW` do Cổng phát ngôn P05 cấp.
@@ -427,9 +428,15 @@ class SpeechCandidate(BaseModel):
             SpeechCandidate: Ứng viên mới ở trạng thái `VERIFIED` đủ điều kiện phát TTS.
 
         Raises:
+            ValueError: Nếu `self.verification_status != CandidateVerificationStatus.DRAFT`.
             ValidationError: Nếu `gate_decision_id` rỗng, thiếu bằng chứng, hoặc ứng viên
                 đang mang `rejection_reasons`.
         """
+        if self.verification_status != CandidateVerificationStatus.DRAFT:
+            raise ValueError(
+                f"Chỉ có thể mark_verified từ trạng thái DRAFT, hiện tại là "
+                f"'{self.verification_status.value}'."
+            )
         payload = copy.deepcopy(self.model_dump())
         payload["verification_status"] = CandidateVerificationStatus.VERIFIED
         payload["verified_by_gate_decision_id"] = gate_decision_id
@@ -443,6 +450,9 @@ class SpeechCandidate(BaseModel):
     ) -> SpeechCandidate:
         """Tạo bản sao `SpeechCandidate` mới ở trạng thái `REJECTED` kèm lý do từ P05.
 
+        Chỉ cho phép chuyển từ `DRAFT` sang `REJECTED` để không hạ cấp hoặc ghi đè ứng viên
+        đã kiểm chứng/từ chối trước đó (`[B-MAJ-01]`).
+
         Args:
             reasons: Danh sách mã/lý do chặn từ P05 (bắt buộc ít nhất 1 chuỗi không rỗng).
             increment_rewrite: Nếu `True`, tăng `rewrite_attempt` thêm 1 cho vòng bounded rewrite.
@@ -451,8 +461,14 @@ class SpeechCandidate(BaseModel):
             SpeechCandidate: Ứng viên mới ở trạng thái `REJECTED` đã xóa dấu vết `VERIFIED`.
 
         Raises:
+            ValueError: Nếu `self.verification_status != CandidateVerificationStatus.DRAFT`.
             ValidationError: Nếu `reasons` rỗng hoặc chứa phần tử chỉ gồm khoảng trắng.
         """
+        if self.verification_status != CandidateVerificationStatus.DRAFT:
+            raise ValueError(
+                f"Chỉ có thể mark_rejected từ trạng thái DRAFT, hiện tại là "
+                f"'{self.verification_status.value}'."
+            )
         payload = copy.deepcopy(self.model_dump())
         payload["verification_status"] = CandidateVerificationStatus.REJECTED
         payload["verified_by_gate_decision_id"] = None

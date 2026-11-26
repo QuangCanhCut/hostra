@@ -67,6 +67,10 @@ class SafeFallbackSelector:
         verifier: KnowledgeVerifierPort,
         candidates: Sequence[SpeechCandidate],
         verified_at: Optional[datetime] = None,
+        tenant_id: Optional[str] = None,
+        session_id: Optional[str] = None,
+        session_epoch: Optional[int] = None,
+        require_empty_covered_topics: bool = False,
     ) -> Optional[SpeechCandidate]:
         """Chọn ứng viên dự phòng đầu tiên vượt qua kiểm định trực tiếp trên kho tri thức hiện hành.
 
@@ -74,6 +78,10 @@ class SafeFallbackSelector:
             verifier: Cổng kiểm chứng tri thức P05 hiện hành (`KnowledgeVerifierPort`).
             candidates: Danh sách ứng viên dự phòng theo thứ tự ưu tiên.
             verified_at: Mốc thời gian kiểm định tùy chọn (hữu ích cho chạy với `VirtualClock`).
+            tenant_id: Bộ lọc tùy chọn chỉ nhận fallback khớp đúng `tenant_id`.
+            session_id: Bộ lọc tùy chọn chỉ nhận fallback khớp đúng `session_id`.
+            session_epoch: Bộ lọc tùy chọn chỉ nhận fallback khớp đúng `session_epoch`.
+            require_empty_covered_topics: Nếu `True`, chỉ chọn fallback không tự đánh dấu phủ topic.
 
         Returns:
             Optional[SpeechCandidate]: Ứng viên đã `VERIFIED` sẵn sàng phát TTS, hoặc `None` nếu
@@ -82,6 +90,14 @@ class SafeFallbackSelector:
         for candidate in candidates:
             # Chỉ cho phép ứng viên được đánh dấu rõ ràng là fallback đã duyệt trước.
             if candidate.origin != CandidateOrigin.PREAPPROVED_FALLBACK:
+                continue
+            if tenant_id is not None and candidate.tenant_id != tenant_id:
+                continue
+            if session_id is not None and candidate.session_id != session_id:
+                continue
+            if session_epoch is not None and candidate.session_epoch != session_epoch:
+                continue
+            if require_empty_covered_topics and candidate.proposed_coverage.covered_topic_ids:
                 continue
 
             fresh_draft = _reset_candidate_to_draft(candidate)

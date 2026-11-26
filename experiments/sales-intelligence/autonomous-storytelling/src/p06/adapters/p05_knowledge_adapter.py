@@ -24,10 +24,12 @@
 
 from __future__ import annotations
 
+import copy
 import hashlib
 import importlib.util
 import re
 import sys
+import threading
 from collections.abc import Sequence
 from datetime import datetime, timezone
 from pathlib import Path
@@ -50,10 +52,11 @@ from p06.schemas.candidate import (
 # Đường dẫn mặc định sang module P05 (`experiments/sales-intelligence/knowledge-verification/`).
 _DEFAULT_P05_DIR: Final[Path] = Path(__file__).resolve().parents[4] / "knowledge-verification"
 
-# Cache mức module theo đường dẫn tuyệt đối để tránh nạp lại nhiều lần mà vẫn cách ly khi test path khác.
+# Cache mức module theo đường dẫn tuyệt đối và khóa đồng bộ cho nạp module trong một tiến trình PoC.
 _P05_MODULE_CACHE: dict[Path, tuple[ModuleType, ModuleType]] = {}
+_P05_IMPORT_LOCK = threading.RLock()
 
-# Từ khóa so sánh cảm tính / công dụng phải fail-closed trừ khi có claim/chunk APPROVED tường minh.
+# Từ khóa so sánh cảm tính / tuyệt đối phải fail-closed trừ khi có claim/chunk APPROVED tường minh.
 _SUBJECTIVE_COMPARATIVE_KEYWORDS: Final[tuple[str, ...]] = (
     "tốt hơn",
     "ngon hơn",
@@ -64,6 +67,42 @@ _SUBJECTIVE_COMPARATIVE_KEYWORDS: Final[tuple[str, ...]] = (
     "đáng mua hơn",
     "rẻ nhất",
     "tốt nhất",
+    "số 1",
+    "hàng đầu",
+)
+
+# Các mẫu nhận diện prompt injection mở rộng (bổ trợ thêm ngoài PROMPT_INJECTION_PATTERNS của P05).
+_PROMPT_INJECTION_REGEXES: Final[tuple[re.Pattern[str], ...]] = (
+    re.compile(
+        r"ignore\s+(?:all\s+|any\s+)?(?:prior|above|previous)\s+(?:instructions?|prompts?|rules?)",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"disregard\s+(?:all\s+|any\s+)?(?:previous|prior|above)\s+(?:instructions?|rules?)",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"bỏ\s+qua\s+(?:tất\s+cả|toàn\s+bộ|mọi)\s+(?:hướng\s+dẫn|quy\s+tắc|lệnh)",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"quên\s+(?:tất\s+cả|toàn\s+bộ|mọi)?\s*(?:hướng\s+dẫn|quy\s+tắc|lệnh)\s*(?:trước|cũ)?",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"(?:reveal|show|print|dump|tiết\s+lộ|hiển\s+thị)\s+(?:your\s+|the\s+)?(?:system\s+prompt|hidden\s+instructions?)",
+        re.IGNORECASE,
+    ),
+    re.compile(r"\[\s*(?:SYSTEM|INST|/INST|SYS|/SYS)\s*\]", re.IGNORECASE),
+    re.compile(r"<\s*(?:system|im_start|im_end)\s*>", re.IGNORECASE),
+    re.compile(
+        r"(?:you\s+are\s+now|act\s+as|hãy\s+đóng\s+vai)\s+(?:a\s+)?(?:jailbreak|developer\s+mode|unfiltered|admin)",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"override\s+(?:safety|guardrails?|policy|policies|instructions?)",
+        re.IGNORECASE,
+    ),
 )
 
 # Từ khóa so sánh giá khách quan (chỉ được phép khi đủ giá verified và đúng chiều so sánh).
@@ -134,8 +173,10 @@ def _load_p05_modules(p05_dir: Path) -> tuple[ModuleType, ModuleType]:
     """Nạp chỉ-đọc `schemas.py` và `publication_gate.py` từ P05 mà không gây xung đột `sys.modules`.
 
     Lý do kỹ thuật: `publication_gate.py` của P05 dùng câu lệnh `from schemas import ...`.
-    Hàm này tạm gán `sys.modules["schemas"] = p05_schemas` trong khối `try ... finally`
-    để khôi phục nguyên trạng ngay sau khi thực thi xong, tránh va chạm với `p06.schemas`.
+    Hàm này dùng `_P05_IMPORT_LOCK` (RLock) bảo đảm an toàn luồng trong phạm vi một tiến trình
+    Python đơn lẻ của giai đoạn PoC (giả định single-process, không chia sẻ trạng thái qua nhiều
+    tiến trình), tạm gán `sys.modules["schemas"] = p05_schemas` trong `try ... except ... finally`
+    để dọn sạch module lỗi nếu `exec_module` ném ngoại lệ và khôi phục nguyên trạng `sys.modules`.
 
     Args:
         p05_dir: Đường dẫn tới thư mục `experiments/sales-intelligence/knowledge-verification`.
@@ -147,46 +188,85 @@ def _load_p05_modules(p05_dir: Path) -> tuple[ModuleType, ModuleType]:
         RuntimeError: Nếu không tìm thấy hoặc không nạp được các tệp nguồn của P05.
     """
     resolved_dir = p05_dir.resolve()
-    cached = _P05_MODULE_CACHE.get(resolved_dir)
-    if cached is not None:
-        return cached
+    with _P05_IMPORT_LOCK:
+        cached = _P05_MODULE_CACHE.get(resolved_dir)
+        if cached is not None:
+            return cached
 
-    schemas_path = resolved_dir / "schemas.py"
-    gate_path = resolved_dir / "publication_gate.py"
-    if not schemas_path.is_file() or not gate_path.is_file():
-        raise RuntimeError(
-            f"Không tìm thấy đầy đủ mã nguồn chỉ-đọc của P05 tại '{resolved_dir}'."
-        )
+        schemas_path = resolved_dir / "schemas.py"
+        gate_path = resolved_dir / "publication_gate.py"
+        if not schemas_path.is_file() or not gate_path.is_file():
+            raise RuntimeError(
+                f"Không tìm thấy đầy đủ mã nguồn chỉ-đọc của P05 tại '{resolved_dir}'."
+            )
 
-    dir_hash = hashlib.sha256(str(resolved_dir).encode("utf-8")).hexdigest()[:12]
-    schemas_mod_name = f"p05_schemas_readonly_{dir_hash}"
-    gate_mod_name = f"p05_gate_readonly_{dir_hash}"
+        dir_hash = hashlib.sha256(str(resolved_dir).encode("utf-8")).hexdigest()[:12]
+        schemas_mod_name = f"p05_schemas_readonly_{dir_hash}"
+        gate_mod_name = f"p05_gate_readonly_{dir_hash}"
 
-    schemas_spec = importlib.util.spec_from_file_location(schemas_mod_name, schemas_path)
-    gate_spec = importlib.util.spec_from_file_location(gate_mod_name, gate_path)
-    if schemas_spec is None or schemas_spec.loader is None:
-        raise RuntimeError(f"Không thể tạo module spec cho P05 schemas tại '{schemas_path}'.")
-    if gate_spec is None or gate_spec.loader is None:
-        raise RuntimeError(f"Không thể tạo module spec cho P05 publication_gate tại '{gate_path}'.")
+        schemas_spec = importlib.util.spec_from_file_location(schemas_mod_name, schemas_path)
+        gate_spec = importlib.util.spec_from_file_location(gate_mod_name, gate_path)
+        if schemas_spec is None or schemas_spec.loader is None:
+            raise RuntimeError(f"Không thể tạo module spec cho P05 schemas tại '{schemas_path}'.")
+        if gate_spec is None or gate_spec.loader is None:
+            raise RuntimeError(
+                f"Không thể tạo module spec cho P05 publication_gate tại '{gate_path}'."
+            )
 
-    p05_schemas = importlib.util.module_from_spec(schemas_spec)
-    p05_gate = importlib.util.module_from_spec(gate_spec)
+        p05_schemas = importlib.util.module_from_spec(schemas_spec)
+        p05_gate = importlib.util.module_from_spec(gate_spec)
 
-    sys.modules[schemas_mod_name] = p05_schemas
-    sys.modules[gate_mod_name] = p05_gate
-    previous_schemas_mod = sys.modules.get("schemas")
-    sys.modules["schemas"] = p05_schemas
-    try:
-        schemas_spec.loader.exec_module(p05_schemas)
-        gate_spec.loader.exec_module(p05_gate)
-    finally:
-        if previous_schemas_mod is None:
-            sys.modules.pop("schemas", None)
-        else:
-            sys.modules["schemas"] = previous_schemas_mod
+        sys.modules[schemas_mod_name] = p05_schemas
+        sys.modules[gate_mod_name] = p05_gate
+        previous_schemas_mod = sys.modules.get("schemas")
+        sys.modules["schemas"] = p05_schemas
+        try:
+            schemas_spec.loader.exec_module(p05_schemas)
+            gate_spec.loader.exec_module(p05_gate)
+        except Exception:
+            sys.modules.pop(schemas_mod_name, None)
+            sys.modules.pop(gate_mod_name, None)
+            raise
+        finally:
+            if previous_schemas_mod is None:
+                sys.modules.pop("schemas", None)
+            else:
+                sys.modules["schemas"] = previous_schemas_mod
 
-    _P05_MODULE_CACHE[resolved_dir] = (p05_schemas, p05_gate)
-    return p05_schemas, p05_gate
+        _P05_MODULE_CACHE[resolved_dir] = (p05_schemas, p05_gate)
+        return p05_schemas, p05_gate
+
+
+def _ensure_utc(dt: datetime) -> datetime:
+    """Chuẩn hóa `datetime` về UTC có múi giờ để đối chiếu cửa sổ hiệu lực an toàn."""
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
+
+
+def _is_fact_within_validity_window(fact: Any, at_time: datetime) -> bool:
+    """Kiểm tra `ProductFact` có đang nằm trong cửa sổ `[valid_from, valid_until]` hay không."""
+    check_ts = _ensure_utc(at_time)
+    valid_from = _ensure_utc(fact.valid_from)
+    if check_ts < valid_from:
+        return False
+    if fact.valid_until is not None:
+        valid_until = _ensure_utc(fact.valid_until)
+        if check_ts > valid_until:
+            return False
+    return True
+
+
+def _prepare_candidate_for_verification(candidate: SpeechCandidate) -> SpeechCandidate:
+    """Đưa bản sao ứng viên về trạng thái `DRAFT` trước khi chấm lại (hỗ trợ tái kiểm định TOCTOU)."""
+    if candidate.verification_status == CandidateVerificationStatus.DRAFT:
+        return candidate
+    payload = copy.deepcopy(candidate.model_dump())
+    payload["verification_status"] = CandidateVerificationStatus.DRAFT
+    payload["verified_by_gate_decision_id"] = None
+    payload["verified_at"] = None
+    payload["rejection_reasons"] = []
+    return SpeechCandidate.model_validate(payload)
 
 
 def _normalize_text(text: str) -> str:
@@ -256,21 +336,32 @@ def _build_unique_sku_alias_patterns(
     return patterns
 
 
-def _build_unresolved_leak_patterns(facts: Sequence[Any]) -> tuple[tuple[str, re.Pattern[str]], ...]:
-    """Tạo bộ nhận diện tên/mã SKU để chặn rò rỉ thông tin sản phẩm khi `UNRESOLVED_SKU`."""
+def _build_unresolved_leak_patterns(
+    facts: Sequence[Any],
+    excluded_terms: frozenset[str] = frozenset(),
+) -> tuple[tuple[str, re.Pattern[str]], ...]:
+    """Tạo bộ nhận diện tên/mã SKU (kể cả n-gram 2 từ cốt lõi) để chặn rò rỉ SKU."""
     patterns: list[tuple[str, re.Pattern[str]]] = []
     for fact in facts:
         leak_terms: set[str] = {fact.sku_id.lower(), _normalize_text(fact.sku_name)}
         tokens = [tok for tok in _tokenize_name(fact.sku_name) if not _UNIT_TOKEN_RE.match(tok)]
-        # Lấy cụm tên đầu tiên (2–3 từ) và cụm bỏ từ loại đầu ("hạt mắc ca" -> "mắc ca").
-        if len(tokens) >= 2:
-            leak_terms.add(" ".join(tokens[:2]))
+        # Thu thập toàn bộ 2-gram cốt lõi (loại cặp toàn stopword) và 3-gram đầu tên sản phẩm.
+        for idx in range(0, max(0, len(tokens) - 1)):
+            bigram = tokens[idx : idx + 2]
+            if all(tok in _GENERIC_ALIAS_STOPWORDS for tok in bigram):
+                continue
+            leak_terms.add(" ".join(bigram))
         if len(tokens) >= 3:
             leak_terms.add(" ".join(tokens[:3]))
             if tokens[0] in _GENERIC_ALIAS_STOPWORDS:
                 leak_terms.add(" ".join(tokens[1:3]))
 
-        sorted_terms = sorted((t for t in leak_terms if t), key=len, reverse=True)
+        filtered_terms = [
+            t for t in leak_terms if t and t not in excluded_terms
+        ]
+        if not filtered_terms:
+            filtered_terms = [fact.sku_id.lower()]
+        sorted_terms = sorted(filtered_terms, key=len, reverse=True)
         regex = re.compile(
             r"(?<!\w)(?:" + "|".join(re.escape(t) for t in sorted_terms) + r")(?!\w)",
             re.IGNORECASE,
@@ -329,17 +420,23 @@ class P05KnowledgeAdapter(KnowledgeVerifierPort):
             p05_dir=resolved_dir,
         )
 
-    def get_sku_evidence(self, tenant_id: str, sku_id: str) -> SkuEvidenceView:
+    def get_sku_evidence(
+        self,
+        tenant_id: str,
+        sku_id: str,
+        at_time: Optional[datetime] = None,
+    ) -> SkuEvidenceView:
         """Truy xuất bản chụp tri thức chỉ-đọc cho một SKU kèm kiểm tra cô lập tenant và eligibility.
 
         Lý do thiết kế (Fail-closed): Nếu thiếu SKU sẽ ném `KeyError`; nếu lệch `tenant_id`
-        sẽ ném `PermissionError` ngay lập tức để dữ liệu của tenant khác không bao giờ lọt vào
-        `SkuEvidenceView`. Các SKU cùng tenant nhưng chưa đủ điều kiện (OCOP, ATTP, quyền,
-        hoặc chưa `APPROVED`) vẫn trả về view với `is_eligible=False` và `ineligible_reasons`.
+        sẽ ném `PermissionError`; nếu `ProductFact` chứa dấu hiệu prompt injection sẽ ném `ValueError`;
+        nếu `ProductFact` hết hạn hoặc chưa đến ngày hiệu lực sẽ đánh dấu `is_eligible=False`;
+        và mọi `EvidenceChunk` chứa prompt injection sẽ bị loại khỏi `approved_chunks`.
 
         Args:
             tenant_id: Mã tenant yêu cầu dữ liệu.
             sku_id: Mã SKU cần truy xuất.
+            at_time: Mốc thời gian kiểm tra hiệu lực (`valid_from..valid_until`, mặc định UTC hiện tại).
 
         Returns:
             SkuEvidenceView: Bản chụp tri thức và trạng thái điều kiện hiện hành.
@@ -347,6 +444,7 @@ class P05KnowledgeAdapter(KnowledgeVerifierPort):
         Raises:
             KeyError: Nếu không tồn tại `ProductFact` hoặc `EligibilitySnapshot` cho `sku_id`.
             PermissionError: Nếu `tenant_id` không khớp với dữ liệu sở hữu SKU.
+            ValueError: Nếu các trường văn bản của `ProductFact` có dấu hiệu prompt injection.
         """
         fact = self._store.facts.get(sku_id)
         elig = self._store.eligibilities.get(sku_id)
@@ -358,9 +456,18 @@ class P05KnowledgeAdapter(KnowledgeVerifierPort):
                 f"Từ chối truy cập chéo tenant cho SKU '{sku_id}' (yêu cầu từ '{tenant_id}')."
             )
 
+        fact_inj = self._find_fact_prompt_injection(fact)
+        if fact_inj is not None:
+            raise ValueError(
+                f"ProductFact của SKU '{sku_id}' chứa dấu hiệu prompt injection ({fact_inj})."
+            )
+
+        check_ts = at_time if at_time is not None else datetime.now(timezone.utc)
         ineligible_reasons: list[str] = []
         if fact.approval_status != self._p05_schemas.ApprovalStatus.APPROVED:
             ineligible_reasons.append("UNAPPROVED_FACT")
+        if not _is_fact_within_validity_window(fact, check_ts):
+            ineligible_reasons.append("FACT_OUTSIDE_VALIDITY_WINDOW")
         if elig.ocop_status != self._p05_schemas.OcopStatus.VERIFIED:
             ineligible_reasons.append("OCOP_NOT_VERIFIED")
         if elig.food_safety_verified is not True:
@@ -379,6 +486,8 @@ class P05KnowledgeAdapter(KnowledgeVerifierPort):
                 chunk.tenant_id == tenant_id
                 and chunk.sku_id == sku_id
                 and chunk.approval_status == self._p05_schemas.ApprovalStatus.APPROVED
+                and self._has_prompt_injection(chunk.content) is None
+                and self._has_prompt_injection(chunk.section) is None
             )
         )
 
@@ -395,6 +504,8 @@ class P05KnowledgeAdapter(KnowledgeVerifierPort):
             if claim.category == self._p05_schemas.ClaimCategory.PROHIBITED:
                 prohibited_claims.append(claim.claim_text)
             else:
+                if self._has_prompt_injection(claim.claim_text) is not None:
+                    continue
                 # Không xuất claim yêu cầu OCOP VERIFIED nếu trạng thái OCOP hiện tại chưa VERIFIED.
                 if (
                     claim.requires_ocop_verified
@@ -443,21 +554,22 @@ class P05KnowledgeAdapter(KnowledgeVerifierPort):
         """Kiểm định một `SpeechCandidate` qua cổng P05 và các bộ bảo vệ theo từng `TargetScopeMode`.
 
         Args:
-            candidate: Ứng viên lời thoại cần kiểm định.
+            candidate: Ứng viên lời thoại cần kiểm định (hỗ trợ tái kiểm định TOCTOU).
             verified_at: Dấu thời gian kiểm định (dùng đồng hồ mô phỏng hoặc mặc định UTC hiện tại).
 
         Returns:
             CandidateVerificationResult: Kết quả `VERIFIED` hoặc `REJECTED` kèm chi tiết từng SKU.
         """
         ts = verified_at if verified_at is not None else datetime.now(timezone.utc)
+        working_candidate = _prepare_candidate_for_verification(candidate)
 
-        if candidate.scope_mode == TargetScopeMode.SINGLE_SKU:
-            return self._verify_single_sku(candidate, verified_at)
-        if candidate.scope_mode == TargetScopeMode.MULTI_SKU_COMPARE:
-            return self._verify_multi_sku_compare(candidate, ts)
-        if candidate.scope_mode == TargetScopeMode.SHOP_WIDE_POLICY:
-            return self._verify_shop_wide_policy(candidate)
-        return self._verify_unresolved_sku(candidate, ts)
+        if working_candidate.scope_mode == TargetScopeMode.SINGLE_SKU:
+            return self._verify_single_sku(working_candidate, ts)
+        if working_candidate.scope_mode == TargetScopeMode.MULTI_SKU_COMPARE:
+            return self._verify_multi_sku_compare(working_candidate, ts)
+        if working_candidate.scope_mode == TargetScopeMode.SHOP_WIDE_POLICY:
+            return self._verify_shop_wide_policy(working_candidate)
+        return self._verify_unresolved_sku(working_candidate, ts)
 
     def _to_p05_candidate(
         self,
@@ -497,24 +609,123 @@ class P05KnowledgeAdapter(KnowledgeVerifierPort):
         )
 
     def _has_prompt_injection(self, text: str) -> Optional[str]:
-        """Kiểm tra mẫu chèn lệnh (prompt injection) dùng chung danh sách mẫu từ P05."""
-        for pattern in self._p05_gate.PROMPT_INJECTION_PATTERNS:
+        """Kiểm tra mẫu chèn lệnh (prompt injection) gồm bộ P05 và bộ regex mở rộng."""
+        for pattern in (*self._p05_gate.PROMPT_INJECTION_PATTERNS, *_PROMPT_INJECTION_REGEXES):
             if pattern.search(text):
                 return pattern.pattern
         return None
 
+    def _find_fact_prompt_injection(self, fact: Any) -> Optional[str]:
+        """Quét toàn bộ trường văn bản của `ProductFact` để chặn dữ liệu nguồn nhiễm injection."""
+        fields_to_scan = (
+            fact.sku_name,
+            fact.weight_display,
+            fact.expiry_display,
+            fact.origin,
+            fact.storage_instructions,
+            *fact.ingredients,
+        )
+        for field_text in fields_to_scan:
+            matched = self._has_prompt_injection(field_text)
+            if matched is not None:
+                return matched
+        return None
+
+    def _collect_approved_corpus(
+        self,
+        tenant_id: str,
+        sku_ids: Sequence[str],
+    ) -> tuple[str, ...]:
+        """Thu thập ngữ liệu chunk/claim `APPROVED` của tập SKU dùng cho đối chiếu so sánh."""
+        sku_set = set(sku_ids)
+        return tuple(
+            _normalize_text(chunk.content)
+            for chunk in self._store.chunks.values()
+            if (
+                chunk.tenant_id == tenant_id
+                and chunk.sku_id in sku_set
+                and chunk.approval_status == self._p05_schemas.ApprovalStatus.APPROVED
+                and self._has_prompt_injection(chunk.content) is None
+            )
+        ) + tuple(
+            _normalize_text(claim.claim_text)
+            for claim in self._store.claims
+            if (
+                claim.tenant_id == tenant_id
+                and claim.sku_id in sku_set
+                and claim.approval_status == self._p05_schemas.ApprovalStatus.APPROVED
+                and claim.category == self._p05_schemas.ClaimCategory.ALLOWED
+                and self._has_prompt_injection(claim.claim_text) is None
+            )
+        )
+
+    def _check_cross_sku_name_leaks(
+        self,
+        candidate_text: str,
+        tenant_id: str,
+        target_sku_id: str,
+    ) -> list[str]:
+        """Phát hiện rò rỉ tên/mã của SKU khác trong cùng tenant khi đang ở chế độ `SINGLE_SKU`."""
+        target_fact = self._store.facts.get(target_sku_id)
+        excluded_terms: set[str] = set()
+        if target_fact is not None:
+            target_tokens = [
+                tok for tok in _tokenize_name(target_fact.sku_name) if not _UNIT_TOKEN_RE.match(tok)
+            ]
+            excluded_terms.add(_normalize_text(target_fact.sku_name))
+            for idx in range(0, max(0, len(target_tokens) - 1)):
+                excluded_terms.add(" ".join(target_tokens[idx : idx + 2]))
+            if len(target_tokens) >= 3:
+                excluded_terms.add(" ".join(target_tokens[:3]))
+
+        other_facts = [
+            fact
+            for fact in self._store.facts.values()
+            if fact.tenant_id == tenant_id and fact.sku_id != target_sku_id
+        ]
+        if not other_facts:
+            return []
+        patterns = _build_unresolved_leak_patterns(other_facts, excluded_terms=frozenset(excluded_terms))
+        return [sku_id for sku_id, pattern in patterns if pattern.search(candidate_text)]
+
     def _verify_single_sku(
         self,
         candidate: SpeechCandidate,
-        verified_at: Optional[datetime] = None,
+        verified_at: datetime,
     ) -> CandidateVerificationResult:
-        """Kiểm định chế độ `SINGLE_SKU`: ủy quyền trực tiếp cho `PublicationGate.evaluate()`."""
+        """Kiểm định chế độ `SINGLE_SKU`: ủy quyền cho P05 kèm kiểm tra hiệu lực, echo, so sánh và rò rỉ SKU."""
         binding = candidate.sku_bindings[0]
         p05_cand = self._to_p05_candidate(candidate, binding)
         decision = self._gate.evaluate(p05_cand)
 
         reasons = [r.value for r in decision.reasons]
         details = list(decision.details)
+
+        inj_pattern = self._has_prompt_injection(candidate.text)
+        if inj_pattern is not None:
+            reasons.append("PROMPT_INJECTION_DETECTED")
+            details.append(f"Phát hiện dấu hiệu prompt injection trong lời thoại: '{inj_pattern}'.")
+
+        fact = self._store.facts.get(binding.sku_id)
+        if fact is not None and fact.tenant_id == candidate.tenant_id:
+            if not _is_fact_within_validity_window(fact, verified_at):
+                reasons.append("FACT_OUTSIDE_VALIDITY_WINDOW")
+                details.append(
+                    f"ProductFact của '{binding.sku_id}' ngoài cửa sổ hiệu lực tại {verified_at.isoformat()}."
+                )
+            fact_inj = self._find_fact_prompt_injection(fact)
+            if fact_inj is not None:
+                reasons.append("PROMPT_INJECTION_DETECTED")
+                details.append(f"ProductFact của '{binding.sku_id}' chứa dấu hiệu prompt injection.")
+
+        for eid in binding.cited_evidence_ids:
+            chunk = self._store.chunks.get(eid)
+            if chunk is not None and (
+                self._has_prompt_injection(chunk.content) is not None
+                or self._has_prompt_injection(chunk.section) is not None
+            ):
+                reasons.append("PROMPT_INJECTION_DETECTED")
+                details.append(f"EvidenceChunk '{eid}' chứa dấu hiệu prompt injection.")
 
         sku_prohibited = self._collect_sku_prohibited_phrases(
             candidate.tenant_id, [binding.sku_id]
@@ -527,6 +738,28 @@ class P05KnowledgeAdapter(KnowledgeVerifierPort):
                 reasons.append("PROHIBITED_CLAIM")
             details.append(
                 f"ProhibitedEchoGuard chặn cụm từ bị cấm: {list(echo_result.matched_phrases)}."
+            )
+
+        # Kiểm tra từ khóa so sánh/tuyệt đối cảm tính chưa có căn cứ APPROVED cho SKU đơn lẻ.
+        normalized_text = _normalize_text(candidate.text)
+        approved_corpus = self._collect_approved_corpus(candidate.tenant_id, [binding.sku_id])
+        for kw in (*_SUBJECTIVE_COMPARATIVE_KEYWORDS, "rẻ hơn", "đắt hơn"):
+            if _compile_word_boundary_pattern(kw).search(normalized_text):
+                if not any(kw in corpus_item for corpus_item in approved_corpus):
+                    reasons.append("UNVERIFIED_COMPARATIVE_CLAIM")
+                    details.append(
+                        f"Phát hiện cụm từ so sánh/tuyệt đối chưa có bằng chứng kiểm chứng ở SINGLE_SKU: '{kw}'."
+                    )
+
+        leaked_skus = self._check_cross_sku_name_leaks(
+            candidate_text=candidate.text,
+            tenant_id=candidate.tenant_id,
+            target_sku_id=binding.sku_id,
+        )
+        if leaked_skus:
+            reasons.append("CROSS_SKU_VIOLATION")
+            details.append(
+                f"Lời thoại SINGLE_SKU '{binding.sku_id}' nhắc tới tên/mã SKU khác trong tenant: {leaked_skus}."
             )
 
         unique_reasons = tuple(dict.fromkeys(reasons))
@@ -543,12 +776,7 @@ class P05KnowledgeAdapter(KnowledgeVerifierPort):
 
         if not unique_reasons:
             decision_id = f"p05-allow-{candidate.candidate_id}"
-            verified_ts = (
-                verified_at
-                if verified_at is not None
-                else (decision.checked_at or datetime.now(timezone.utc))
-            )
-            verified_cand = candidate.mark_verified(decision_id, verified_ts)
+            verified_cand = candidate.mark_verified(decision_id, verified_at)
             return CandidateVerificationResult(
                 status=CandidateVerificationStatus.VERIFIED,
                 candidate=verified_cand,
@@ -597,6 +825,24 @@ class P05KnowledgeAdapter(KnowledgeVerifierPort):
                 "checked_ocop_version": decision.checked_ocop_version,
                 "checked_rights_version": decision.checked_rights_version,
             }
+
+        inj_pattern = self._has_prompt_injection(candidate.text)
+        if inj_pattern is not None:
+            reasons.append("PROMPT_INJECTION_DETECTED")
+            details.append(f"Phát hiện dấu hiệu prompt injection trong so sánh: '{inj_pattern}'.")
+
+        for binding in candidate.sku_bindings:
+            fact = bound_facts.get(binding.sku_id)
+            if fact is not None and fact.tenant_id == candidate.tenant_id:
+                if not _is_fact_within_validity_window(fact, verified_at):
+                    reasons.append("FACT_OUTSIDE_VALIDITY_WINDOW")
+                    details.append(
+                        f"[{binding.sku_id}] ProductFact ngoài cửa sổ hiệu lực tại {verified_at.isoformat()}."
+                    )
+                fact_inj = self._find_fact_prompt_injection(fact)
+                if fact_inj is not None:
+                    reasons.append("PROMPT_INJECTION_DETECTED")
+                    details.append(f"[{binding.sku_id}] ProductFact chứa dấu hiệu prompt injection.")
 
         # Kiểm tra gán giá theo từng SKU trước để biết PRICE_MISMATCH từ P05 đơn-SKU có phải nhiễu chéo giá hợp lệ hay không.
         price_ok, price_errors = self._verify_multi_sku_price_attribution(
@@ -766,23 +1012,8 @@ class P05KnowledgeAdapter(KnowledgeVerifierPort):
         errors: list[str] = []
         normalized_text = _normalize_text(candidate.text)
 
-        approved_comparative_corpus = tuple(
-            _normalize_text(chunk.content)
-            for chunk in self._store.chunks.values()
-            if (
-                chunk.tenant_id == candidate.tenant_id
-                and chunk.sku_id in set(candidate.sku_refs)
-                and chunk.approval_status == self._p05_schemas.ApprovalStatus.APPROVED
-            )
-        ) + tuple(
-            _normalize_text(claim.claim_text)
-            for claim in self._store.claims
-            if (
-                claim.tenant_id == candidate.tenant_id
-                and claim.sku_id in set(candidate.sku_refs)
-                and claim.approval_status == self._p05_schemas.ApprovalStatus.APPROVED
-                and claim.category == self._p05_schemas.ClaimCategory.ALLOWED
-            )
+        approved_comparative_corpus = self._collect_approved_corpus(
+            candidate.tenant_id, candidate.sku_refs
         )
 
         # 1. Chặn mọi từ khóa so sánh cảm tính/tuyệt đối nếu chưa có bằng chứng APPROVED trực tiếp.
@@ -995,7 +1226,10 @@ class P05KnowledgeAdapter(KnowledgeVerifierPort):
             violation_found = True
             details.append("UNRESOLVED_SKU không được phép nhắc chứng nhận OCOP.")
 
-        leak_patterns = _build_unresolved_leak_patterns(list(self._store.facts.values()))
+        tenant_facts = [
+            fact for fact in self._store.facts.values() if fact.tenant_id == candidate.tenant_id
+        ]
+        leak_patterns = _build_unresolved_leak_patterns(tenant_facts)
         for sku_id, pattern in leak_patterns:
             if pattern.search(candidate.text):
                 violation_found = True

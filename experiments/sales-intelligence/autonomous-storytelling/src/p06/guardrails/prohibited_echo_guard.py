@@ -21,24 +21,34 @@
 
 from __future__ import annotations
 
+import re
+import unicodedata
 from collections.abc import Sequence
 
 from pydantic import BaseModel, ConfigDict, StrictBool, model_validator
 
 
 def _normalize_for_match(text: str) -> str:
-    """Chuẩn hóa văn bản về chữ thường và gộp mọi khoảng trắng liên tiếp thành một dấu cách.
+    """Chuẩn hóa NFC, chữ thường và gộp mọi khoảng trắng liên tiếp thành một dấu cách.
 
-    Lý do kỹ thuật: Kẻ tấn công hoặc LLM có thể tạo ra chuỗi có nhiều dấu cách/xuống dòng
-    giữa các từ (ví dụ `"chữa   bệnh"`) làm trượt phép so sánh chuỗi thô.
+    Lý do kỹ thuật: Kẻ tấn công hoặc LLM có thể dùng tổ hợp Unicode khác nhau (NFD vs NFC)
+    hoặc nhiều dấu cách/xuống dòng giữa các từ (ví dụ `"chữa   bệnh"`) làm trượt phép so sánh thô.
 
     Args:
         text: Chuỗi văn bản cần chuẩn hóa.
 
     Returns:
-        str: Chuỗi đã chuẩn hóa chữ thường và khoảng trắng đơn.
+        str: Chuỗi đã chuẩn hóa NFC, chữ thường và khoảng trắng đơn.
     """
-    return " ".join(text.lower().split())
+    nfc_text = unicodedata.normalize("NFC", text)
+    return " ".join(nfc_text.lower().split())
+
+
+def _normalize_alnum_tokens(text: str) -> str:
+    """Chuẩn hóa NFC và trích xuất chuỗi token chữ/số bỏ dấu câu để chặn lách bằng dấu câu."""
+    nfc_text = unicodedata.normalize("NFC", text).lower()
+    tokens = re.findall(r"[^\W_]+", nfc_text, flags=re.UNICODE)
+    return " ".join(tokens)
 
 
 class ProhibitedEchoResult(BaseModel):
@@ -49,7 +59,7 @@ class ProhibitedEchoResult(BaseModel):
         matched_phrases: Danh sách cụm từ bị cấm đã khớp trong văn bản (rỗng khi `passed=True`).
     """
 
-    model_config = ConfigDict(extra="forbid", frozen=True)
+    model_config = ConfigDict(extra="forbid", frozen=True, revalidate_instances="always")
 
     passed: StrictBool
     matched_phrases: tuple[str, ...] = ()
@@ -115,12 +125,20 @@ class ProhibitedEchoGuard:
             ProhibitedEchoResult: `passed=True` nếu sạch; `passed=False` kèm `matched_phrases` nếu vi phạm.
         """
         normalized_text = _normalize_for_match(text)
+        token_text = f" {_normalize_alnum_tokens(text)} "
         combined_phrases = self._deduplicate_normalized(
             (*self._base_phrases, *sku_prohibited_phrases)
         )
-        matched = tuple(
-            phrase for phrase in combined_phrases if phrase in normalized_text
-        )
+        matched_list: list[str] = []
+        for phrase in combined_phrases:
+            if phrase in normalized_text:
+                matched_list.append(phrase)
+                continue
+            token_phrase = _normalize_alnum_tokens(phrase)
+            if token_phrase and f" {token_phrase} " in token_text:
+                matched_list.append(phrase)
+
+        matched = tuple(matched_list)
         return ProhibitedEchoResult(
             passed=(len(matched) == 0),
             matched_phrases=matched,
