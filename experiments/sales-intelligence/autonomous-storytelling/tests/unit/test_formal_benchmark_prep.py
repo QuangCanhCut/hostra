@@ -36,6 +36,12 @@ from p06.evaluation.models import (
     RunEvidence,
     TranscriptEntry,
 )
+from p06.memory import (
+    RepetitionAction,
+    RepetitionCategory,
+    RepetitionDetector,
+    ShortTermPlayedHistory,
+)
 from p06.planning.prompt_loader import load_prompt_template
 from p06.providers import (
     GeminiRawResponse,
@@ -51,7 +57,7 @@ from p06.runner import (
     load_experiment_run_config,
     run_e01_sweep,
 )
-from p06.schemas import StoryCheckpoint, StoryPlan
+from p06.schemas import PlayedTurnSummary, StoryCheckpoint, StoryPlan
 from p06.simulation import SimulatedPlaybackHarness, VirtualClock, compute_chunk_word_budget
 
 P06_ROOT = Path(__file__).resolve().parents[2]
@@ -60,6 +66,8 @@ EXT_PLANS_PATH = P06_ROOT / "data" / "story_plans" / "e01_ext_v1_story_plans.jso
 FORMAL_SKUS_PATH = P06_ROOT / "data" / "products" / "e01_formal_v1_verified_skus.json"
 FORMAL_PLANS_PATH = P06_ROOT / "data" / "story_plans" / "e01_formal_v1_story_plans.json"
 BATCH1A_CONFIG_PATH = P06_ROOT / "configs" / "experiments" / "p06_e01_formal_batch1a.yaml"
+TRACK2A_CONFIG_PATH = P06_ROOT / "configs" / "experiments" / "p06_e01_formal_track2a_w5_w10.yaml"
+TRACK2B_CONFIG_PATH = P06_ROOT / "configs" / "experiments" / "p06_e01_formal_track2b_w10_w20.yaml"
 FORMAL_BATCH_SCRIPT_PATH = (
     P06_ROOT / "experiments" / "p06_e01_no_comments" / "run_gemini_formal_batch.py"
 )
@@ -554,3 +562,141 @@ def test_pilot_v2_reviewer_guides_remain_strictly_blind_if_present() -> None:
         content = fpath.read_text(encoding="utf-8").lower()
         leaks = [term for term in forbidden_terms if term in content]
         assert leaks == [], f"{fname} bị rò rỉ thông tin ẩn danh: {leaks}"
+
+
+def test_fixed_history_detector_memory_contrast_lag6_lag8_lag12() -> None:
+    """Kiểm tra cố định lịch sử (`fixed-history`) tách biệt ảnh hưởng của W=5/10/20 khỏi biến thiên LLM."""
+    detector = RepetitionDetector()
+    target_text = "Mật ong hoa cà phê Cư M'gar Đắk Lắk thu hoạch chính vụ chín tự nhiên."
+    base_candidates = (
+        ("EXACT_TEXT", target_text, ("clm-other",), RepetitionCategory.EXACT_REPLAY, RepetitionAction.REWRITE),
+        (
+            "LEXICAL_NEAR",
+            "Mật ong hoa cà phê Cư M'gar Đắk Lắk thu hoạch chính vụ ngon.",
+            ("clm-other",),
+            RepetitionCategory.LEXICAL_DUPLICATION,
+            RepetitionAction.REWRITE,
+        ),
+        (
+            "PARAPHRASE_SAME_CLAIM",
+            "Khách yêu thưởng thức đặc sản rẫy cà phê Tây Nguyên vào mùa hoa rộ.",
+            ("clm-e01-honey-allowed-01",),
+            RepetitionCategory.REPEATED_FACTS,
+            RepetitionAction.SWITCH_TOPIC,
+        ),
+        (
+            "LEGITIMATE_CONTINUATION",
+            "Đóng chai thủy tinh 500ml nắp kín bảo quản nơi khô ráo thoáng mát.",
+            ("clm-e01-honey-allowed-02",),
+            RepetitionCategory.LEGITIMATE_CONTINUATION,
+            RepetitionAction.ALLOW,
+        ),
+    )
+
+    # Định nghĩa lag trên tổng số lượt đã phát L: lượt đích nằm ở chỉ số 0 nên in_window <=> lag <= W.
+    for lag in (5, 6, 8, 10, 11, 12, 20, 21):
+        turns: list[PlayedTurnSummary] = [
+            PlayedTurnSummary(
+                playback_event_id="ev-fixed-000",
+                turn_id="turn-fixed-000",
+                candidate_id="cand-fixed-000",
+                chunk_id="chunk-fixed-target-000",
+                sku_refs=["SKU-HONEY-01"],
+                topic_ids=["topic-target"],
+                covered_claim_ids=["clm-e01-honey-allowed-01"],
+                intent="PROACTIVE_STORY:topic-target",
+                spoken_text=target_text,
+                occurred_at=START_AT,
+                is_simulated=True,
+            )
+        ]
+        for idx in range(1, lag):
+            turns.append(
+                PlayedTurnSummary(
+                    playback_event_id=f"ev-fixed-{idx:03d}",
+                    turn_id=f"turn-fixed-{idx:03d}",
+                    candidate_id=f"cand-fixed-{idx:03d}",
+                    chunk_id=f"chunk-fixed-filler-{idx:03d}",
+                    sku_refs=["SKU-TEA-02"],
+                    topic_ids=[f"topic-filler-{idx:03d}"],
+                    covered_claim_ids=[f"clm-filler-{idx:03d}"],
+                    intent=f"PROACTIVE_STORY:topic-filler-{idx:03d}",
+                    spoken_text=f"Búp trà cổ thụ số hiệu {idx} hái tay vùng cao nguyên sương mù.",
+                    occurred_at=START_AT + timedelta(seconds=idx * 6),
+                    is_simulated=True,
+                )
+            )
+
+        for window_size in (5, 10, 20):
+            history = ShortTermPlayedHistory(window_size=window_size, initial_turns=turns)
+            window_turns = history.recent_turns()
+            in_window = lag <= window_size
+            assert any(t.turn_id == "turn-fixed-000" for t in window_turns) is in_window
+
+            for _, cand_text, cand_claims, expected_cat, expected_act in base_candidates:
+                chk = detector.check(
+                    candidate_text=cand_text,
+                    played_turns=window_turns,
+                    candidate_chunk_id="chunk-fixed-new-001",
+                    topic_id="topic-target",
+                    sku_id="SKU-HONEY-01",
+                    intent="PROACTIVE_STORY:topic-target",
+                    candidate_claim_ids=cand_claims,
+                    played_chunk_ids=history.completed_chunk_ids,
+                )
+                if in_window:
+                    assert chk.category == expected_cat
+                    assert chk.recommended_action == expected_act
+                else:
+                    assert chk.category == RepetitionCategory.NONE
+                    assert chk.recommended_action == RepetitionAction.ALLOW
+
+
+def test_track2a_and_track2b_configs_guard_and_mock_execution(tmp_path: Path) -> None:
+    """Cấu hình Track 2A (lag=6) và 2B (lag=12) tuân thủ Offline Guard, công bằng và tạo đủ tương phản."""
+    mod = _load_formal_batch_module()
+
+    cfg_2a = mod.load_batch_config(TRACK2A_CONFIG_PATH)
+    cfg_2b = mod.load_batch_config(TRACK2B_CONFIG_PATH)
+    assert cfg_2a["min_chunks_per_topic"] == 2
+    assert cfg_2b["min_chunks_per_topic"] == 2
+    assert cfg_2a["max_turns"] == 80 and cfg_2a["max_requests_per_run"] == 120 and cfg_2a["global_max_requests"] == 240
+    assert cfg_2b["max_turns"] == 120 and cfg_2b["max_requests_per_run"] == 200 and cfg_2b["global_max_requests"] == 400
+    assert [r["history_window"] for r in cfg_2a["runs"]] == [5, 10]
+    assert [r["history_window"] for r in cfg_2b["runs"]] == [10, 20]
+
+    for cfg_path in (TRACK2A_CONFIG_PATH, TRACK2B_CONFIG_PATH):
+        with pytest.raises(ProviderConfigError, match="Offline Guard"):
+            mod.execute_formal_batch(cfg_path, output_dir_override=tmp_path / f"blocked_{cfg_path.stem}")
+
+    sum_2a = mod.execute_formal_batch(
+        TRACK2A_CONFIG_PATH,
+        provider_override="mock",
+        output_dir_override=tmp_path / "track2a_mock",
+    )
+    assert sum_2a["status"] == "COMPLETED"
+    assert sum_2a["comparison_compatible"] is True
+    assert set(sum_2a["runs"].keys()) == {"langgraph_w5", "langgraph_w10"}
+
+    # Xác nhận Track 2A W=5 đạt 18/18 topics đủ 2 chunks không-fallback, và W=10 dù có fallback không được đếm nhầm fallback vào coverage.
+    w10_metrics_2a = json.loads(
+        (Path(sum_2a["runs"]["langgraph_w10"]["run_dir"]) / "metrics.json").read_text(encoding="utf-8")
+    )
+    assert w10_metrics_2a["coverage"]["completed_topic_count"]["value"] == 18
+    assert w10_metrics_2a["reliability"]["fallback_count"]["value"] >= 1
+
+    sum_2b = mod.execute_formal_batch(
+        TRACK2B_CONFIG_PATH,
+        provider_override="mock",
+        output_dir_override=tmp_path / "track2b_mock",
+    )
+    assert sum_2b["status"] == "COMPLETED"
+    assert sum_2b["comparison_compatible"] is True
+    assert sum_2b["runs"]["langgraph_w10"]["termination_reason"] == "EARLY_COMPLETION"
+    assert sum_2b["runs"]["langgraph_w20"]["termination_reason"] == "MAX_CONSECUTIVE_ABORTS"
+    w20_metrics_2b = json.loads(
+        (Path(sum_2b["runs"]["langgraph_w20"]["run_dir"]) / "metrics.json").read_text(encoding="utf-8")
+    )
+    cov_2b = w20_metrics_2b["coverage"]["mandatory_topic_coverage"]
+    assert 0.0 < cov_2b["value"] < 1.0
+    assert len(cov_2b["metadata"]["partially_covered_topic_ids"]) >= 1

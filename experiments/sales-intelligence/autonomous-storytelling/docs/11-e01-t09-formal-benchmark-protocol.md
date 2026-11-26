@@ -308,3 +308,19 @@ Theo quyết định Tech Lead (`DR-P06-012`) sau khi review kết quả **Batch
    - Ngân sách mới tách biệt hoàn toàn khỏi Batch 1A: **`global_max_requests = 60`**, **`max_requests_per_run = 30`**, **`max_cost_usd = 0.0`** (`Free Tier`), `min_request_interval_sec = 6.0`, `stop_on_rate_limit = true`.
    - Thư mục xuất: [`runs/P06-E01/formal_benchmark_v1/track1_brand_storytelling_s42/`](file:///g:/PTIT%20TL/P_Inovation/hostra-ai/experiments/sales-intelligence/autonomous-storytelling/runs/P06-E01/formal_benchmark_v1/track1_brand_storytelling_s42/).
 3. **Bảo toàn Tiêu chí & Tài nguyên Khóa:** Toàn bộ `10/10` mã băm dữ liệu/prompt/model/baseline ở Mục 5B và toàn bộ Acceptance Criteria ở Mục 5 được giữ nguyên 100%, không hạ chuẩn ngưỡng chất lượng.
+
+---
+
+## 12. Phụ lục Sửa đổi Giao thức — Đóng Natural Track Rút gọn & Thiết kế Đối chứng Track 2 (`2026-11-27`)
+
+Theo định hướng Tech Lead (`DR-P06-013`) và báo cáo sẵn sàng [`docs/14-e01-t09-track2-readiness-and-protocol.md`](./14-e01-t09-track2-readiness-and-protocol.md):
+
+1. **Đóng Natural Storytelling Benchmark theo phạm vi rút gọn:**
+   - **Đã hoàn tất:** Batch 1A (`product_education_10m_ext`, `seed=42`), Batch 1B (`brand_storytelling_10m_ext`, `seed=42`) cùng 2 bộ đánh giá AI-assisted ChatGPT (`ai_assisted_eval/`).
+   - **Hoãn (`DEFERRED`):** `Product Education seed=43`, các run `Brand Storytelling` bổ sung (`W=10/20`), `Extended 30m`; **không** chạy Pilot v3.
+   - Human Calibration, Human Blind Evaluation và `GoldFactualLabel` giữ trạng thái **`PENDING`**; chưa đánh dấu `P06-E01` là `VALIDATED`.
+2. **Thiết kế đối chứng rút gọn cho Track 2 (`Reduced Paired-Comparison Design`, `0` thay đổi kiến trúc/prompt/dataset/gates):**
+   - **Track 2A (`Small Window Sensitivity`):** [`configs/experiments/p06_e01_formal_track2a_w5_w10.yaml`](../configs/experiments/p06_e01_formal_track2a_w5_w10.yaml) (`SHA-256: d52a17b1c832093490e5b0092921c56d2e09488e8d7335088156ae41a23e5ae7`), so sánh **`W=5` vs `W=10`** trên `product_education_10m_ext` (`min_chunks_per_topic=2`, `lag=6`, `seed=42`, `max_turns=80`, `max_requests_per_run=120`, `global_max_requests=240`).
+   - **Track 2B (`Large Window Sensitivity`):** [`configs/experiments/p06_e01_formal_track2b_w10_w20.yaml`](../configs/experiments/p06_e01_formal_track2b_w10_w20.yaml) (`SHA-256: b4e6c539e1f316219e86d35532c3e0dde0e3a993c41c7ffd1897d287221354b4`), so sánh **`W=10` vs `W=20`** trên `window_stress_12lag_3sku` (`min_chunks_per_topic=2`, `lag=12`, `seed=42`, `max_turns=120`, `max_requests_per_run=200`, `global_max_requests=400`).
+   - Bỏ `Script-first` khỏi stress track vì Natural Track đã đối chứng baseline trên 2 scenarios; tuyệt đối không suy diễn `W` tối ưu toàn cục giữa hai scenario khác nhau.
+   - **Trạng thái hiện tại:** Chỉ mới xác minh ngoại tuyến qua `MockLLMProvider` (`AWAITING_FINAL_TRACK2_EXECUTION_APPROVAL`).
