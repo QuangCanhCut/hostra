@@ -1,0 +1,111 @@
+{
+  "dataset_meta": {
+    "dataset_id": "p06-e01-formal-story-plans-v1.1",
+    "version": "1.1.0",
+    "base_dataset_id": "p06-e01-ext-story-plans-v1.0",
+    "fixture_role": "formal_benchmark_window_separation_fixture_v1_1",
+    "simulated_approval": true,
+    "is_synthetic": true,
+    "tenant_id": "tenant-p06-poc-01",
+    "note": "Bộ StoryPlan Formal Benchmark v1.1 (36 chủ đề, 12 chủ đề/SKU) cho phép độ trễ quay lại cùng chủ đề ở min_chunks_per_topic=2 đạt 12 lượt nhằm phân tách rạch ròi W=5 (5 < 12), W=10 (10 < 12) và W=20 (20 >= 12)."
+  },
+  "plans": {
+    "window_stress_12lag_3sku": {
+      "contract_version": "p06-mock-v0.1",
+      "plan_id": "plan-e01-formal-window-stress-12lag",
+      "tenant_id": "tenant-p06-poc-01",
+      "session_id": "session-e01-formal-window-stress-12lag",
+      "plan_revision": 1,
+      "approval_status": "APPROVED",
+      "approved_by": "synthetic-owner-01",
+      "approved_at": "2026-11-27T00:00:00Z",
+      "session_goal": "Phiên benchmark có kiểm soát gồm 36 chủ đề (12 chủ đề riêng biệt cho mỗi SKU) nhằm đo khả năng phủ nội dung dài hơi và độ nhạy cửa sổ nhớ W ∈ {5, 10, 20} ở lag=12.",
+      "pinned_sku_ids": ["SKU-HONEY-01", "SKU-TEA-02", "SKU-MACADAMIA-03"],
+      "mandatory_messages": [
+        "Mật ong hoa cà phê Đắk Lắk 500ml giá 159.000đ, không dùng cho trẻ dưới 1 tuổi.",
+        "Trà Shan Tuyết cổ thụ Hà Giang 200g giá 245.000đ, pha ở 85-90 độ C.",
+        "Hạt mắc ca Lâm Đồng 500g giá 195.000đ, không dùng cho người dị ứng hạt cây."
+      ],
+      "prohibited_topics": [
+        "Khẳng định công dụng chữa bệnh, trị dứt điểm hoặc thay thế thuốc đối với thực phẩm",
+        "Nêu sai giá niêm yết hoặc chứng nhận ngoài hồ sơ mô phỏng"
+      ],
+      "knowledge_versions_by_sku": {"SKU-HONEY-01": 1, "SKU-TEA-02": 1, "SKU-MACADAMIA-03": 1},
+      "is_synthetic": true,
+      "arcs": [
+        {
+          "arc_id": "arc-formal-honey-01",
+          "position": 1,
+          "title": "Chuỗi 12 chủ đề Mật ong hoa cà phê Đắk Lắk",
+          "sku_id": "SKU-HONEY-01",
+          "target_duration_sec": 200,
+          "breakpoint_hint": "ARC_BOUNDARY",
+          "preview_text": "12 góc độ độc lập cho Mật ong 500ml từ vùng hoa Cư M'gar đến kiểm tra tem truy xuất và biếu tặng.",
+          "reviewed_by_merchant": true,
+          "topics": [
+            {"topic_id": "topic-formal-honey-01", "title": "Vùng hoa cà phê Cư M'gar Đắk Lắk", "sku_id": "SKU-HONEY-01", "is_mandatory": true, "fact_refs": ["ev-e01-honey-origin"], "allowed_claim_ids": ["clm-e01-honey-allowed-01"], "talking_points": ["Khai thác chính vụ hoa cà phê tại Cư M'gar Đắk Lắk."]},
+            {"topic_id": "topic-formal-honey-02", "title": "Quay ly tâm và lọc nhiều tầng không gia nhiệt cao", "sku_id": "SKU-HONEY-01", "is_mandatory": true, "fact_refs": ["ev-e01-ext-honey-harvest"], "allowed_claim_ids": ["clm-e01-ext-honey-allowed-03"], "talking_points": ["Lọc mịn loại mảnh sáp mà không gia nhiệt cao."]},
+            {"topic_id": "topic-formal-honey-03", "title": "Cảm quan vàng hổ phách sánh dẻo và vị ngọt dịu", "sku_id": "SKU-HONEY-01", "is_mandatory": true, "fact_refs": ["ev-e01-ext-honey-sensory"], "allowed_claim_ids": ["clm-e01-ext-honey-allowed-03"], "talking_points": ["Màu vàng hổ phách trong, không gắt mùi đường khét."]},
+            {"topic_id": "topic-formal-honey-04", "title": "Pha 1-2 thìa với 150ml nước ấm dưới 50 độ C", "sku_id": "SKU-HONEY-01", "is_mandatory": true, "fact_refs": ["ev-e01-honey-usage"], "allowed_claim_ids": ["clm-e01-ext-honey-allowed-04"], "talking_points": ["Pha cùng nước ấm dưới 50 độ C hoặc chanh tươi buổi sáng."]},
+            {"topic_id": "topic-formal-honey-05", "title": "Kết hợp bánh mì nướng và sữa chua không đường", "sku_id": "SKU-HONEY-01", "is_mandatory": true, "fact_refs": ["ev-e01-ext-honey-pairing"], "allowed_claim_ids": ["clm-e01-ext-honey-allowed-04"], "talking_points": ["Phết bánh mì nướng hoặc rưới lên sữa chua không đường."]},
+            {"topic_id": "topic-formal-honey-06", "title": "Xử lý kết tinh tự nhiên bằng nước ấm 40 độ C", "sku_id": "SKU-HONEY-01", "is_mandatory": true, "fact_refs": ["ev-e01-honey-quality"], "allowed_claim_ids": ["clm-e01-honey-allowed-01"], "talking_points": ["Ngâm nước ấm 40 độ C khi kết tinh, tránh để tủ lạnh."]},
+            {"topic_id": "topic-formal-honey-07", "title": "Dùng thìa khô sạch và tránh trẻ dưới 1 tuổi", "sku_id": "SKU-HONEY-01", "is_mandatory": true, "fact_refs": ["ev-e01-ext-honey-safety"], "allowed_claim_ids": ["clm-e01-ext-honey-allowed-05"], "talking_points": ["Không dùng cho trẻ dưới 1 tuổi, tránh lẫn nước gây lên men."]},
+            {"topic_id": "topic-formal-honey-08", "title": "Chai thủy tinh dày 500ml nắp vặn kín và hạn 24 tháng", "sku_id": "SKU-HONEY-01", "is_mandatory": true, "fact_refs": ["ev-e01-ext-honey-packaging"], "allowed_claim_ids": ["clm-e01-ext-honey-allowed-05"], "talking_points": ["Nắp vặn kín chống tràn, nhãn ghi rõ hạn dùng 24 tháng."]},
+            {"topic_id": "topic-formal-honey-09", "title": "Giá 159.000đ bọc chống sốc 2 lớp và đổi vỡ 7 ngày", "sku_id": "SKU-HONEY-01", "is_mandatory": true, "fact_refs": ["ev-e01-honey-shipping"], "allowed_claim_ids": ["clm-e01-honey-allowed-02"], "talking_points": ["Giá niêm yết 159.000đ, đổi mới 1-1 trong 7 ngày nếu vỡ."]},
+            {"topic_id": "topic-formal-honey-10", "title": "Hồ sơ OCOP 4 sao mô phỏng SYNTH-OCOP-4S-DL-001", "sku_id": "SKU-HONEY-01", "is_mandatory": true, "fact_refs": ["ev-e01-honey-ocop"], "allowed_claim_ids": ["clm-e01-honey-ocop-01"], "talking_points": ["Hồ sơ mô phỏng đạt OCOP 4 sao và an toàn thực phẩm."]},
+            {"topic_id": "topic-formal-honey-11", "title": "Kiểm tra tem truy xuất, mã lô và niêm phong nắp chai", "sku_id": "SKU-HONEY-01", "is_mandatory": true, "fact_refs": ["ev-e01-formal-honey-traceability"], "allowed_claim_ids": ["clm-e01-formal-honey-allowed-06"], "talking_points": ["Kiểm tra tem truy xuất, mã lô và niêm phong nắp khi nhận hàng."]},
+            {"topic_id": "topic-formal-honey-12", "title": "Phù hợp dùng gia đình hoặc làm quà biếu gọn gàng", "sku_id": "SKU-HONEY-01", "is_mandatory": true, "fact_refs": ["ev-e01-formal-honey-gifting"], "allowed_claim_ids": ["clm-e01-formal-honey-allowed-06"], "talking_points": ["Tiện dùng trong bếp gia đình hoặc biếu tặng người thân."]}
+          ]
+        },
+        {
+          "arc_id": "arc-formal-tea-02",
+          "position": 2,
+          "title": "Chuỗi 12 chủ đề Trà Shan Tuyết cổ thụ Hà Giang",
+          "sku_id": "SKU-TEA-02",
+          "target_duration_sec": 200,
+          "breakpoint_hint": "ARC_BOUNDARY",
+          "preview_text": "12 góc độ độc lập cho Trà Shan Tuyết 200g từ độ cao 1.300m đến kiểm tra hút chân không và vụ thu hái.",
+          "reviewed_by_merchant": true,
+          "topics": [
+            {"topic_id": "topic-formal-tea-01", "title": "Trà cổ thụ 1 tôm 2 lá trên 1.300m tại Phìn Hồ", "sku_id": "SKU-TEA-02", "is_mandatory": true, "fact_refs": ["ev-e01-tea-origin"], "allowed_claim_ids": ["clm-e01-tea-allowed-01"], "talking_points": ["Hái thủ công 1 tôm 2 lá trên độ cao trên 1.300m."]},
+            {"topic_id": "topic-formal-tea-02", "title": "Làm héo nong tre và sao vò giữ lớp tuyết trắng", "sku_id": "SKU-TEA-02", "is_mandatory": true, "fact_refs": ["ev-e01-ext-tea-harvest"], "allowed_claim_ids": ["clm-e01-ext-tea-allowed-03"], "talking_points": ["Làm héo trên nong tre, sao diệt men và vò nhẹ truyền thống."]},
+            {"topic_id": "topic-formal-tea-03", "title": "Nước vàng mơ sáng trong, hương cốm và hậu ngọt sâu", "sku_id": "SKU-TEA-02", "is_mandatory": true, "fact_refs": ["ev-e01-ext-tea-sensory"], "allowed_claim_ids": ["clm-e01-ext-tea-allowed-03"], "talking_points": ["Chát thanh đầu lưỡi và chuyển hậu ngọt sâu ở cổ họng."]},
+            {"topic_id": "topic-formal-tea-04", "title": "Pha 5g ở 85-90 độ C bền hương qua 6-8 lần nước", "sku_id": "SKU-TEA-02", "is_mandatory": true, "fact_refs": ["ev-e01-tea-usage"], "allowed_claim_ids": ["clm-e01-tea-allowed-02"], "talking_points": ["Tráng ấm, hãm 30-45 giây lượt đầu bằng nước 85-90 độ C."]},
+            {"topic_id": "topic-formal-tea-05", "title": "Thưởng trà buổi sáng, tiếp khách và dùng kèm bánh nhạt", "sku_id": "SKU-TEA-02", "is_mandatory": true, "fact_refs": ["ev-e01-ext-tea-pairing"], "allowed_claim_ids": ["clm-e01-ext-tea-allowed-04"], "talking_points": ["Hợp phòng trà gia đình hoặc dùng kèm bánh quy nhạt."]},
+            {"topic_id": "topic-formal-tea-06", "title": "Bảo quản búp tuyết trắng tránh ẩm và mùi gia vị", "sku_id": "SKU-TEA-02", "is_mandatory": true, "fact_refs": ["ev-e01-tea-quality"], "allowed_claim_ids": ["clm-e01-tea-allowed-01"], "talking_points": ["Đậy kín nắp hộp thiếc, tránh nơi ẩm và mùi mạnh."]},
+            {"topic_id": "topic-formal-tea-07", "title": "Tránh hãm nước 100 độ C và tránh uống sát giờ ngủ", "sku_id": "SKU-TEA-02", "is_mandatory": true, "fact_refs": ["ev-e01-ext-tea-safety"], "allowed_claim_ids": ["clm-e01-ext-tea-allowed-05"], "talking_points": ["Dùng muỗng khô và lưu ý người nhạy cảm caffeine."]},
+            {"topic_id": "topic-formal-tea-08", "title": "Túi hút chân không kèm nắp phụ giữ trà hạn 18 tháng", "sku_id": "SKU-TEA-02", "is_mandatory": true, "fact_refs": ["ev-e01-ext-tea-packaging"], "allowed_claim_ids": ["clm-e01-ext-tea-allowed-04"], "talking_points": ["Túi hút chân không giữ trà khô giòn suốt 18 tháng."]},
+            {"topic_id": "topic-formal-tea-09", "title": "Giá 245.000đ hộp thiếc 200g chèn xốp đổi trả 7 ngày", "sku_id": "SKU-TEA-02", "is_mandatory": true, "fact_refs": ["ev-e01-tea-shipping"], "allowed_claim_ids": ["clm-e01-tea-allowed-02"], "talking_points": ["Giá niêm yết 245.000đ, chèn xốp bảo vệ dáng hộp quà biếu."]},
+            {"topic_id": "topic-formal-tea-10", "title": "Hồ sơ OCOP 4 sao mô phỏng SYNTH-OCOP-4S-HG-002", "sku_id": "SKU-TEA-02", "is_mandatory": true, "fact_refs": ["ev-e01-tea-ocop"], "allowed_claim_ids": ["clm-e01-tea-ocop-01"], "talking_points": ["Kiểm soát độ ẩm đạt chuẩn an toàn thực phẩm và OCOP mô phỏng."]},
+            {"topic_id": "topic-formal-tea-11", "title": "Kiểm tra túi hút chân không căng kín và mã lô khi mở hộp", "sku_id": "SKU-TEA-02", "is_mandatory": true, "fact_refs": ["ev-e01-formal-tea-traceability"], "allowed_claim_ids": ["clm-e01-formal-tea-allowed-06"], "talking_points": ["Kiểm tra túi chân không ôm chặt lá trà và nhãn hạn dùng."]},
+            {"topic_id": "topic-formal-tea-12", "title": "Thu hái vụ xuân-thu Phìn Hồ hợp biếu tặng dịp lễ", "sku_id": "SKU-TEA-02", "is_mandatory": true, "fact_refs": ["ev-e01-formal-tea-seasonality"], "allowed_claim_ids": ["clm-e01-formal-tea-allowed-06"], "talking_points": ["Thu hái theo vụ xuân và thu cho hương cốm ổn định."]}
+          ]
+        },
+        {
+          "arc_id": "arc-formal-macadamia-03",
+          "position": 3,
+          "title": "Chuỗi 12 chủ đề Hạt mắc ca sấy nứt vỏ Lâm Đồng",
+          "sku_id": "SKU-MACADAMIA-03",
+          "target_duration_sec": 200,
+          "breakpoint_hint": "ARC_BOUNDARY",
+          "preview_text": "12 góc độ độc lập cho Hạt mắc ca 500g từ vườn Lâm Hà đến kiểm tra hạn dùng và khẩu phần dùng hàng ngày.",
+          "reviewed_by_merchant": true,
+          "topics": [
+            {"topic_id": "topic-formal-macadamia-01", "title": "Vườn Lâm Hà thu hái trái chín rụng tự nhiên", "sku_id": "SKU-MACADAMIA-03", "is_mandatory": true, "fact_refs": ["ev-e01-macadamia-origin"], "allowed_claim_ids": ["clm-e01-macadamia-allowed-01"], "talking_points": ["Phân cỡ đồng đều từ vườn cao nguyên Lâm Hà."]},
+            {"topic_id": "topic-formal-macadamia-02", "title": "Hong gió giảm ẩm và sấy đối lưu chậm nhiệt độ thấp", "sku_id": "SKU-MACADAMIA-03", "is_mandatory": true, "fact_refs": ["ev-e01-ext-macadamia-harvest"], "allowed_claim_ids": ["clm-e01-ext-macadamia-allowed-03"], "talking_points": ["Nhân chín đều từ lõi và tạo vết nứt vỏ vừa tay tách."]},
+            {"topic_id": "topic-formal-macadamia-03", "title": "Nhân trắng sữa giòn tan, thơm bơ nhẹ tự nhiên", "sku_id": "SKU-MACADAMIA-03", "is_mandatory": true, "fact_refs": ["ev-e01-ext-macadamia-sensory"], "allowed_claim_ids": ["clm-e01-ext-macadamia-allowed-03"], "talking_points": ["Giòn tan, thơm bơ nhẹ và không gắt dầu cũ."]},
+            {"topic_id": "topic-formal-macadamia-04", "title": "Tặng kèm thanh tách vỏ thép để tách vỏ ăn liền", "sku_id": "SKU-MACADAMIA-03", "is_mandatory": true, "fact_refs": ["ev-e01-macadamia-usage"], "allowed_claim_ids": ["clm-e01-macadamia-allowed-02"], "talking_points": ["Sấy nứt vỏ sẵn kèm thanh tách thép, tránh nếu dị ứng hạt."]},
+            {"topic_id": "topic-formal-macadamia-05", "title": "Ăn vặt văn phòng, làm sữa hạt và trộn yến mạch", "sku_id": "SKU-MACADAMIA-03", "is_mandatory": true, "fact_refs": ["ev-e01-ext-macadamia-pairing"], "allowed_claim_ids": ["clm-e01-ext-macadamia-allowed-04"], "talking_points": ["Xay sữa hạt đường phèn hoặc giã nhỏ rắc lên salad."]},
+            {"topic_id": "topic-formal-macadamia-06", "title": "Không tẩm muối hương liệu và bảo quản giữ độ giòn 12 tháng", "sku_id": "SKU-MACADAMIA-03", "is_mandatory": true, "fact_refs": ["ev-e01-macadamia-quality"], "allowed_claim_ids": ["clm-e01-macadamia-allowed-01"], "talking_points": ["Vặn chặt nắp kèm gói hút ẩm đặt nơi khô ráo."]},
+            {"topic_id": "topic-formal-macadamia-07", "title": "Xoay đúng rãnh nứt và không ăn gói hút ẩm", "sku_id": "SKU-MACADAMIA-03", "is_mandatory": true, "fact_refs": ["ev-e01-ext-macadamia-safety"], "allowed_claim_ids": ["clm-e01-ext-macadamia-allowed-05"], "talking_points": ["Không ăn gói hút ẩm và tránh dùng nếu dị ứng hạt cây."]},
+            {"topic_id": "topic-formal-macadamia-08", "title": "Hộp PET trong 500g nắp vặn nhìn rõ nhân hạt bên trong", "sku_id": "SKU-MACADAMIA-03", "is_mandatory": true, "fact_refs": ["ev-e01-ext-macadamia-packaging"], "allowed_claim_ids": ["clm-e01-ext-macadamia-allowed-04"], "talking_points": ["Quan sát rõ hạt qua hộp PET trong kèm thanh tách thép."]},
+            {"topic_id": "topic-formal-macadamia-09", "title": "Giá 195.000đ hộp 500g đổi mới trong 7 ngày nếu ỉu", "sku_id": "SKU-MACADAMIA-03", "is_mandatory": true, "fact_refs": ["ev-e01-macadamia-shipping"], "allowed_claim_ids": ["clm-e01-macadamia-allowed-02"], "talking_points": ["Giá niêm yết 195.000đ, đổi hộp mới 7 ngày nếu ỉu hoặc ẩm."]},
+            {"topic_id": "topic-formal-macadamia-10", "title": "Hồ sơ OCOP 4 sao mô phỏng SYNTH-OCOP-4S-LD-003", "sku_id": "SKU-MACADAMIA-03", "is_mandatory": true, "fact_refs": ["ev-e01-macadamia-ocop"], "allowed_claim_ids": ["clm-e01-macadamia-ocop-01"], "talking_points": ["Sấy tách ẩm ổn định và đạt hồ sơ OCOP 4 sao mô phỏng."]},
+            {"topic_id": "topic-formal-macadamia-11", "title": "Kiểm tra ngày sản xuất, hạn 12 tháng và gói hút ẩm nguyên vẹn", "sku_id": "SKU-MACADAMIA-03", "is_mandatory": true, "fact_refs": ["ev-e01-formal-macadamia-traceability"], "allowed_claim_ids": ["clm-e01-formal-macadamia-allowed-06"], "talking_points": ["Kiểm tra ngày sản xuất, nắp kín khí và gói hút ẩm nguyên vẹn."]},
+            {"topic_id": "topic-formal-macadamia-12", "title": "Khẩu phần tách vài hạt mỗi ngày cùng trà nóng", "sku_id": "SKU-MACADAMIA-03", "is_mandatory": true, "fact_refs": ["ev-e01-formal-macadamia-portion"], "allowed_claim_ids": ["clm-e01-formal-macadamia-allowed-06"], "talking_points": ["Tách vài hạt ăn kèm trà nóng và đậy kín nắp ngay sau khi lấy."]}
+          ]
+        }
+      ]
+    }
+  }
+}

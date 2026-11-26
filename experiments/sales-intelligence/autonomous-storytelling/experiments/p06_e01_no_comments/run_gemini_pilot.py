@@ -84,7 +84,7 @@ from p06.schemas.candidate import (  # noqa: E402
     SpeechCandidate,
     TargetScopeMode,
 )
-from p06.simulation.virtual_clock import VirtualClock  # noqa: E402
+from p06.simulation.virtual_clock import VirtualClock, compute_chunk_word_budget  # noqa: E402
 
 DEFAULT_MODEL_CONFIG_PATH: Final[Path] = (
     _MODULE_ROOT / "configs" / "models" / "gemini_3.5_flash_lite_free.yaml"
@@ -342,7 +342,12 @@ def _run_stage_a_smoke(output_dir: Path, config_path: Path) -> int:
         arc_tea = plan.arcs[1]
         topic_tea = arc_tea.topics[0]
         ev_tea = adapter.get_sku_evidence(plan.tenant_id, "SKU-TEA-02", at_time=clock.now())
-        sys_prompt_sf = _UPFRONT_SYSTEM_PROMPT_TEMPLATE.format(max_words=21, max_duration_sec="8")
+        _, hard_max_sf, target_range_sf = compute_chunk_word_budget(8.0)
+        sys_prompt_sf = _UPFRONT_SYSTEM_PROMPT_TEMPLATE.format(
+            target_words_range=target_range_sf,
+            hard_max_words=hard_max_sf,
+            max_duration_sec="8",
+        )
         user_payload_sf = {
             "session_goal": plan.session_goal,
             "arc": {"arc_id": arc_tea.arc_id, "position": arc_tea.position, "title": arc_tea.title},

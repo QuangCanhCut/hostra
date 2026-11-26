@@ -50,7 +50,7 @@ from p06.schemas.candidate import (
 )
 from p06.schemas.state import AgentState, PlayedTurnSummary, RewriteBudgetState
 from p06.schemas.story import StoryChunk, StoryTopic
-from p06.simulation.virtual_clock import DEFAULT_SPEECH_WORDS_PER_SEC
+from p06.simulation.virtual_clock import compute_chunk_word_budget
 
 MS_PER_SECOND_FLOAT: float = 1000.0
 
@@ -144,10 +144,11 @@ def _filter_mandatory_messages_for_sku(
 
 
 def _compute_word_budget(max_duration_sec: float) -> tuple[int, str]:
-    """Tính trần số từ an toàn và dải khuyến nghị từ giới hạn thời lượng giây."""
-    max_words = max(8, int(max_duration_sec * DEFAULT_SPEECH_WORDS_PER_SEC) - 2)
-    min_words = max(8, max_words - 6)
-    return max_words, f"{min_words}–{max_words} từ"
+    """Tính trần số từ khuyến nghị và dải mục tiêu nhất quán từ `compute_chunk_word_budget`."""
+    recommended_max_words, _hard_max_words, target_words_range = compute_chunk_word_budget(
+        max_duration_sec
+    )
+    return recommended_max_words, target_words_range
 
 
 def build_base_prompt_variables(

@@ -52,6 +52,7 @@ from p06.runner.config import (  # noqa: E402
 from p06.runner.session_runner import run_experiment  # noqa: E402
 from p06.runner.sweep import (  # noqa: E402
     DEFAULT_E01_EXT_V1_SCENARIOS,
+    DEFAULT_E01_FORMAL_V1_SCENARIOS,
     DEFAULT_E01_SCENARIOS,
     HISTORY_WINDOW_SWEEP,
     run_e01_sweep,
@@ -200,6 +201,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             sweep_scenarios: tuple[str, ...] = (args.scenario,)
         elif args.dataset_profile == "e01_ext_v1":
             sweep_scenarios = DEFAULT_E01_EXT_V1_SCENARIOS
+        elif args.dataset_profile == "e01_formal_v1":
+            sweep_scenarios = DEFAULT_E01_FORMAL_V1_SCENARIOS
         else:
             sweep_scenarios = DEFAULT_E01_SCENARIOS
         try:
@@ -236,7 +239,13 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         return 0
 
     selected_scenario = args.scenario or (
-        "product_education_10m_ext" if args.dataset_profile == "e01_ext_v1" else "product_education_10m"
+        "product_education_10m_ext"
+        if args.dataset_profile == "e01_ext_v1"
+        else (
+            "window_stress_12lag_3sku"
+            if args.dataset_profile == "e01_formal_v1"
+            else "product_education_10m"
+        )
     )
     method = ExperimentMethod(args.method)
     try:

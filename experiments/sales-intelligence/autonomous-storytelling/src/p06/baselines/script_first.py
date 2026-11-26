@@ -81,16 +81,20 @@ from p06.schemas.story import (
     StrictPositivePriceVnd,
 )
 from p06.simulation.playback_harness import SimulatedPlaybackHarness
-from p06.simulation.virtual_clock import DEFAULT_SPEECH_WORDS_PER_SEC, VirtualClock
+from p06.simulation.virtual_clock import (
+    DEFAULT_SPEECH_WORDS_PER_SEC,
+    VirtualClock,
+    compute_chunk_word_budget,
+)
 
 # Giới hạn số từ mục tiêu khi ghép kịch bản tất định để thời lượng đọc luôn nằm gọn dưới ngưỡng 30s.
 _DETERMINISTIC_MAX_WORDS: Final[int] = int(MAX_CHUNK_DURATION_SEC * DEFAULT_SPEECH_WORDS_PER_SEC) - 6
-_UPFRONT_PROMPT_VERSION: Final[str] = "baseline-script-first-v0.2"
+_UPFRONT_PROMPT_VERSION: Final[str] = "baseline-script-first-v0.2.1"
 _UPFRONT_SYSTEM_PROMPT_TEMPLATE: Final[str] = (
     "Bạn là trợ lý viết kịch bản livestream tiếng Việt tự nhiên, trung thực với dữ liệu. "
-    "Chỉ sử dụng thông tin trong `sku_evidence` và `topic`, giữ độ dài 12–{max_words} từ "
-    "(<= {max_duration_sec} giây đọc), bám sát `talking_points` của `topic` và KHÔNG cần lặp lại "
-    "tên sản phẩm đầy đủ hay giá niêm yết nếu chủ đề không yêu cầu. "
+    "Chỉ sử dụng thông tin trong `sku_evidence` và `topic`, giữ khung độ dài khuyến nghị {target_words_range}, "
+    "tuyệt đối không vượt quá {hard_max_words} từ (<= {max_duration_sec} giây đọc), bám sát `talking_points` của `topic` "
+    "và KHÔNG cần lặp lại tên sản phẩm đầy đủ hay giá niêm yết nếu chủ đề không yêu cầu. "
     "Tách biệt lời nói và metadata: TUYỆT ĐỐI không đưa mã `ev-...`, `clm-...`, `SKU-...`, `topic-...`, "
     "dấu ngoặc trích ID hay mảnh JSON vào trường `text`; chỉ khai báo `evidence_id` và `claim_id` hợp lệ "
     "vào `cited_evidence_ids` và `covered_claim_ids`. Không bịa công dụng chữa bệnh và không nhắc SKU khác."
@@ -560,11 +564,12 @@ class ScriptFirstBaseline:
         self._seed = seed
         self._max_chunk_duration_sec: float = numeric_duration
         self._min_chunks_per_topic: int = min_chunks_per_topic
-        margin_words = 6 if numeric_duration >= 20.0 else 3
-        self._max_words: int = max(
-            6,
-            int(numeric_duration * DEFAULT_SPEECH_WORDS_PER_SEC) - margin_words,
+        rec_max_words, hard_max_words, target_words_range = compute_chunk_word_budget(
+            numeric_duration
         )
+        self._max_words: int = rec_max_words
+        self._hard_max_words: int = hard_max_words
+        self._target_words_range: str = target_words_range
 
     def prepare_upfront_script(
         self,
@@ -1056,13 +1061,15 @@ class ScriptFirstBaseline:
             self._script_source == BaselineScriptSource.UPFRONT_LLM
             and estimated_duration_sec > self._max_chunk_duration_sec
         ):
+            actual_words = len(text.split())
             return UpfrontPlannedItem(
                 arc=arc,
                 topic=topic,
                 planned_chunk_id=planned_chunk_id,
                 generation_error=(
                     f"OVER_MAX_DURATION_SEC: Thời lượng ước lượng {estimated_duration_sec:.2f}s "
-                    f"vượt quá giới hạn {self._max_chunk_duration_sec:.2f}s."
+                    f"({actual_words} từ) vượt quá giới hạn {self._max_chunk_duration_sec:.2f}s "
+                    f"(tối đa {self._hard_max_words} từ; khuyến nghị {self._target_words_range})."
                 ),
             )
         intent = f"story_topic:{topic.topic_id}"
@@ -1145,7 +1152,8 @@ class ScriptFirstBaseline:
     ) -> GenerationRequest:
         """Tạo `GenerationRequest` có cấu trúc cho lượt gọi LLM chuẩn bị đầu phiên."""
         system_prompt = _UPFRONT_SYSTEM_PROMPT_TEMPLATE.format(
-            max_words=self._max_words,
+            target_words_range=self._target_words_range,
+            hard_max_words=self._hard_max_words,
             max_duration_sec=f"{self._max_chunk_duration_sec:g}",
         )
         user_payload: dict[str, Any] = {
