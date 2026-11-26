@@ -24,13 +24,26 @@
 
 from __future__ import annotations
 
+import copy
+from collections.abc import Sequence
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Literal, Optional
+from typing import Optional
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, model_validator
 
-from p06.schemas.story import CONTRACT_VERSION, ContractVersion, MAX_CHUNK_DURATION_SEC
+from p06.schemas.story import (
+    CONTRACT_VERSION,
+    ContractVersion,
+    NonBlankStr,
+    OptionalNonBlankStr,
+    StrictDurationSec,
+    StrictFalse,
+    StrictNonNegInt,
+    StrictPositiveDurationMs,
+    StrictPositiveInt,
+    StrictPositivePriceVnd,
+)
 
 
 class TargetScopeMode(str, Enum):
@@ -123,16 +136,16 @@ class SkuVersionBinding(BaseModel):
         mentions_ocop: Cờ đánh dấu lời thoại có nhắc tới chứng nhận OCOP của SKU hay không.
     """
 
-    model_config = ConfigDict(extra="forbid", validate_assignment=True)
+    model_config = ConfigDict(extra="forbid", frozen=True)
 
-    sku_id: str = Field(min_length=1)
-    product_version_id: Optional[str] = None
-    knowledge_version: int = Field(ge=1)
-    ocop_version: int = Field(ge=1)
-    rights_version: int = Field(ge=1)
-    cited_evidence_ids: list[str] = Field(default_factory=list)
-    stated_price_vnd: Optional[int] = Field(default=None, gt=0)
-    mentions_ocop: bool = False
+    sku_id: NonBlankStr
+    product_version_id: OptionalNonBlankStr = None
+    knowledge_version: StrictPositiveInt
+    ocop_version: StrictPositiveInt
+    rights_version: StrictPositiveInt
+    cited_evidence_ids: list[NonBlankStr] = Field(default_factory=list)
+    stated_price_vnd: Optional[StrictPositivePriceVnd] = None
+    mentions_ocop: StrictBool = False
 
 
 class ProposedResponseCoverage(BaseModel):
@@ -151,15 +164,15 @@ class ProposedResponseCoverage(BaseModel):
         is_authoritative: Luôn là `False`, khẳng định đây mới chỉ là đề xuất từ P06.
     """
 
-    model_config = ConfigDict(extra="forbid", validate_assignment=True)
+    model_config = ConfigDict(extra="forbid", frozen=True)
 
-    response_group_id: Optional[str] = None
-    covered_topic_ids: list[str] = Field(default_factory=list)
-    covered_comment_ids: list[str] = Field(default_factory=list)
-    covered_intents: list[str] = Field(default_factory=list)
-    uncovered_intents: list[str] = Field(default_factory=list)
+    response_group_id: OptionalNonBlankStr = None
+    covered_topic_ids: list[NonBlankStr] = Field(default_factory=list)
+    covered_comment_ids: list[NonBlankStr] = Field(default_factory=list)
+    covered_intents: list[NonBlankStr] = Field(default_factory=list)
+    uncovered_intents: list[NonBlankStr] = Field(default_factory=list)
     coverage_mode: CoverageMode = CoverageMode.FULL
-    is_authoritative: Literal[False] = False
+    is_authoritative: StrictFalse = False
 
     @model_validator(mode="after")
     def validate_coverage_consistency(self) -> ProposedResponseCoverage:
@@ -198,6 +211,12 @@ class ProposedResponseCoverage(BaseModel):
                 "CoverageMode.CLARIFICATION_ONLY không được đánh dấu covered_topic_ids."
             )
 
+        if self.coverage_mode == CoverageMode.ABSTAIN_NO_EVIDENCE:
+            if self.covered_topic_ids or self.covered_intents:
+                raise ValueError(
+                    "CoverageMode.ABSTAIN_NO_EVIDENCE không được đánh dấu covered_topic_ids hoặc covered_intents."
+                )
+
         return self
 
 
@@ -235,55 +254,36 @@ class SpeechCandidate(BaseModel):
         created_at: Thời điểm tạo ứng viên (UTC).
     """
 
-    model_config = ConfigDict(extra="forbid", validate_assignment=True)
+    model_config = ConfigDict(extra="forbid", frozen=True)
 
     contract_version: ContractVersion = CONTRACT_VERSION
-    candidate_id: str = Field(min_length=1)
-    turn_id: Optional[str] = None
-    tenant_id: str = Field(min_length=1)
-    session_id: str = Field(min_length=1)
-    session_epoch: int = Field(ge=1)
+    candidate_id: NonBlankStr
+    turn_id: OptionalNonBlankStr = None
+    tenant_id: NonBlankStr
+    session_id: NonBlankStr
+    session_epoch: StrictPositiveInt
     origin: CandidateOrigin
-    source_chunk_id: Optional[str] = None
+    source_chunk_id: OptionalNonBlankStr = None
     scope_mode: TargetScopeMode
-    sku_refs: list[str] = Field(default_factory=list)
+    sku_refs: list[NonBlankStr] = Field(default_factory=list)
     sku_bindings: list[SkuVersionBinding] = Field(default_factory=list)
     unresolved_reason: Optional[UnresolvedSkuReason] = None
-    policy_evidence_ids: list[str] = Field(default_factory=list)
-    policy_version: Optional[int] = Field(default=None, ge=1)
-    session_rights_version: int = Field(ge=1)
-    intent: str = Field(min_length=1)
-    text: str = Field(min_length=1)
-    safe_summary: Optional[str] = None
-    semantic_breakpoint: bool = True
-    estimated_duration_sec: float = Field(gt=0.0, le=MAX_CHUNK_DURATION_SEC)
-    deadline_ms: Optional[int] = Field(default=None, gt=0)
+    policy_evidence_ids: list[NonBlankStr] = Field(default_factory=list)
+    policy_version: Optional[StrictPositiveInt] = None
+    session_rights_version: StrictPositiveInt
+    intent: NonBlankStr
+    text: NonBlankStr
+    safe_summary: OptionalNonBlankStr = None
+    semantic_breakpoint: StrictBool = True
+    estimated_duration_sec: StrictDurationSec
+    deadline_ms: Optional[StrictPositiveDurationMs] = None
     proposed_coverage: ProposedResponseCoverage
     verification_status: CandidateVerificationStatus = CandidateVerificationStatus.DRAFT
-    verified_by_gate_decision_id: Optional[str] = None
+    verified_by_gate_decision_id: OptionalNonBlankStr = None
     verified_at: Optional[datetime] = None
-    rejection_reasons: list[str] = Field(default_factory=list)
-    rewrite_attempt: int = Field(default=0, ge=0)
+    rejection_reasons: list[NonBlankStr] = Field(default_factory=list)
+    rewrite_attempt: StrictNonNegInt = 0
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-
-    @field_validator("text")
-    @classmethod
-    def strip_and_reject_blank_text(cls, value: str) -> str:
-        """Loại bỏ khoảng trắng thừa hai đầu và từ chối lời thoại rỗng.
-
-        Args:
-            value: Văn bản lời thoại ứng viên.
-
-        Returns:
-            str: Văn bản sạch đã `strip()`.
-
-        Raises:
-            ValueError: Nếu văn bản rỗng sau khi loại bỏ khoảng trắng.
-        """
-        cleaned = value.strip()
-        if not cleaned:
-            raise ValueError("SpeechCandidate.text không được rỗng hoặc chỉ chứa khoảng trắng.")
-        return cleaned
 
     @model_validator(mode="after")
     def validate_scope_and_verification_invariants(self) -> SpeechCandidate:
@@ -412,6 +412,55 @@ class SpeechCandidate(BaseModel):
                 )
 
         return self
+
+    def mark_verified(self, gate_decision_id: str, verified_at: datetime) -> SpeechCandidate:
+        """Tạo bản sao `SpeechCandidate` mới ở trạng thái `VERIFIED` một cách nguyên tử.
+
+        Lý do kỹ thuật: Vì mọi schema dùng `frozen=True`, phương thức này sao chép sâu payload
+        và chạy `model_validate()` để bảo đảm bản gốc không bao giờ bị biến đổi nửa vời nếu lỗi.
+
+        Args:
+            gate_decision_id: Mã quyết định `ALLOW` do Cổng phát ngôn P05 cấp.
+            verified_at: Thời điểm P05 cấp phán quyết hợp lệ.
+
+        Returns:
+            SpeechCandidate: Ứng viên mới ở trạng thái `VERIFIED` đủ điều kiện phát TTS.
+
+        Raises:
+            ValidationError: Nếu `gate_decision_id` rỗng, thiếu bằng chứng, hoặc ứng viên
+                đang mang `rejection_reasons`.
+        """
+        payload = copy.deepcopy(self.model_dump())
+        payload["verification_status"] = CandidateVerificationStatus.VERIFIED
+        payload["verified_by_gate_decision_id"] = gate_decision_id
+        payload["verified_at"] = verified_at
+        return type(self).model_validate(payload)
+
+    def mark_rejected(
+        self,
+        reasons: Sequence[str],
+        increment_rewrite: bool = False,
+    ) -> SpeechCandidate:
+        """Tạo bản sao `SpeechCandidate` mới ở trạng thái `REJECTED` kèm lý do từ P05.
+
+        Args:
+            reasons: Danh sách mã/lý do chặn từ P05 (bắt buộc ít nhất 1 chuỗi không rỗng).
+            increment_rewrite: Nếu `True`, tăng `rewrite_attempt` thêm 1 cho vòng bounded rewrite.
+
+        Returns:
+            SpeechCandidate: Ứng viên mới ở trạng thái `REJECTED` đã xóa dấu vết `VERIFIED`.
+
+        Raises:
+            ValidationError: Nếu `reasons` rỗng hoặc chứa phần tử chỉ gồm khoảng trắng.
+        """
+        payload = copy.deepcopy(self.model_dump())
+        payload["verification_status"] = CandidateVerificationStatus.REJECTED
+        payload["verified_by_gate_decision_id"] = None
+        payload["verified_at"] = None
+        payload["rejection_reasons"] = list(reasons)
+        if increment_rewrite:
+            payload["rewrite_attempt"] = self.rewrite_attempt + 1
+        return type(self).model_validate(payload)
 
     def is_ready_for_tts(self) -> bool:
         """Kiểm tra ứng viên đã đạt kiểm định P05 để chuyển sang tổng hợp giọng nói (P02) hay chưa.

@@ -22,13 +22,12 @@
 
 from __future__ import annotations
 
-import importlib.util
-import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from types import ModuleType
 from typing import Any
 
+from p06.adapters.p05_knowledge_adapter import _load_p05_modules
 from p06.schemas import (
     CandidateOrigin,
     CandidateVerificationStatus,
@@ -42,48 +41,6 @@ from p06.schemas import (
 # Đường dẫn tương đối ổn định từ `tests/contract/test_p05_contract_alignment.py` sang P05.
 P05_DIR: Path = Path(__file__).resolve().parents[3] / "knowledge-verification"
 P05_SEED_PATH: Path = P05_DIR / "data" / "catalog_seed.json"
-
-
-def _load_p05_modules() -> tuple[ModuleType, ModuleType]:
-    """Nạp chỉ-đọc `schemas` và `publication_gate` của P05 mà không làm ô nhiễm `sys.modules`.
-
-    Lý do kỹ thuật: `publication_gate.py` của P05 dùng câu lệnh `from schemas import ...`,
-    nên cần tạm gán `sys.modules['schemas']` trong khi nạp module và khôi phục lại ngay sau đó.
-
-    Returns:
-        tuple[ModuleType, ModuleType]: Cặp module `(p05_schemas, p05_publication_gate)`.
-
-    Raises:
-        RuntimeError: Nếu không tìm thấy hoặc không tạo được spec từ tệp P05.
-    """
-    schemas_path = P05_DIR / "schemas.py"
-    gate_path = P05_DIR / "publication_gate.py"
-
-    schemas_spec = importlib.util.spec_from_file_location("p05_schemas_readonly", schemas_path)
-    gate_spec = importlib.util.spec_from_file_location("p05_gate_readonly", gate_path)
-    if schemas_spec is None or schemas_spec.loader is None:
-        raise RuntimeError(f"Không thể nạp P05 schemas tại {schemas_path}")
-    if gate_spec is None or gate_spec.loader is None:
-        raise RuntimeError(f"Không thể nạp P05 publication_gate tại {gate_path}")
-
-    p05_schemas = importlib.util.module_from_spec(schemas_spec)
-    p05_gate = importlib.util.module_from_spec(gate_spec)
-
-    # Đăng ký tên module duy nhất để Pydantic v2 tra được namespace của P05 khi giải quyết forward refs.
-    sys.modules["p05_schemas_readonly"] = p05_schemas
-    sys.modules["p05_gate_readonly"] = p05_gate
-    previous_schemas_mod = sys.modules.get("schemas")
-    sys.modules["schemas"] = p05_schemas
-    try:
-        schemas_spec.loader.exec_module(p05_schemas)
-        gate_spec.loader.exec_module(p05_gate)
-    finally:
-        if previous_schemas_mod is None:
-            sys.modules.pop("schemas", None)
-        else:
-            sys.modules["schemas"] = previous_schemas_mod
-
-    return p05_schemas, p05_gate
 
 
 def _to_p05_candidate(p06_candidate: P06SpeechCandidate, p05_schemas: ModuleType) -> Any:
@@ -143,7 +100,7 @@ def _apply_p05_decision(
 
 def test_p05_contract_alignment_allow_honey_and_block_cashew() -> None:
     """Đối chiếu hợp đồng P06 <-> P05 trên `catalog_seed.json` cho `SKU-HONEY-01` và `SKU-CASHEW-03`."""
-    p05_schemas, p05_gate = _load_p05_modules()
+    p05_schemas, p05_gate = _load_p05_modules(P05_DIR)
     store = p05_gate.VersionedKnowledgeStore.from_seed_file(P05_SEED_PATH)
     gate = p05_gate.PublicationGate(store)
 
@@ -229,7 +186,7 @@ def test_p05_contract_alignment_allow_honey_and_block_cashew() -> None:
 
 def test_p05_toctou_version_binding_detects_stale_price_update() -> None:
     """Xác minh `SkuVersionBinding` phát hiện đúng lỗi TOCTOU khi `ProductFact` tăng phiên bản."""
-    p05_schemas, p05_gate = _load_p05_modules()
+    p05_schemas, p05_gate = _load_p05_modules(P05_DIR)
     store = p05_gate.VersionedKnowledgeStore.from_seed_file(P05_SEED_PATH).clone()
     store.update_price("SKU-HONEY-01", 169000)
     gate = p05_gate.PublicationGate(store)

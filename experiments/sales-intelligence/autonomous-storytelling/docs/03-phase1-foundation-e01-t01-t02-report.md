@@ -74,3 +74,10 @@ Lệnh kiểm thử chạy trực tiếp trên nhánh `research/p06-autonomous-s
 - **Trạng thái Git tag:** Tag `p06-checkpoint-01-scaffold` đang nằm tại commit `f68c801`; tag `p06-checkpoint-02-pre-implementation` hiện **không tồn tại** trong repository.
 - **Phạm vi còn lại:** Các task triển khai `E01-T03..E01-T09` (3-tier `LLMProvider`, dataset synthetic 3 SKU `OCOP: VERIFIED`, `P05KnowledgeAdapter`, memory 4 thành phần + `ScriptFirstBaseline`, LangGraph nodes & CLI runner) cùng toàn bộ lượt chạy thí nghiệm chính thức `P06-E01..E04` vẫn đang ở trạng thái **`NOT STARTED`**.
 - **Quản trị mở (`P06-OPEN-6`):** `Owner` và `Reviewer` độc lập của P06 vẫn ở trạng thái **`PENDING ASSIGNMENT`**; kết quả Phase 1 là nền tảng schema/unit/contract test và **chưa** chứng minh năng lực sinh tiếng Việt hay mức độ sẵn sàng production.
+
+---
+
+## 6. Phase 2 Audit Addendum (`2026-11-26`)
+
+> [!NOTE]
+> Trước khi triển khai Phase 2 (`E01-T03..T05`), các schema `p06-mock-v0.1` của Phase 1 đã được kiểm toán lại (Wave A -> Pre-Wave B) và gia cố: khắc phục `2 BLOCKER` (`A-BLK-01`: thêm `AgentState.from_graph_result()` ở ranh giới đầu ra LangGraph; `A-BLK-02`: chuyển sang `frozen=True` + chuyển trạng thái nguyên tử `with_approval`/`mark_verified`/`mark_rejected`/`advance_on_playback`/`validated_update`), `3 MAJOR` (`StrictInt`/`StrictBool`, `NonBlankStr`, kiểm định tham chiếu `next_topic_id`/`selected_*`/`draft_chunk`/`played_history`), và `3 MINOR` (sau đó Wave D bổ sung `completed_topic_ids: frozenset`). Bộ test nền Phase 1 tăng từ `28/28` lên `33/33` (tổng toàn bộ P06 sau Phase 2 đạt `92/92`). Chi tiết đầy đủ xem tại [`04-phase2-research-infrastructure-e01-t03-t05-report.md`](./04-phase2-research-infrastructure-e01-t03-t05-report.md).

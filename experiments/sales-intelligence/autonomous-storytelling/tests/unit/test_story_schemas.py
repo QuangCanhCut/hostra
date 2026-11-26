@@ -4,9 +4,10 @@
    Xác minh toàn bộ hợp đồng dữ liệu cho `StoryTopic`, `StoryArc`, `StoryPlan` và `StoryChunk`
    ở cả kịch bản hợp lệ lẫn các trường hợp biên vi phạm bất biến.
 2. Trách nhiệm chính của module là gì?
-   Kiểm tra validation của Pydantic v2 (`extra="forbid"`, `validate_assignment=True`), tuần tự hóa
-   JSON roundtrip, ràng buộc `pinned_sku_ids` (1–5 SKU), thứ tự vị trí `StoryArc`, dấu vết
-   phê duyệt `APPROVED` và giới hạn thời lượng `StoryChunk`.
+   Kiểm tra validation của Pydantic v2 (`extra="forbid"`, `frozen=True`), chuyển đổi bất biến
+   nguyên tử (`with_approval`), điều kiện `is_mvp_live_eligible()`, kiểm định kiểu nghiêm ngặt
+   (từ chối `bool`/`str` ép kiểu và chuỗi chỉ chứa khoảng trắng), tuần tự hóa JSON roundtrip,
+   ràng buộc `pinned_sku_ids`, thứ tự vị trí `StoryArc`, dấu vết duyệt `APPROVED` và `StoryChunk`.
 3. Module này liên kết với các thành phần nào?
    Kiểm thử trực tiếp `p06.schemas.story` và các re-export từ `p06` / `p06.schemas`.
 4. Input và output chính là gì?
@@ -315,8 +316,8 @@ class TestStoryPlanAndHierarchy:
                 arcs=[_make_arc(arc_id="arc-01", position=1, sku_id="SKU-CASHEW-03")],
             )
 
-    def test_approved_plan_requires_provenance_even_on_assignment(self) -> None:
-        """Gate G6: kế hoạch `APPROVED` phải có `approved_by` không rỗng và `approved_at`."""
+    def test_approved_plan_requires_provenance_and_frozen_atomic_transition(self) -> None:
+        """Gate G6 & frozen=True: chặn gán trực tiếp, giữ nguyên bản gốc khi lỗi và hỗ trợ `with_approval`."""
         draft_plan = StoryPlan(
             plan_id="plan-draft-01",
             tenant_id="tenant-demo-01",
@@ -328,16 +329,141 @@ class TestStoryPlanAndHierarchy:
             arcs=[_make_arc(sku_id="SKU-HONEY-01")],
         )
 
-        # Kiểm tra validate_assignment=True chặn gán trực tiếp sang APPROVED khi thiếu approved_by/approved_at.
+        # Kiểm tra frozen=True chặn gán trực tiếp và bảo toàn 100% trạng thái bản gốc.
         with pytest.raises(ValidationError):
-            draft_plan.approval_status = StoryPlanApprovalStatus.APPROVED
+            draft_plan.approval_status = StoryPlanApprovalStatus.APPROVED  # type: ignore[misc]
+        assert draft_plan.approval_status == StoryPlanApprovalStatus.DRAFT
+
+        approved_at = datetime(2026, 11, 26, 8, 30, tzinfo=timezone.utc)
+        # Thử with_approval với approved_by toàn khoảng trắng -> ném ValidationError và giữ nguyên draft_plan.
+        with pytest.raises(ValidationError):
+            draft_plan.with_approval(approved_by="   ", approved_at=approved_at)
+        assert draft_plan.approval_status == StoryPlanApprovalStatus.DRAFT
+        assert draft_plan.approved_by is None
+
+        # with_approval hợp lệ trả về thể hiện mới, không làm thay đổi draft_plan gốc.
+        approved_plan = draft_plan.with_approval(
+            approved_by="  merchant-owner-01  ",
+            approved_at=approved_at,
+        )
+        assert approved_plan.approval_status == StoryPlanApprovalStatus.APPROVED
+        assert approved_plan.approved_by == "merchant-owner-01"
+        assert approved_plan.approved_at == approved_at
+        assert draft_plan.approval_status == StoryPlanApprovalStatus.DRAFT
 
         payload = draft_plan.model_dump()
         payload["approval_status"] = StoryPlanApprovalStatus.APPROVED
         payload["approved_by"] = "   "
-        payload["approved_at"] = datetime.now(timezone.utc)
+        payload["approved_at"] = approved_at
         with pytest.raises(ValidationError):
             StoryPlan.model_validate(payload)
+
+    def test_is_mvp_live_eligible_distinguishes_w0_single_sku_from_acr002(self) -> None:
+        """A-MIN-02: chỉ kế hoạch APPROVED có >= 2 SKU ghim mới đạt chuẩn phát live MVP (ACR-002)."""
+        single_approved = _make_approved_plan(
+            pinned_sku_ids=["SKU-HONEY-01"],
+            arcs=[_make_arc(arc_id="arc-01", position=1, sku_id="SKU-HONEY-01")],
+        )
+        assert single_approved.is_mvp_live_eligible() is False
+
+        multi_draft = StoryPlan(
+            plan_id="plan-multi-draft",
+            tenant_id="tenant-demo-01",
+            session_id="session-demo-01",
+            plan_revision=1,
+            approval_status=StoryPlanApprovalStatus.DRAFT,
+            session_goal="Test multi draft",
+            pinned_sku_ids=["SKU-HONEY-01", "SKU-TEA-02"],
+            arcs=[
+                _make_arc(arc_id="arc-01", position=1, sku_id="SKU-HONEY-01"),
+                _make_arc(
+                    arc_id="arc-02",
+                    position=2,
+                    sku_id="SKU-TEA-02",
+                    topics=[_make_topic(topic_id="arc-02-t1", sku_id="SKU-TEA-02")],
+                ),
+            ],
+        )
+        assert multi_draft.is_mvp_live_eligible() is False
+
+        multi_approved = multi_draft.with_approval(
+            approved_by="owner-01",
+            approved_at=datetime(2026, 11, 26, 9, 0, tzinfo=timezone.utc),
+        )
+        assert multi_approved.is_mvp_live_eligible() is True
+
+    def test_strict_types_and_non_blank_strings_enforced_on_story_models(self) -> None:
+        """A-MAJ-01 & A-MAJ-02: từ chối ép kiểu bool<->int, str->bool và chuỗi toàn khoảng trắng."""
+        # Chuỗi chỉ chứa khoảng trắng trong ID, title, optional str và list items bị từ chối.
+        with pytest.raises(ValidationError):
+            StoryTopic(topic_id="   ", title="Hợp lệ")
+        with pytest.raises(ValidationError):
+            StoryTopic(topic_id="t1", title="Hợp lệ", sku_id="   ")
+        with pytest.raises(ValidationError):
+            StoryTopic(topic_id="t1", title="Hợp lệ", fact_refs=["ev-1", "   "])
+        with pytest.raises(ValidationError):
+            StoryTopic(topic_id="t1", title="Hợp lệ", talking_points=["   "])
+        with pytest.raises(ValidationError):
+            StoryArc(
+                arc_id="a1",
+                position=1,
+                title="Arc 1",
+                target_duration_sec=120,
+                topics=[_make_topic()],
+                preview_text="   ",
+            )
+        with pytest.raises(ValidationError):
+            StoryPlan(
+                plan_id="plan-bad-list",
+                tenant_id="tenant-demo-01",
+                session_id="session-demo-01",
+                plan_revision=1,
+                session_goal="   ",
+                pinned_sku_ids=["SKU-HONEY-01"],
+                arcs=[_make_arc(sku_id="SKU-HONEY-01")],
+            )
+        with pytest.raises(ValidationError):
+            StoryPlan(
+                plan_id="plan-bad-msg",
+                tenant_id="tenant-demo-01",
+                session_id="session-demo-01",
+                plan_revision=1,
+                session_goal="Mục tiêu hợp lệ",
+                pinned_sku_ids=["SKU-HONEY-01"],
+                mandatory_messages=["   "],
+                arcs=[_make_arc(sku_id="SKU-HONEY-01")],
+            )
+
+        # Từ chối bool truyền vào trường int và str/int truyền vào trường bool.
+        with pytest.raises(ValidationError):
+            StoryTopic(topic_id="t1", title="T1", is_mandatory="true")  # type: ignore[arg-type]
+        with pytest.raises(ValidationError):
+            StoryTopic(topic_id="t1", title="T1", is_mandatory=1)  # type: ignore[arg-type]
+        with pytest.raises(ValidationError):
+            StoryArc(
+                arc_id="a1",
+                position=True,  # type: ignore[arg-type]
+                title="Arc 1",
+                target_duration_sec=120,
+                topics=[_make_topic()],
+            )
+        with pytest.raises(ValidationError):
+            StoryArc(
+                arc_id="a1",
+                position=1,
+                title="Arc 1",
+                target_duration_sec=True,  # type: ignore[arg-type]
+                topics=[_make_topic()],
+            )
+        with pytest.raises(ValidationError):
+            StoryArc(
+                arc_id="a1",
+                position=1,
+                title="Arc 1",
+                target_duration_sec=120,
+                topics=[_make_topic()],
+                reviewed_by_merchant="false",  # type: ignore[arg-type]
+            )
 
 
 class TestStoryChunk:
@@ -364,7 +490,7 @@ class TestStoryChunk:
         assert restored == chunk
 
     def test_invalid_chunk_text_duration_and_sequence(self) -> None:
-        """Từ chối `text` toàn khoảng trắng, thời lượng vượt `MAX_CHUNK_DURATION_SEC` hoặc `sequence_index < 0`."""
+        """Từ chối `text` toàn khoảng trắng, thời lượng sai kiểu/vượt ngưỡng hoặc trường rỗng."""
         base_kwargs = {
             "chunk_id": "chunk-bad",
             "plan_id": "plan-demo-01",
@@ -387,4 +513,22 @@ class TestStoryChunk:
             StoryChunk(**{**base_kwargs, "estimated_duration_sec": MAX_CHUNK_DURATION_SEC + 0.1})
 
         with pytest.raises(ValidationError):
+            StoryChunk(**{**base_kwargs, "estimated_duration_sec": True})
+
+        with pytest.raises(ValidationError):
+            StoryChunk(**{**base_kwargs, "estimated_duration_sec": "5.0"})
+
+        with pytest.raises(ValidationError):
             StoryChunk(**{**base_kwargs, "sequence_index": -1})
+
+        with pytest.raises(ValidationError):
+            StoryChunk(**{**base_kwargs, "sequence_index": False})
+
+        with pytest.raises(ValidationError):
+            StoryChunk(**{**base_kwargs, "semantic_breakpoint": 0})
+
+        with pytest.raises(ValidationError):
+            StoryChunk(**{**base_kwargs, "rationale": "   "})
+
+        with pytest.raises(ValidationError):
+            StoryChunk(**{**base_kwargs, "cited_evidence_ids": ["   "]})

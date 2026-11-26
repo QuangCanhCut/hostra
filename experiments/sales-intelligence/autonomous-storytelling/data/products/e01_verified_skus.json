@@ -1,0 +1,599 @@
+{
+  "dataset_meta": {
+    "dataset_id": "p06-e01-verified-catalog-v0.1",
+    "is_synthetic": true,
+    "data_origin": "synthetic_evaluation_fixture_for_p06_e01",
+    "ocop_verification_note": "Trạng thái OCOP: VERIFIED trong tệp này là dữ liệu mô phỏng tổng hợp để kiểm thử logic PoC P06-E01, KHÔNG phải chứng nhận OCOP thực tế từ P09.",
+    "tenant_id": "tenant-p06-poc-01",
+    "sku_count": 3
+  },
+  "product_facts": [
+    {
+      "tenant_id": "tenant-p06-poc-01",
+      "sku_id": "SKU-HONEY-01",
+      "sku_name": "Mật ong hoa cà phê Đắk Lắk nguyên chất 500ml",
+      "price_vnd": 159000,
+      "weight_display": "500ml (chai thủy tinh)",
+      "expiry_display": "24 tháng kể từ ngày sản xuất",
+      "origin": "Huyện Cư M'gar, tỉnh Đắk Lắk",
+      "ingredients": [
+        "100% mật ong hoa cà phê tự nhiên"
+      ],
+      "storage_instructions": "Bảo quản nơi khô ráo, thoáng mát, tránh ánh nắng trực tiếp, không để tủ lạnh.",
+      "knowledge_version": 1,
+      "approval_status": "APPROVED",
+      "provenance": {
+        "source_id": "synth-doc-honey-spec-01",
+        "document_version": "v1.0",
+        "extracted_by": "synthetic_seed",
+        "approved_by": "synthetic-owner-01",
+        "approved_at": "2026-11-26T00:00:00Z"
+      },
+      "valid_from": "2026-01-01T00:00:00Z",
+      "valid_until": null
+    },
+    {
+      "tenant_id": "tenant-p06-poc-01",
+      "sku_id": "SKU-TEA-02",
+      "sku_name": "Trà Shan Tuyết cổ thụ Hà Giang hộp thiếc 200g",
+      "price_vnd": 245000,
+      "weight_display": "200g (hộp thiếc hút chân không)",
+      "expiry_display": "18 tháng kể từ ngày đóng gói",
+      "origin": "Xã Phìn Hồ, huyện Hoàng Su Phì, tỉnh Hà Giang",
+      "ingredients": [
+        "100% búp trà Shan Tuyết cổ thụ 1 tôm 2 lá"
+      ],
+      "storage_instructions": "Đậy kín nắp sau khi dùng, bảo quản nơi khô thoáng, tránh ánh nắng trực tiếp và tránh đặt gần gia vị có mùi mạnh.",
+      "knowledge_version": 1,
+      "approval_status": "APPROVED",
+      "provenance": {
+        "source_id": "synth-doc-tea-spec-01",
+        "document_version": "v1.0",
+        "extracted_by": "synthetic_seed",
+        "approved_by": "synthetic-owner-01",
+        "approved_at": "2026-11-26T00:00:00Z"
+      },
+      "valid_from": "2026-01-01T00:00:00Z",
+      "valid_until": null
+    },
+    {
+      "tenant_id": "tenant-p06-poc-01",
+      "sku_id": "SKU-MACADAMIA-03",
+      "sku_name": "Hạt mắc ca sấy nứt vỏ Lâm Đồng hộp 500g",
+      "price_vnd": 195000,
+      "weight_display": "500g (hộp nhựa PET nắp vặn kèm dụng cụ tách vỏ)",
+      "expiry_display": "12 tháng kể từ ngày sản xuất",
+      "origin": "Huyện Lâm Hà, tỉnh Lâm Đồng",
+      "ingredients": [
+        "100% hạt mắc ca Lâm Đồng sấy nứt vỏ tự nhiên"
+      ],
+      "storage_instructions": "Đậy kín nắp ngay sau khi sử dụng, giữ gói hút ẩm trong hộp và đặt nơi khô ráo, thoáng mát.",
+      "knowledge_version": 1,
+      "approval_status": "APPROVED",
+      "provenance": {
+        "source_id": "synth-doc-macadamia-spec-01",
+        "document_version": "v1.0",
+        "extracted_by": "synthetic_seed",
+        "approved_by": "synthetic-owner-01",
+        "approved_at": "2026-11-26T00:00:00Z"
+      },
+      "valid_from": "2026-01-01T00:00:00Z",
+      "valid_until": null
+    }
+  ],
+  "eligibility_snapshots": [
+    {
+      "tenant_id": "tenant-p06-poc-01",
+      "sku_id": "SKU-HONEY-01",
+      "ocop_status": "VERIFIED",
+      "ocop_version": 1,
+      "ocop_code": "SYNTH-OCOP-4S-DL-001",
+      "food_safety_verified": true,
+      "rights_status": "ACTIVE",
+      "rights_version": 1
+    },
+    {
+      "tenant_id": "tenant-p06-poc-01",
+      "sku_id": "SKU-TEA-02",
+      "ocop_status": "VERIFIED",
+      "ocop_version": 1,
+      "ocop_code": "SYNTH-OCOP-4S-HG-002",
+      "food_safety_verified": true,
+      "rights_status": "ACTIVE",
+      "rights_version": 1
+    },
+    {
+      "tenant_id": "tenant-p06-poc-01",
+      "sku_id": "SKU-MACADAMIA-03",
+      "ocop_status": "VERIFIED",
+      "ocop_version": 1,
+      "ocop_code": "SYNTH-OCOP-4S-LD-003",
+      "food_safety_verified": true,
+      "rights_status": "ACTIVE",
+      "rights_version": 1
+    }
+  ],
+  "evidence_chunks": [
+    {
+      "evidence_id": "ev-e01-honey-origin",
+      "tenant_id": "tenant-p06-poc-01",
+      "sku_id": "SKU-HONEY-01",
+      "section": "origin_story",
+      "content": "Mật ong hoa cà phê Đắk Lắk được khai thác vào chính vụ hoa cà phê nở trắng rẫy tại Cư M'gar, thu hoạch khi mật đã chín tự nhiên trong tổ nên có màu vàng hổ phách sáng và hương thơm dịu đặc trưng.",
+      "knowledge_version": 1,
+      "approval_status": "APPROVED",
+      "provenance": {
+        "source_id": "synth-doc-honey-story-01",
+        "document_version": "v1.0",
+        "extracted_by": "synthetic_seed",
+        "approved_by": "synthetic-owner-01",
+        "approved_at": "2026-11-26T00:00:00Z"
+      }
+    },
+    {
+      "evidence_id": "ev-e01-honey-usage",
+      "tenant_id": "tenant-p06-poc-01",
+      "sku_id": "SKU-HONEY-01",
+      "section": "usage_guide",
+      "content": "Cách dùng mật ong hoa cà phê: pha 1 đến 2 thìa cà phê với khoảng 150ml nước ấm dưới 50 độ C vào buổi sáng, hoặc dùng kèm trà, chanh tươi, làm gia vị ướp món nướng. Lưu ý không dùng cho trẻ em dưới 1 tuổi.",
+      "knowledge_version": 1,
+      "approval_status": "APPROVED",
+      "provenance": {
+        "source_id": "synth-doc-honey-faq-01",
+        "document_version": "v1.0",
+        "extracted_by": "synthetic_seed",
+        "approved_by": "synthetic-owner-01",
+        "approved_at": "2026-11-26T00:00:00Z"
+      }
+    },
+    {
+      "evidence_id": "ev-e01-honey-quality",
+      "tenant_id": "tenant-p06-poc-01",
+      "sku_id": "SKU-HONEY-01",
+      "section": "quality_storage",
+      "content": "Mật ong hoa cà phê nguyên chất không pha đường tinh luyện, không chất bảo quản. Khi thời tiết lạnh mật có thể kết tinh nhẹ tự nhiên; chỉ cần ngâm chai vào nước ấm khoảng 40 độ C để mật tan đều, tránh bảo quản trong tủ lạnh.",
+      "knowledge_version": 1,
+      "approval_status": "APPROVED",
+      "provenance": {
+        "source_id": "synth-doc-honey-faq-01",
+        "document_version": "v1.0",
+        "extracted_by": "synthetic_seed",
+        "approved_by": "synthetic-owner-01",
+        "approved_at": "2026-11-26T00:00:00Z"
+      }
+    },
+    {
+      "evidence_id": "ev-e01-honey-shipping",
+      "tenant_id": "tenant-p06-poc-01",
+      "sku_id": "SKU-HONEY-01",
+      "section": "shipping_return",
+      "content": "Chai thủy tinh 500ml giá niêm yết 159.000đ, được bọc chống sốc hai lớp khi vận chuyển. Hỗ trợ đổi mới 1-1 trong vòng 7 ngày nếu chai bị nứt vỡ hoặc rò rỉ khi nhận hàng kèm video mở hộp.",
+      "knowledge_version": 1,
+      "approval_status": "APPROVED",
+      "provenance": {
+        "source_id": "synth-doc-honey-policy-01",
+        "document_version": "v1.0",
+        "extracted_by": "synthetic_seed",
+        "approved_by": "synthetic-owner-01",
+        "approved_at": "2026-11-26T00:00:00Z"
+      }
+    },
+    {
+      "evidence_id": "ev-e01-honey-ocop",
+      "tenant_id": "tenant-p06-poc-01",
+      "sku_id": "SKU-HONEY-01",
+      "section": "ocop_origin",
+      "content": "Sản phẩm Mật ong hoa cà phê Đắk Lắk trong hồ sơ mô phỏng đạt chứng nhận OCOP 4 sao cấp tỉnh (mã SYNTH-OCOP-4S-DL-001) và đáp ứng điều kiện an toàn thực phẩm, có tem truy xuất nguồn gốc rõ ràng trên thân chai.",
+      "knowledge_version": 1,
+      "approval_status": "APPROVED",
+      "provenance": {
+        "source_id": "synth-doc-honey-spec-01",
+        "document_version": "v1.0",
+        "extracted_by": "synthetic_seed",
+        "approved_by": "synthetic-owner-01",
+        "approved_at": "2026-11-26T00:00:00Z"
+      }
+    },
+    {
+      "evidence_id": "ev-e01-tea-origin",
+      "tenant_id": "tenant-p06-poc-01",
+      "sku_id": "SKU-TEA-02",
+      "section": "origin_story",
+      "content": "Trà Shan Tuyết cổ thụ Hà Giang được thu hái thủ công theo chuẩn 1 tôm 2 lá từ những cây trà lâu năm sinh trưởng ở độ cao trên 1.300m tại Phìn Hồ, Hoàng Su Phì, nơi quanh năm sương mù bao phủ.",
+      "knowledge_version": 1,
+      "approval_status": "APPROVED",
+      "provenance": {
+        "source_id": "synth-doc-tea-story-01",
+        "document_version": "v1.0",
+        "extracted_by": "synthetic_seed",
+        "approved_by": "synthetic-owner-01",
+        "approved_at": "2026-11-26T00:00:00Z"
+      }
+    },
+    {
+      "evidence_id": "ev-e01-tea-usage",
+      "tenant_id": "tenant-p06-poc-01",
+      "sku_id": "SKU-TEA-02",
+      "section": "usage_guide",
+      "content": "Cách pha Trà Shan Tuyết cổ thụ: tráng ấm bằng nước sôi, cho khoảng 5g trà vào ấm 150ml, rót nước nhiệt độ 85 đến 90 độ C và hãm 30 đến 45 giây cho lượt đầu. Trà giữ hương tốt qua 6 đến 8 lần nước.",
+      "knowledge_version": 1,
+      "approval_status": "APPROVED",
+      "provenance": {
+        "source_id": "synth-doc-tea-faq-01",
+        "document_version": "v1.0",
+        "extracted_by": "synthetic_seed",
+        "approved_by": "synthetic-owner-01",
+        "approved_at": "2026-11-26T00:00:00Z"
+      }
+    },
+    {
+      "evidence_id": "ev-e01-tea-quality",
+      "tenant_id": "tenant-p06-poc-01",
+      "sku_id": "SKU-TEA-02",
+      "section": "quality_storage",
+      "content": "Búp trà phủ lớp lông tơ trắng mịn tự nhiên; khi pha cho nước vàng sánh, hương cốm nhẹ và hậu vị ngọt sâu. Cần đậy kín nắp hộp thiếc 200g sau khi lấy trà, tránh nơi ẩm hoặc có mùi lạ. Người nhạy cảm với caffeine nên tránh uống sát giờ ngủ.",
+      "knowledge_version": 1,
+      "approval_status": "APPROVED",
+      "provenance": {
+        "source_id": "synth-doc-tea-faq-01",
+        "document_version": "v1.0",
+        "extracted_by": "synthetic_seed",
+        "approved_by": "synthetic-owner-01",
+        "approved_at": "2026-11-26T00:00:00Z"
+      }
+    },
+    {
+      "evidence_id": "ev-e01-tea-shipping",
+      "tenant_id": "tenant-p06-poc-01",
+      "sku_id": "SKU-TEA-02",
+      "section": "shipping_return",
+      "content": "Hộp thiếc 200g hút chân không giá niêm yết 245.000đ, đóng gói thùng carton chèn xốp bảo vệ dáng hộp làm quà biếu. Hỗ trợ đổi trả trong 7 ngày nếu bao bì rách thủng hoặc mất chân không khi mở hộp.",
+      "knowledge_version": 1,
+      "approval_status": "APPROVED",
+      "provenance": {
+        "source_id": "synth-doc-tea-policy-01",
+        "document_version": "v1.0",
+        "extracted_by": "synthetic_seed",
+        "approved_by": "synthetic-owner-01",
+        "approved_at": "2026-11-26T00:00:00Z"
+      }
+    },
+    {
+      "evidence_id": "ev-e01-tea-ocop",
+      "tenant_id": "tenant-p06-poc-01",
+      "sku_id": "SKU-TEA-02",
+      "section": "ocop_origin",
+      "content": "Trà Shan Tuyết cổ thụ Hà Giang trong bộ dữ liệu mô phỏng đạt chứng nhận OCOP 4 sao cấp tỉnh (mã SYNTH-OCOP-4S-HG-002), chế biến theo quy trình sao vò truyền thống kiểm soát độ ẩm đạt chuẩn an toàn thực phẩm.",
+      "knowledge_version": 1,
+      "approval_status": "APPROVED",
+      "provenance": {
+        "source_id": "synth-doc-tea-spec-01",
+        "document_version": "v1.0",
+        "extracted_by": "synthetic_seed",
+        "approved_by": "synthetic-owner-01",
+        "approved_at": "2026-11-26T00:00:00Z"
+      }
+    },
+    {
+      "evidence_id": "ev-e01-macadamia-origin",
+      "tenant_id": "tenant-p06-poc-01",
+      "sku_id": "SKU-MACADAMIA-03",
+      "section": "origin_story",
+      "content": "Hạt mắc ca Lâm Đồng được tuyển chọn từ các vườn cây ăn trái vùng cao nguyên Lâm Hà, thu hái khi trái chín rụng tự nhiên rồi phân loại kích cỡ đồng đều trước khi đưa vào lò sấy đối lưu chậm.",
+      "knowledge_version": 1,
+      "approval_status": "APPROVED",
+      "provenance": {
+        "source_id": "synth-doc-macadamia-story-01",
+        "document_version": "v1.0",
+        "extracted_by": "synthetic_seed",
+        "approved_by": "synthetic-owner-01",
+        "approved_at": "2026-11-26T00:00:00Z"
+      }
+    },
+    {
+      "evidence_id": "ev-e01-macadamia-usage",
+      "tenant_id": "tenant-p06-poc-01",
+      "sku_id": "SKU-MACADAMIA-03",
+      "section": "usage_guide",
+      "content": "Hạt mắc ca đã sấy nứt vỏ sẵn và tặng kèm thanh tách vỏ bằng thép, ăn trực tiếp như món ăn vặt hằng ngày, làm sữa hạt hoặc trộn salad. Lưu ý sản phẩm là hạt cây, không phù hợp cho người dị ứng hạt.",
+      "knowledge_version": 1,
+      "approval_status": "APPROVED",
+      "provenance": {
+        "source_id": "synth-doc-macadamia-faq-01",
+        "document_version": "v1.0",
+        "extracted_by": "synthetic_seed",
+        "approved_by": "synthetic-owner-01",
+        "approved_at": "2026-11-26T00:00:00Z"
+      }
+    },
+    {
+      "evidence_id": "ev-e01-macadamia-quality",
+      "tenant_id": "tenant-p06-poc-01",
+      "sku_id": "SKU-MACADAMIA-03",
+      "section": "quality_storage",
+      "content": "Nhân hạt mắc ca màu trắng sữa, giòn béo tự nhiên và không tẩm muối hay hương liệu. Hộp 500g có sẵn gói hút ẩm; sau khi lấy hạt cần vặn chặt nắp và bảo quản nơi khô ráo để giữ độ giòn trong 12 tháng hạn sử dụng.",
+      "knowledge_version": 1,
+      "approval_status": "APPROVED",
+      "provenance": {
+        "source_id": "synth-doc-macadamia-faq-01",
+        "document_version": "v1.0",
+        "extracted_by": "synthetic_seed",
+        "approved_by": "synthetic-owner-01",
+        "approved_at": "2026-11-26T00:00:00Z"
+      }
+    },
+    {
+      "evidence_id": "ev-e01-macadamia-shipping",
+      "tenant_id": "tenant-p06-poc-01",
+      "sku_id": "SKU-MACADAMIA-03",
+      "section": "shipping_return",
+      "content": "Hạt mắc ca sấy nứt vỏ Lâm Đồng hộp 500g có giá niêm yết 195.000đ, đóng gói kèm dụng cụ tách vỏ trong hộp PET nắp vặn kín khí. Hỗ trợ đổi hộp mới trong 7 ngày nếu hạt bị ỉu hoặc có dấu hiệu ẩm mốc khi mở hộp.",
+      "knowledge_version": 1,
+      "approval_status": "APPROVED",
+      "provenance": {
+        "source_id": "synth-doc-macadamia-policy-01",
+        "document_version": "v1.0",
+        "extracted_by": "synthetic_seed",
+        "approved_by": "synthetic-owner-01",
+        "approved_at": "2026-11-26T00:00:00Z"
+      }
+    },
+    {
+      "evidence_id": "ev-e01-macadamia-ocop",
+      "tenant_id": "tenant-p06-poc-01",
+      "sku_id": "SKU-MACADAMIA-03",
+      "section": "ocop_origin",
+      "content": "Hạt mắc ca sấy nứt vỏ Lâm Đồng trong dữ liệu mô phỏng đạt chứng nhận OCOP 4 sao cấp tỉnh (mã SYNTH-OCOP-4S-LD-003), sấy tách ẩm kiểm soát nhiệt độ ổn định và đáp ứng đầy đủ điều kiện an toàn thực phẩm.",
+      "knowledge_version": 1,
+      "approval_status": "APPROVED",
+      "provenance": {
+        "source_id": "synth-doc-macadamia-spec-01",
+        "document_version": "v1.0",
+        "extracted_by": "synthetic_seed",
+        "approved_by": "synthetic-owner-01",
+        "approved_at": "2026-11-26T00:00:00Z"
+      }
+    }
+  ],
+  "claim_registry": [
+    {
+      "claim_id": "clm-e01-honey-allowed-01",
+      "tenant_id": "tenant-p06-poc-01",
+      "sku_id": "SKU-HONEY-01",
+      "claim_text": "100% mật ong hoa cà phê tự nhiên vùng Cư M'gar, Đắk Lắk, không pha đường tinh luyện và không chất bảo quản.",
+      "category": "ALLOWED",
+      "evidence_ids": [
+        "ev-e01-honey-origin",
+        "ev-e01-honey-quality"
+      ],
+      "requires_ocop_verified": false,
+      "approval_status": "APPROVED",
+      "knowledge_version": 1,
+      "provenance": {
+        "source_id": "synth-doc-honey-spec-01",
+        "document_version": "v1.0",
+        "extracted_by": "synthetic_seed",
+        "approved_by": "synthetic-owner-01",
+        "approved_at": "2026-11-26T00:00:00Z"
+      }
+    },
+    {
+      "claim_id": "clm-e01-honey-allowed-02",
+      "tenant_id": "tenant-p06-poc-01",
+      "sku_id": "SKU-HONEY-01",
+      "claim_text": "Chai thủy tinh 500ml giá 159.000đ, đóng gói chống sốc hai lớp và đổi mới 1-1 trong 7 ngày nếu nứt vỡ khi giao.",
+      "category": "ALLOWED",
+      "evidence_ids": [
+        "ev-e01-honey-shipping"
+      ],
+      "requires_ocop_verified": false,
+      "approval_status": "APPROVED",
+      "knowledge_version": 1,
+      "provenance": {
+        "source_id": "synth-doc-honey-policy-01",
+        "document_version": "v1.0",
+        "extracted_by": "synthetic_seed",
+        "approved_by": "synthetic-owner-01",
+        "approved_at": "2026-11-26T00:00:00Z"
+      }
+    },
+    {
+      "claim_id": "clm-e01-honey-ocop-01",
+      "tenant_id": "tenant-p06-poc-01",
+      "sku_id": "SKU-HONEY-01",
+      "claim_text": "Mật ong hoa cà phê Đắk Lắk đạt chứng nhận OCOP 4 sao cấp tỉnh (dữ liệu mô phỏng SYNTH-OCOP-4S-DL-001).",
+      "category": "REQUIRES_OFFICIAL_VERIFICATION",
+      "evidence_ids": [
+        "ev-e01-honey-ocop"
+      ],
+      "requires_ocop_verified": true,
+      "approval_status": "APPROVED",
+      "knowledge_version": 1,
+      "provenance": {
+        "source_id": "synth-doc-honey-spec-01",
+        "document_version": "v1.0",
+        "extracted_by": "synthetic_seed",
+        "approved_by": "synthetic-owner-01",
+        "approved_at": "2026-11-26T00:00:00Z"
+      }
+    },
+    {
+      "claim_id": "clm-e01-honey-prohibited-01",
+      "tenant_id": "tenant-p06-poc-01",
+      "sku_id": "SKU-HONEY-01",
+      "claim_text": "Chữa khỏi đau dạ dày, trị dứt điểm ho mãn tính hoặc thay thế thuốc chữa bệnh.",
+      "category": "PROHIBITED",
+      "evidence_ids": [],
+      "requires_ocop_verified": false,
+      "approval_status": "APPROVED",
+      "knowledge_version": 1,
+      "provenance": {
+        "source_id": "policy-food-r17",
+        "document_version": "v1.0",
+        "extracted_by": "synthetic_seed",
+        "approved_by": "synthetic-owner-01",
+        "approved_at": "2026-11-26T00:00:00Z"
+      }
+    },
+    {
+      "claim_id": "clm-e01-tea-allowed-01",
+      "tenant_id": "tenant-p06-poc-01",
+      "sku_id": "SKU-TEA-02",
+      "claim_text": "100% búp trà Shan Tuyết cổ thụ 1 tôm 2 lá hái thủ công ở độ cao trên 1.300m tại Hoàng Su Phì, Hà Giang.",
+      "category": "ALLOWED",
+      "evidence_ids": [
+        "ev-e01-tea-origin",
+        "ev-e01-tea-quality"
+      ],
+      "requires_ocop_verified": false,
+      "approval_status": "APPROVED",
+      "knowledge_version": 1,
+      "provenance": {
+        "source_id": "synth-doc-tea-spec-01",
+        "document_version": "v1.0",
+        "extracted_by": "synthetic_seed",
+        "approved_by": "synthetic-owner-01",
+        "approved_at": "2026-11-26T00:00:00Z"
+      }
+    },
+    {
+      "claim_id": "clm-e01-tea-allowed-02",
+      "tenant_id": "tenant-p06-poc-01",
+      "sku_id": "SKU-TEA-02",
+      "claim_text": "Hộp thiếc hút chân không 200g giá 245.000đ, giữ hương vị qua 6 đến 8 lần nước khi pha đúng nhiệt độ 85-90 độ C.",
+      "category": "ALLOWED",
+      "evidence_ids": [
+        "ev-e01-tea-usage",
+        "ev-e01-tea-shipping"
+      ],
+      "requires_ocop_verified": false,
+      "approval_status": "APPROVED",
+      "knowledge_version": 1,
+      "provenance": {
+        "source_id": "synth-doc-tea-policy-01",
+        "document_version": "v1.0",
+        "extracted_by": "synthetic_seed",
+        "approved_by": "synthetic-owner-01",
+        "approved_at": "2026-11-26T00:00:00Z"
+      }
+    },
+    {
+      "claim_id": "clm-e01-tea-ocop-01",
+      "tenant_id": "tenant-p06-poc-01",
+      "sku_id": "SKU-TEA-02",
+      "claim_text": "Trà Shan Tuyết cổ thụ Hà Giang đạt chứng nhận OCOP 4 sao cấp tỉnh (dữ liệu mô phỏng SYNTH-OCOP-4S-HG-002).",
+      "category": "REQUIRES_OFFICIAL_VERIFICATION",
+      "evidence_ids": [
+        "ev-e01-tea-ocop"
+      ],
+      "requires_ocop_verified": true,
+      "approval_status": "APPROVED",
+      "knowledge_version": 1,
+      "provenance": {
+        "source_id": "synth-doc-tea-spec-01",
+        "document_version": "v1.0",
+        "extracted_by": "synthetic_seed",
+        "approved_by": "synthetic-owner-01",
+        "approved_at": "2026-11-26T00:00:00Z"
+      }
+    },
+    {
+      "claim_id": "clm-e01-tea-prohibited-01",
+      "tenant_id": "tenant-p06-poc-01",
+      "sku_id": "SKU-TEA-02",
+      "claim_text": "Chữa tiểu đường, giảm mỡ máu cấp tốc, phòng ngừa ung thư.",
+      "category": "PROHIBITED",
+      "evidence_ids": [],
+      "requires_ocop_verified": false,
+      "approval_status": "APPROVED",
+      "knowledge_version": 1,
+      "provenance": {
+        "source_id": "policy-food-r17",
+        "document_version": "v1.0",
+        "extracted_by": "synthetic_seed",
+        "approved_by": "synthetic-owner-01",
+        "approved_at": "2026-11-26T00:00:00Z"
+      }
+    },
+    {
+      "claim_id": "clm-e01-macadamia-allowed-01",
+      "tenant_id": "tenant-p06-poc-01",
+      "sku_id": "SKU-MACADAMIA-03",
+      "claim_text": "100% hạt mắc ca Lâm Đồng sấy nứt vỏ tự nhiên, nhân trắng sữa giòn béo, không tẩm muối hay hương liệu.",
+      "category": "ALLOWED",
+      "evidence_ids": [
+        "ev-e01-macadamia-origin",
+        "ev-e01-macadamia-quality"
+      ],
+      "requires_ocop_verified": false,
+      "approval_status": "APPROVED",
+      "knowledge_version": 1,
+      "provenance": {
+        "source_id": "synth-doc-macadamia-spec-01",
+        "document_version": "v1.0",
+        "extracted_by": "synthetic_seed",
+        "approved_by": "synthetic-owner-01",
+        "approved_at": "2026-11-26T00:00:00Z"
+      }
+    },
+    {
+      "claim_id": "clm-e01-macadamia-allowed-02",
+      "tenant_id": "tenant-p06-poc-01",
+      "sku_id": "SKU-MACADAMIA-03",
+      "claim_text": "Hộp 500g giá 195.000đ kèm dụng cụ tách vỏ và gói hút ẩm, đổi mới trong 7 ngày nếu hạt ỉu hoặc ẩm mốc.",
+      "category": "ALLOWED",
+      "evidence_ids": [
+        "ev-e01-macadamia-usage",
+        "ev-e01-macadamia-shipping"
+      ],
+      "requires_ocop_verified": false,
+      "approval_status": "APPROVED",
+      "knowledge_version": 1,
+      "provenance": {
+        "source_id": "synth-doc-macadamia-policy-01",
+        "document_version": "v1.0",
+        "extracted_by": "synthetic_seed",
+        "approved_by": "synthetic-owner-01",
+        "approved_at": "2026-11-26T00:00:00Z"
+      }
+    },
+    {
+      "claim_id": "clm-e01-macadamia-ocop-01",
+      "tenant_id": "tenant-p06-poc-01",
+      "sku_id": "SKU-MACADAMIA-03",
+      "claim_text": "Hạt mắc ca sấy nứt vỏ Lâm Đồng đạt chứng nhận OCOP 4 sao cấp tỉnh (dữ liệu mô phỏng SYNTH-OCOP-4S-LD-003).",
+      "category": "REQUIRES_OFFICIAL_VERIFICATION",
+      "evidence_ids": [
+        "ev-e01-macadamia-ocop"
+      ],
+      "requires_ocop_verified": true,
+      "approval_status": "APPROVED",
+      "knowledge_version": 1,
+      "provenance": {
+        "source_id": "synth-doc-macadamia-spec-01",
+        "document_version": "v1.0",
+        "extracted_by": "synthetic_seed",
+        "approved_by": "synthetic-owner-01",
+        "approved_at": "2026-11-26T00:00:00Z"
+      }
+    },
+    {
+      "claim_id": "clm-e01-macadamia-prohibited-01",
+      "tenant_id": "tenant-p06-poc-01",
+      "sku_id": "SKU-MACADAMIA-03",
+      "claim_text": "Chữa bệnh tim mạch, giảm mỡ máu cấp tốc hoặc thay thế thuốc điều trị.",
+      "category": "PROHIBITED",
+      "evidence_ids": [],
+      "requires_ocop_verified": false,
+      "approval_status": "APPROVED",
+      "knowledge_version": 1,
+      "provenance": {
+        "source_id": "policy-food-r17",
+        "document_version": "v1.0",
+        "extracted_by": "synthetic_seed",
+        "approved_by": "synthetic-owner-01",
+        "approved_at": "2026-11-26T00:00:00Z"
+      }
+    }
+  ]
+}

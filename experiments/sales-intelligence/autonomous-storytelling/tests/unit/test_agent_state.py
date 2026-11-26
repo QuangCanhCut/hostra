@@ -21,6 +21,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from typing import Any
 
 import pytest
 from langgraph.graph import END, START, StateGraph
@@ -115,6 +116,7 @@ def _make_checkpoint() -> StoryCheckpoint:
         StoryCheckpoint: Checkpoint mẫu tại `arc-01`.
     """
     return StoryCheckpoint(
+        tenant_id="tenant-demo-01",
         session_id="session-demo-01",
         session_epoch=1,
         plan_id="plan-state-01",
@@ -224,7 +226,7 @@ class TestPlayedTurnSummaryAndRewriteBudget:
             PlayedTurnSummary.from_playback_completed(event=event, intent="   ")
 
     def test_rewrite_budget_bounds_and_can_retry(self) -> None:
-        """Kiểm tra thuộc tính `can_retry` và chặn `retries_used > max_retries`."""
+        """Kiểm tra thuộc tính `can_retry`, chặn `retries_used > max_retries` và strict types."""
         budget = RewriteBudgetState(max_retries=2, retries_used=1)
         assert budget.can_retry is True
 
@@ -237,9 +239,15 @@ class TestPlayedTurnSummaryAndRewriteBudget:
         with pytest.raises(ValidationError):
             RewriteBudgetState(max_retries=MAX_REWRITE_RETRIES_LIMIT + 1)
 
+        with pytest.raises(ValidationError):
+            RewriteBudgetState(max_retries=True, retries_used=0)  # type: ignore[arg-type]
+
+        with pytest.raises(ValidationError):
+            RewriteBudgetState(last_failure_reasons=["   "])
+
 
 class TestAgentStateInvariants:
-    """Kiểm định các bất biến đồng bộ và cô lập trạng thái trên `AgentState`."""
+    """Kiểm định các bất biến đồng bộ, toàn vẹn tham chiếu, `frozen=True` và cô lập trạng thái trên `AgentState`."""
 
     def test_valid_agent_state_and_json_roundtrip(self) -> None:
         """Đảm bảo `AgentState` hợp lệ và khôi phục nguyên vẹn qua JSON."""
@@ -248,18 +256,53 @@ class TestAgentStateInvariants:
         restored = AgentState.model_validate_json(state.model_dump_json())
         assert restored == state
 
-    def test_non_authoritative_and_plan_approval_enforced(self) -> None:
-        """Từ chối cờ authoritative=True hoặc `StoryPlan` chưa `APPROVED`."""
+    def test_frozen_immutability_and_validated_update(self) -> None:
+        """`frozen=True` ngăn gán trực tiếp, và `validated_update()` giữ nguyên bản gốc nếu lỗi."""
+        state = _make_initial_state()
         with pytest.raises(ValidationError):
-            AgentState(
-                is_authoritative_session_state=True,  # type: ignore[arg-type]
-                tenant_id="tenant-demo-01",
-                session_id="session-demo-01",
-                session_epoch=1,
-                active_sku_id="SKU-HONEY-01",
-                story_plan=_make_plan(),
-                story_checkpoint=_make_checkpoint(),
-            )
+            state.turn_outcome = AgentTurnOutcome.VERIFIED_READY  # type: ignore[misc]
+        assert state.turn_outcome == AgentTurnOutcome.IN_PROGRESS
+
+        # validated_update vi phạm invariant -> ném ValidationError và giữ nguyên state gốc
+        with pytest.raises(ValidationError):
+            state.validated_update(turn_outcome=AgentTurnOutcome.VERIFIED_READY, verified_candidate=None)
+        assert state.turn_outcome == AgentTurnOutcome.IN_PROGRESS
+
+        # completed_topic_ids là frozenset để chặn mutation ngầm ngoài validator
+        assert isinstance(state.completed_topic_ids, frozenset)
+        with pytest.raises(AttributeError):
+            state.completed_topic_ids.add("topic-01")  # type: ignore[attr-defined]
+
+        # validated_update chấp nhận set đầu vào, chuyển thành frozenset và giữ nguyên state gốc
+        verified = _make_candidate(CandidateVerificationStatus.VERIFIED)
+        updated = state.validated_update(
+            completed_topic_ids={"topic-01"},
+            verified_candidate=verified,
+            turn_outcome=AgentTurnOutcome.VERIFIED_READY,
+            node_trace=["verify_node"],
+        )
+        assert updated.completed_topic_ids == frozenset({"topic-01"})
+        assert isinstance(updated.completed_topic_ids, frozenset)
+        assert AgentState.model_validate_json(updated.model_dump_json()) == updated
+        assert updated.turn_outcome == AgentTurnOutcome.VERIFIED_READY
+        assert updated.verified_candidate is not None
+        assert updated.node_trace == ["verify_node"]
+        assert state.turn_outcome == AgentTurnOutcome.IN_PROGRESS
+        assert state.completed_topic_ids == frozenset()
+
+    def test_non_authoritative_and_plan_approval_enforced(self) -> None:
+        """Từ chối cờ authoritative sai kiểu/giá trị hoặc `StoryPlan` chưa `APPROVED`."""
+        for bad_auth in (True, 0, "false"):
+            with pytest.raises(ValidationError):
+                AgentState(
+                    is_authoritative_session_state=bad_auth,  # type: ignore[arg-type]
+                    tenant_id="tenant-demo-01",
+                    session_id="session-demo-01",
+                    session_epoch=1,
+                    active_sku_id="SKU-HONEY-01",
+                    story_plan=_make_plan(),
+                    story_checkpoint=_make_checkpoint(),
+                )
 
         with pytest.raises(ValidationError):
             AgentState(
@@ -271,49 +314,119 @@ class TestAgentStateInvariants:
                 story_checkpoint=_make_checkpoint(),
             )
 
-    def test_context_sync_and_unknown_topic_rejected(self) -> None:
-        """Kiểm tra lệch tenant/session/epoch/plan/active_sku/arc và topic lạ."""
+    def test_context_sync_and_referential_integrity_rejected(self) -> None:
+        """Kiểm tra lệch tenant/session/epoch/plan/SKU, tham chiếu arc/topic/chunk sai và tràn cửa sổ."""
         base = _make_initial_state()
 
         # Lệch active_sku ngoài danh sách ghim
         with pytest.raises(ValidationError):
             AgentState(**{**base.model_dump(), "active_sku_id": "SKU-CASHEW-03"})
 
-        # Checkpoint lệch session_epoch
-        bad_cp = _make_checkpoint().model_copy(update={"session_epoch": 2})
+        # Checkpoint lệch tenant_id (R10)
+        bad_tenant_cp = StoryCheckpoint.model_validate(
+            {**_make_checkpoint().model_dump(), "tenant_id": "tenant-other"}
+        )
         with pytest.raises(ValidationError):
-            AgentState(
-                tenant_id=base.tenant_id,
-                session_id=base.session_id,
-                session_epoch=1,
-                active_sku_id=base.active_sku_id,
-                story_plan=base.story_plan,
-                story_checkpoint=bad_cp,
-            )
+            base.validated_update(story_checkpoint=bad_tenant_cp)
+
+        # Checkpoint lệch session_epoch
+        bad_cp = StoryCheckpoint.model_validate(
+            {**_make_checkpoint().model_dump(), "session_epoch": 2}
+        )
+        with pytest.raises(ValidationError):
+            base.validated_update(story_checkpoint=bad_cp)
 
         # Checkpoint trỏ vào arc không tồn tại
-        bad_arc_cp = _make_checkpoint().model_copy(update={"current_arc_id": "arc-missing"})
+        bad_arc_cp = StoryCheckpoint.model_validate(
+            {**_make_checkpoint().model_dump(), "current_arc_id": "arc-missing"}
+        )
         with pytest.raises(ValidationError):
-            AgentState(
-                tenant_id=base.tenant_id,
-                session_id=base.session_id,
-                session_epoch=1,
-                active_sku_id=base.active_sku_id,
-                story_plan=base.story_plan,
-                story_checkpoint=bad_arc_cp,
-            )
+            base.validated_update(story_checkpoint=bad_arc_cp)
+
+        # Checkpoint.next_topic_id không tồn tại trong story_plan
+        bad_next_topic_cp = StoryCheckpoint.model_validate(
+            {**_make_checkpoint().model_dump(), "next_topic_id": "topic-nonexistent"}
+        )
+        with pytest.raises(ValidationError):
+            base.validated_update(story_checkpoint=bad_next_topic_cp)
 
         # completed_topic_ids chứa topic không có trong story_plan
         with pytest.raises(ValidationError):
-            AgentState(
-                tenant_id=base.tenant_id,
-                session_id=base.session_id,
-                session_epoch=1,
-                active_sku_id=base.active_sku_id,
-                story_plan=base.story_plan,
-                story_checkpoint=base.story_checkpoint,
-                completed_topic_ids={"topic-999"},
+            base.validated_update(completed_topic_ids={"topic-999"})
+
+        # selected_arc_id không tồn tại trong story_plan
+        with pytest.raises(ValidationError):
+            base.validated_update(selected_arc_id="arc-missing")
+
+        # selected_topic_id không tồn tại trong story_plan
+        with pytest.raises(ValidationError):
+            base.validated_update(selected_topic_id="topic-missing")
+
+        # selected_topic_id tồn tại nhưng thuộc arc khác với selected_arc_id
+        with pytest.raises(ValidationError):
+            base.validated_update(selected_arc_id="arc-01", selected_topic_id="topic-02")
+
+        # draft_chunk lệch plan_id / arc_id / topic_id khác arc / sku_id ngoài phiên
+        valid_chunk = StoryChunk(
+            chunk_id="chunk-01",
+            plan_id=base.story_plan.plan_id,
+            plan_revision=base.story_plan.plan_revision,
+            arc_id="arc-01",
+            topic_id="topic-01",
+            sequence_index=0,
+            role=StoryChunkRole.PRODUCT_STORY,
+            sku_id="SKU-HONEY-01",
+            text="Mật ong hoa cà phê Cư M'gar Đắk Lắk.",
+            estimated_duration_sec=5.0,
+        )
+        with pytest.raises(ValidationError):
+            base.validated_update(
+                draft_chunk=StoryChunk.model_validate({**valid_chunk.model_dump(), "plan_id": "plan-other"})
             )
+        with pytest.raises(ValidationError):
+            base.validated_update(
+                draft_chunk=StoryChunk.model_validate({**valid_chunk.model_dump(), "arc_id": "arc-missing"})
+            )
+        with pytest.raises(ValidationError):
+            base.validated_update(
+                draft_chunk=StoryChunk.model_validate({**valid_chunk.model_dump(), "topic_id": "topic-02"})
+            )
+        with pytest.raises(ValidationError):
+            base.validated_update(
+                draft_chunk=StoryChunk.model_validate({**valid_chunk.model_dump(), "sku_id": "SKU-CASHEW-03"})
+            )
+
+        # len(played_history) vượt quá played_history_window_size
+        sample_event = PlaybackCompleted(
+            playback_event_id="pb-w1",
+            tenant_id=base.tenant_id,
+            session_id=base.session_id,
+            session_epoch=1,
+            turn_id="turn-1",
+            candidate_id="cand-1",
+            spoken_text="Mật ong hoa cà phê.",
+            actual_duration_ms=2000,
+            occurred_at=datetime.now(timezone.utc),
+            event_source=PlaybackEventSource.SIMULATED_HARNESS,
+            is_simulated=True,
+            simulation_run_id="run-w",
+        )
+        summary_1 = PlayedTurnSummary.from_playback_completed(sample_event, intent="story")
+        summary_2 = PlayedTurnSummary.from_playback_completed(
+            PlaybackCompleted(**{**sample_event.model_dump(), "playback_event_id": "pb-w2", "turn_id": "turn-2"}),
+            intent="story",
+        )
+        with pytest.raises(ValidationError):
+            base.validated_update(
+                played_history_window_size=1,
+                played_history=[summary_1, summary_2],
+            )
+
+        # Chuỗi khoảng trắng và bool->int trên AgentState bị chặn
+        with pytest.raises(ValidationError):
+            base.validated_update(node_trace=["   "])
+        with pytest.raises(ValidationError):
+            base.validated_update(session_epoch=True)
 
     def test_draft_vs_verified_separation_and_outcome_consistency(self) -> None:
         """I-02: cô lập `draft_candidate` khỏi `verified_candidate` và đối chiếu `turn_outcome`."""
@@ -321,37 +434,19 @@ class TestAgentStateInvariants:
 
         # draft_candidate không được phép ở trạng thái VERIFIED
         with pytest.raises(ValidationError):
-            AgentState(
-                tenant_id=base.tenant_id,
-                session_id=base.session_id,
-                session_epoch=1,
-                active_sku_id=base.active_sku_id,
-                story_plan=base.story_plan,
-                story_checkpoint=base.story_checkpoint,
+            base.validated_update(
                 draft_candidate=_make_candidate(CandidateVerificationStatus.VERIFIED),
             )
 
         # verified_candidate không được phép ở trạng thái DRAFT
         with pytest.raises(ValidationError):
-            AgentState(
-                tenant_id=base.tenant_id,
-                session_id=base.session_id,
-                session_epoch=1,
-                active_sku_id=base.active_sku_id,
-                story_plan=base.story_plan,
-                story_checkpoint=base.story_checkpoint,
+            base.validated_update(
                 verified_candidate=_make_candidate(CandidateVerificationStatus.DRAFT),
             )
 
         # verified_candidate lệch tenant hoặc epoch -> chặn rò rỉ đa tenant/stale epoch
         with pytest.raises(ValidationError):
-            AgentState(
-                tenant_id=base.tenant_id,
-                session_id=base.session_id,
-                session_epoch=1,
-                active_sku_id=base.active_sku_id,
-                story_plan=base.story_plan,
-                story_checkpoint=base.story_checkpoint,
+            base.validated_update(
                 verified_candidate=_make_candidate(
                     CandidateVerificationStatus.VERIFIED,
                     tenant_id="tenant-other",
@@ -359,40 +454,33 @@ class TestAgentStateInvariants:
                 turn_outcome=AgentTurnOutcome.VERIFIED_READY,
             )
 
-        # VERIFIED_READY nhưng thiếu verified_candidate -> từ chối
+        # VERIFIED_READY và FALLBACK_PREAPPROVED thiếu verified_candidate -> từ chối
         with pytest.raises(ValidationError):
-            AgentState(
-                tenant_id=base.tenant_id,
-                session_id=base.session_id,
-                session_epoch=1,
-                active_sku_id=base.active_sku_id,
-                story_plan=base.story_plan,
-                story_checkpoint=base.story_checkpoint,
+            base.validated_update(
                 turn_outcome=AgentTurnOutcome.VERIFIED_READY,
+                verified_candidate=None,
+            )
+        with pytest.raises(ValidationError):
+            base.validated_update(
+                turn_outcome=AgentTurnOutcome.FALLBACK_PREAPPROVED,
                 verified_candidate=None,
             )
 
         # SAFE_ABORT_NO_CANDIDATE nhưng vẫn còn verified_candidate -> từ chối
         with pytest.raises(ValidationError):
-            AgentState(
-                tenant_id=base.tenant_id,
-                session_id=base.session_id,
-                session_epoch=1,
-                active_sku_id=base.active_sku_id,
-                story_plan=base.story_plan,
-                story_checkpoint=base.story_checkpoint,
+            base.validated_update(
                 turn_outcome=AgentTurnOutcome.SAFE_ABORT_NO_CANDIDATE,
                 verified_candidate=_make_candidate(CandidateVerificationStatus.VERIFIED),
             )
 
 
 class TestLangGraphStateCompatibility:
-    """Smoke test kiểm tra `AgentState` chạy được trực tiếp với `langgraph.graph.StateGraph`."""
+    """Smoke test và kiểm định biên `AgentState.from_graph_result` với `langgraph.graph.StateGraph`."""
 
     def test_state_graph_dummy_invocation(self) -> None:
         """Biên dịch và gọi một `StateGraph(AgentState)` tối giản để xác nhận tương thích schema."""
 
-        def dummy_draft_node(state: AgentState) -> dict:
+        def dummy_draft_node(state: AgentState) -> dict[str, Any]:
             """Node giả lập sinh bản nháp `StoryChunk` và `SpeechCandidate` chưa duyệt."""
             chunk = StoryChunk(
                 chunk_id="chunk-01",
@@ -415,7 +503,7 @@ class TestLangGraphStateCompatibility:
                 "node_trace": [*state.node_trace, "dummy_draft_node"],
             }
 
-        def dummy_verify_node(state: AgentState) -> dict:
+        def dummy_verify_node(state: AgentState) -> dict[str, Any]:
             """Node giả lập nhận kết quả `VERIFIED` và chốt `AgentTurnOutcome.VERIFIED_READY`."""
             return {
                 "draft_candidate": None,
@@ -434,8 +522,36 @@ class TestLangGraphStateCompatibility:
         compiled = graph.compile()
         result = compiled.invoke(_make_initial_state())
 
-        final_state = AgentState.model_validate(result)
+        final_state = AgentState.from_graph_result(result)
         assert final_state.turn_outcome == AgentTurnOutcome.VERIFIED_READY
         assert final_state.verified_candidate is not None
         assert final_state.verified_candidate.is_ready_for_tts() is True
         assert final_state.node_trace == ["dummy_draft_node", "dummy_verify_node"]
+
+    def test_from_graph_result_catches_invalid_final_node_output_a_blk_01(self) -> None:
+        """A-BLK-01: tái hiện `StateGraph.invoke()` bỏ qua model_validator cuối và bị `from_graph_result()` chặn."""
+
+        def broken_final_node(state: AgentState) -> dict[str, Any]:
+            """Node lỗi trả về `VERIFIED_READY` nhưng `verified_candidate=None`."""
+            return {
+                "turn_outcome": AgentTurnOutcome.VERIFIED_READY,
+                "verified_candidate": None,
+                "node_trace": [*state.node_trace, "broken_final_node"],
+            }
+
+        graph = StateGraph(AgentState)
+        graph.add_node("broken_final_node", broken_final_node)
+        graph.add_edge(START, "broken_final_node")
+        graph.add_edge("broken_final_node", END)
+
+        compiled = graph.compile()
+        raw_result = compiled.invoke(_make_initial_state())
+
+        # Bằng chứng thực nghiệm A-BLK-01: LangGraph trả về dict thô chưa chạy model_validator.
+        assert isinstance(raw_result, dict)
+        assert raw_result["turn_outcome"] == AgentTurnOutcome.VERIFIED_READY
+        assert raw_result["verified_candidate"] is None
+
+        # Cổng biên AgentState.from_graph_result() bắt buộc bắt được vi phạm và ném ValidationError.
+        with pytest.raises(ValidationError):
+            AgentState.from_graph_result(raw_result)

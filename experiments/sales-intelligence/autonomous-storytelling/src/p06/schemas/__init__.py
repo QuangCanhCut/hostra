@@ -32,6 +32,7 @@ from p06.schemas.candidate import (
 from p06.schemas.events import (
     PlaybackCompleted,
     PlaybackEventSource,
+    PlaybackOutcomeStatus,
     ResumeMode,
     StoryCheckpoint,
 )
@@ -53,12 +54,21 @@ from p06.schemas.story import (
     MAX_CHUNK_DURATION_SEC,
     MAX_PINNED_SKUS,
     MIN_PINNED_SKUS,
+    NonBlankStr,
+    OptionalNonBlankStr,
     StoryArc,
     StoryChunk,
     StoryChunkRole,
     StoryPlan,
     StoryPlanApprovalStatus,
     StoryTopic,
+    StrictArcDurationSec,
+    StrictDurationSec,
+    StrictFalse,
+    StrictNonNegInt,
+    StrictPositiveDurationMs,
+    StrictPositiveInt,
+    StrictPositivePriceVnd,
 )
 
 __all__ = [
@@ -73,6 +83,15 @@ __all__ = [
     "MAX_PLAYED_HISTORY_WINDOW",
     "MAX_REWRITE_RETRIES_LIMIT",
     "MIN_PINNED_SKUS",
+    "NonBlankStr",
+    "OptionalNonBlankStr",
+    "StrictArcDurationSec",
+    "StrictDurationSec",
+    "StrictFalse",
+    "StrictNonNegInt",
+    "StrictPositiveDurationMs",
+    "StrictPositiveInt",
+    "StrictPositivePriceVnd",
     # Enums
     "AgentTurnOutcome",
     "BreakpointType",
@@ -80,6 +99,7 @@ __all__ = [
     "CandidateVerificationStatus",
     "CoverageMode",
     "PlaybackEventSource",
+    "PlaybackOutcomeStatus",
     "ResumeMode",
     "StoryChunkRole",
     "StoryPlanApprovalStatus",

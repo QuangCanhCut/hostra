@@ -1,0 +1,258 @@
+{
+  "dataset_meta": {
+    "dataset_id": "p06-e01-negative-catalog-v0.1",
+    "is_synthetic": true,
+    "data_origin": "synthetic_negative_gate_fixture_for_p06_e01_and_e04",
+    "note": "Bộ dữ liệu âm tính (negative fixture) mô phỏng 4 trạng thái không đủ điều kiện phát sóng (OCOP PENDING, Rights EXPIRED, Food Safety False, Fact DRAFT) để kiểm thử cổng P05 fail-closed.",
+    "tenant_id": "tenant-p06-poc-01",
+    "sku_count": 4
+  },
+  "product_facts": [
+    {
+      "tenant_id": "tenant-p06-poc-01",
+      "sku_id": "SKU-CASHEW-03",
+      "sku_name": "Hạt điều rang củi vỏ lụa Bình Phước hộp 500g",
+      "price_vnd": 185000,
+      "weight_display": "500g (hộp nhựa PET nắp vặn)",
+      "expiry_display": "12 tháng kể từ ngày sản xuất",
+      "origin": "Huyện Bù Đăng, tỉnh Bình Phước",
+      "ingredients": [
+        "99% hạt điều nhân sống Bình Phước",
+        "1% muối tinh"
+      ],
+      "storage_instructions": "Đóng kín nắp ngay sau khi sử dụng để giữ độ giòn.",
+      "knowledge_version": 1,
+      "approval_status": "APPROVED",
+      "provenance": {
+        "source_id": "synth-neg-doc-cashew-spec-01",
+        "document_version": "v1.0",
+        "extracted_by": "synthetic_seed",
+        "approved_by": "synthetic-owner-01",
+        "approved_at": "2026-11-26T00:00:00Z"
+      },
+      "valid_from": "2026-01-01T00:00:00Z",
+      "valid_until": null
+    },
+    {
+      "tenant_id": "tenant-p06-poc-01",
+      "sku_id": "SKU-COFFEE-EXPIRED-04",
+      "sku_name": "Cà phê rang xay Robusta Gia Lai túi 250g",
+      "price_vnd": 125000,
+      "weight_display": "250g (túi van một chiều)",
+      "expiry_display": "12 tháng kể từ ngày rang",
+      "origin": "Huyện Chư Prông, tỉnh Gia Lai",
+      "ingredients": [
+        "100% hạt cà phê Robusta Gia Lai rang mộc"
+      ],
+      "storage_instructions": "Bảo quản nơi khô mát, tránh ánh nắng trực tiếp và gài kín miệng túi.",
+      "knowledge_version": 1,
+      "approval_status": "APPROVED",
+      "provenance": {
+        "source_id": "synth-neg-doc-coffee-spec-01",
+        "document_version": "v1.0",
+        "extracted_by": "synthetic_seed",
+        "approved_by": "synthetic-owner-01",
+        "approved_at": "2026-11-26T00:00:00Z"
+      },
+      "valid_from": "2026-01-01T00:00:00Z",
+      "valid_until": null
+    },
+    {
+      "tenant_id": "tenant-p06-poc-01",
+      "sku_id": "SKU-GINGER-UNSAFE-05",
+      "sku_name": "Mứt gừng dẻo Huế hộp 300g",
+      "price_vnd": 95000,
+      "weight_display": "300g (hộp giấy lót túi kín)",
+      "expiry_display": "6 tháng kể từ ngày sản xuất",
+      "origin": "Thành phố Huế, tỉnh Thừa Thiên Huế",
+      "ingredients": [
+        "70% gừng tươi",
+        "30% đường mía"
+      ],
+      "storage_instructions": "Bảo quản nơi thoáng mát, tránh ẩm ướt.",
+      "knowledge_version": 1,
+      "approval_status": "APPROVED",
+      "provenance": {
+        "source_id": "synth-neg-doc-ginger-spec-01",
+        "document_version": "v1.0",
+        "extracted_by": "synthetic_seed",
+        "approved_by": "synthetic-owner-01",
+        "approved_at": "2026-11-26T00:00:00Z"
+      },
+      "valid_from": "2026-01-01T00:00:00Z",
+      "valid_until": null
+    },
+    {
+      "tenant_id": "tenant-p06-poc-01",
+      "sku_id": "SKU-LOTUS-DRAFT-06",
+      "sku_name": "Hạt sen sấy giòn Đồng Tháp túi 200g",
+      "price_vnd": 115000,
+      "weight_display": "200g (túi zip bạc)",
+      "expiry_display": "9 tháng kể từ ngày đóng gói",
+      "origin": "Huyện Tháp Mười, tỉnh Đồng Tháp",
+      "ingredients": [
+        "100% hạt sen tươi Đồng Tháp sấy giòn"
+      ],
+      "storage_instructions": "Kéo kín miệng túi zip sau khi dùng, để nơi khô thoáng.",
+      "knowledge_version": 1,
+      "approval_status": "DRAFT",
+      "provenance": {
+        "source_id": "synth-neg-doc-lotus-spec-01",
+        "document_version": "v1.0",
+        "extracted_by": "synthetic_seed",
+        "approved_by": null,
+        "approved_at": null
+      },
+      "valid_from": "2026-01-01T00:00:00Z",
+      "valid_until": null
+    }
+  ],
+  "eligibility_snapshots": [
+    {
+      "tenant_id": "tenant-p06-poc-01",
+      "sku_id": "SKU-CASHEW-03",
+      "ocop_status": "PENDING",
+      "ocop_version": 1,
+      "ocop_code": null,
+      "food_safety_verified": true,
+      "rights_status": "ACTIVE",
+      "rights_version": 1
+    },
+    {
+      "tenant_id": "tenant-p06-poc-01",
+      "sku_id": "SKU-COFFEE-EXPIRED-04",
+      "ocop_status": "VERIFIED",
+      "ocop_version": 1,
+      "ocop_code": "SYNTH-OCOP-4S-GL-004",
+      "food_safety_verified": true,
+      "rights_status": "EXPIRED",
+      "rights_version": 1
+    },
+    {
+      "tenant_id": "tenant-p06-poc-01",
+      "sku_id": "SKU-GINGER-UNSAFE-05",
+      "ocop_status": "VERIFIED",
+      "ocop_version": 1,
+      "ocop_code": "SYNTH-OCOP-3S-HUE-005",
+      "food_safety_verified": false,
+      "rights_status": "ACTIVE",
+      "rights_version": 1
+    },
+    {
+      "tenant_id": "tenant-p06-poc-01",
+      "sku_id": "SKU-LOTUS-DRAFT-06",
+      "ocop_status": "VERIFIED",
+      "ocop_version": 1,
+      "ocop_code": "SYNTH-OCOP-4S-DT-006",
+      "food_safety_verified": true,
+      "rights_status": "ACTIVE",
+      "rights_version": 1
+    }
+  ],
+  "evidence_chunks": [
+    {
+      "evidence_id": "ev-neg-cashew-01",
+      "tenant_id": "tenant-p06-poc-01",
+      "sku_id": "SKU-CASHEW-03",
+      "section": "quality_storage",
+      "content": "Hạt điều rang củi giữ nguyên vỏ lụa Bình Phước giúp giữ nhân giòn béo, đóng hộp 500g kèm gói hút ẩm. Không dùng cho người dị ứng hạt.",
+      "knowledge_version": 1,
+      "approval_status": "APPROVED",
+      "provenance": {
+        "source_id": "synth-neg-doc-cashew-spec-01",
+        "document_version": "v1.0",
+        "extracted_by": "synthetic_seed",
+        "approved_by": "synthetic-owner-01",
+        "approved_at": "2026-11-26T00:00:00Z"
+      }
+    },
+    {
+      "evidence_id": "ev-neg-coffee-01",
+      "tenant_id": "tenant-p06-poc-01",
+      "sku_id": "SKU-COFFEE-EXPIRED-04",
+      "section": "origin_story",
+      "content": "Cà phê Robusta Gia Lai rang mộc mức vừa, đóng túi van một chiều 250g giữ hương thơm rang xay tự nhiên.",
+      "knowledge_version": 1,
+      "approval_status": "APPROVED",
+      "provenance": {
+        "source_id": "synth-neg-doc-coffee-spec-01",
+        "document_version": "v1.0",
+        "extracted_by": "synthetic_seed",
+        "approved_by": "synthetic-owner-01",
+        "approved_at": "2026-11-26T00:00:00Z"
+      }
+    },
+    {
+      "evidence_id": "ev-neg-ginger-01",
+      "tenant_id": "tenant-p06-poc-01",
+      "sku_id": "SKU-GINGER-UNSAFE-05",
+      "section": "usage_guide",
+      "content": "Mứt gừng dẻo Huế hộp 300g thích hợp dùng cùng trà nóng vào buổi sáng hoặc làm món nhâm nhi ngày mát trời.",
+      "knowledge_version": 1,
+      "approval_status": "APPROVED",
+      "provenance": {
+        "source_id": "synth-neg-doc-ginger-spec-01",
+        "document_version": "v1.0",
+        "extracted_by": "synthetic_seed",
+        "approved_by": "synthetic-owner-01",
+        "approved_at": "2026-11-26T00:00:00Z"
+      }
+    },
+    {
+      "evidence_id": "ev-neg-lotus-01",
+      "tenant_id": "tenant-p06-poc-01",
+      "sku_id": "SKU-LOTUS-DRAFT-06",
+      "section": "origin_story",
+      "content": "Hạt sen sấy giòn Đồng Tháp túi 200g giữ vị bùi nhẹ tự nhiên của sen Tháp Mười, ăn liền tiện lợi.",
+      "knowledge_version": 1,
+      "approval_status": "APPROVED",
+      "provenance": {
+        "source_id": "synth-neg-doc-lotus-spec-01",
+        "document_version": "v1.0",
+        "extracted_by": "synthetic_seed",
+        "approved_by": "synthetic-owner-01",
+        "approved_at": "2026-11-26T00:00:00Z"
+      }
+    }
+  ],
+  "claim_registry": [
+    {
+      "claim_id": "clm-neg-cashew-prohibited-01",
+      "tenant_id": "tenant-p06-poc-01",
+      "sku_id": "SKU-CASHEW-03",
+      "claim_text": "Chữa bệnh tim mạch hoặc thay thế thuốc điều trị.",
+      "category": "PROHIBITED",
+      "evidence_ids": [],
+      "requires_ocop_verified": false,
+      "approval_status": "APPROVED",
+      "knowledge_version": 1,
+      "provenance": {
+        "source_id": "policy-food-r17",
+        "document_version": "v1.0",
+        "extracted_by": "synthetic_seed",
+        "approved_by": "synthetic-owner-01",
+        "approved_at": "2026-11-26T00:00:00Z"
+      }
+    },
+    {
+      "claim_id": "clm-neg-coffee-allowed-01",
+      "tenant_id": "tenant-p06-poc-01",
+      "sku_id": "SKU-COFFEE-EXPIRED-04",
+      "claim_text": "100% hạt cà phê Robusta Gia Lai rang mộc túi 250g.",
+      "category": "ALLOWED",
+      "evidence_ids": [
+        "ev-neg-coffee-01"
+      ],
+      "requires_ocop_verified": false,
+      "approval_status": "APPROVED",
+      "knowledge_version": 1,
+      "provenance": {
+        "source_id": "synth-neg-doc-coffee-spec-01",
+        "document_version": "v1.0",
+        "extracted_by": "synthetic_seed",
+        "approved_by": "synthetic-owner-01",
+        "approved_at": "2026-11-26T00:00:00Z"
+      }
+    }
+  ]
+}

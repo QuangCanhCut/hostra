@@ -6,7 +6,8 @@
    và sự tách biệt giữa sự kiện mô phỏng với sự kiện phát sóng thật P04.
 2. Trách nhiệm chính của module là gì?
    Chạy kiểm thử tích cực và tiêu cực (negative invariants) cho `p06.schemas.candidate` và
-   `p06.schemas.events`, bao gồm `validate_assignment=True` và JSON roundtrip.
+   `p06.schemas.events`, bao gồm `frozen=True`, helper chuyển trạng thái nguyên tử, kiểm định
+   kiểu nghiêm ngặt (`StrictBool`/`StrictInt`/không nhận khoảng trắng) và JSON roundtrip.
 3. Module này liên kết với các thành phần nào?
    Kiểm thử trực tiếp các lớp trong `p06.schemas.candidate` và `p06.schemas.events`.
 4. Input và output chính là gì?
@@ -21,6 +22,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from typing import Any
 
 import pytest
 from pydantic import ValidationError
@@ -32,6 +34,7 @@ from p06.schemas import (
     CoverageMode,
     PlaybackCompleted,
     PlaybackEventSource,
+    PlaybackOutcomeStatus,
     ProposedResponseCoverage,
     ResumeMode,
     SkuVersionBinding,
@@ -69,11 +72,11 @@ def _make_binding(
     )
 
 
-def _base_candidate_kwargs() -> dict:
+def _base_candidate_kwargs() -> dict[str, Any]:
     """Tạo bộ tham số cơ sở cho một `SpeechCandidate` phạm vi `SINGLE_SKU` ở trạng thái `DRAFT`.
 
     Returns:
-        dict: Từ điển kwargs chuẩn để test dễ ghi đè từng trường.
+        dict[str, Any]: Từ điển kwargs chuẩn để test dễ ghi đè từng trường.
     """
     return {
         "candidate_id": "cand-01",
@@ -102,15 +105,19 @@ class TestProposedResponseCoverage:
     """Kiểm định `ProposedResponseCoverage` và quy tắc không mang thẩm quyền."""
 
     def test_is_authoritative_locked_to_false(self) -> None:
-        """P06 chỉ đề xuất độ phủ (`is_authoritative` luôn phải là `False`)."""
+        """P06 chỉ đề xuất độ phủ (`is_authoritative` luôn phải là `False` thuần túy)."""
         cov = ProposedResponseCoverage(covered_intents=["ask_price"])
         assert cov.is_authoritative is False
 
         with pytest.raises(ValidationError):
             ProposedResponseCoverage(is_authoritative=True)  # type: ignore[arg-type]
+        with pytest.raises(ValidationError):
+            ProposedResponseCoverage(is_authoritative=0)  # type: ignore[arg-type]
+        with pytest.raises(ValidationError):
+            ProposedResponseCoverage(is_authoritative="false")  # type: ignore[arg-type]
 
     def test_coverage_modes_and_disjoint_intents(self) -> None:
-        """Kiểm tra từng `CoverageMode` (`FULL`, `PARTIAL`, `CLARIFICATION_ONLY`) và chống giao intent."""
+        """Kiểm tra từng `CoverageMode` (`FULL`, `PARTIAL`, `CLARIFICATION_ONLY`, `ABSTAIN_NO_EVIDENCE`) và chống giao intent."""
         # Giao nhau giữa covered_intents và uncovered_intents
         with pytest.raises(ValidationError):
             ProposedResponseCoverage(
@@ -157,6 +164,28 @@ class TestProposedResponseCoverage:
             ProposedResponseCoverage(
                 covered_topic_ids=["topic-01"],
                 coverage_mode=CoverageMode.CLARIFICATION_ONLY,
+            )
+
+        # ABSTAIN_NO_EVIDENCE hợp lệ khi không đánh dấu phủ topic/intent nào
+        abstain_ok = ProposedResponseCoverage(
+            uncovered_intents=["ask_medical_effect"],
+            coverage_mode=CoverageMode.ABSTAIN_NO_EVIDENCE,
+        )
+        assert abstain_ok.coverage_mode == CoverageMode.ABSTAIN_NO_EVIDENCE
+        assert abstain_ok.is_authoritative is False
+
+        # ABSTAIN_NO_EVIDENCE không được phép đánh dấu covered_topic_ids hoặc covered_intents
+        with pytest.raises(ValidationError):
+            ProposedResponseCoverage(
+                covered_topic_ids=["topic-01"],
+                uncovered_intents=["ask_medical_effect"],
+                coverage_mode=CoverageMode.ABSTAIN_NO_EVIDENCE,
+            )
+        with pytest.raises(ValidationError):
+            ProposedResponseCoverage(
+                covered_intents=["ask_price"],
+                uncovered_intents=["ask_medical_effect"],
+                coverage_mode=CoverageMode.ABSTAIN_NO_EVIDENCE,
             )
 
 
@@ -370,23 +399,116 @@ class TestSpeechCandidateScopeAndLifecycle:
         with pytest.raises(ValidationError):
             SpeechCandidate(**rejected_bad)
 
-        # validate_assignment=True: không cho nâng trực tiếp DRAFT -> VERIFIED khi chưa đủ metadata
+        # frozen=True: không cho gán trực tiếp DRAFT -> VERIFIED và giữ nguyên hoàn toàn bản gốc.
         draft_cand = SpeechCandidate(**_base_candidate_kwargs())
         with pytest.raises(ValidationError):
-            draft_cand.verification_status = CandidateVerificationStatus.VERIFIED
+            draft_cand.verification_status = CandidateVerificationStatus.VERIFIED  # type: ignore[misc]
+        assert draft_cand.verification_status == CandidateVerificationStatus.DRAFT
+        assert draft_cand.is_ready_for_tts() is False
 
-        # Text rỗng bị chặn
+        # Helper mark_verified / mark_rejected nguyên tử: lỗi phải giữ nguyên đối tượng gốc.
+        verified_at = datetime.now(timezone.utc)
+        with pytest.raises(ValidationError):
+            draft_cand.mark_verified(gate_decision_id="   ", verified_at=verified_at)
+        assert draft_cand.verification_status == CandidateVerificationStatus.DRAFT
+        assert draft_cand.is_ready_for_tts() is False
+
+        verified_cand = draft_cand.mark_verified(
+            gate_decision_id="gate-allow-01",
+            verified_at=verified_at,
+        )
+        assert verified_cand.is_ready_for_tts() is True
+        assert verified_cand.verified_by_gate_decision_id == "gate-allow-01"
+        assert draft_cand.is_ready_for_tts() is False
+
+        with pytest.raises(ValidationError):
+            draft_cand.mark_rejected(reasons=["   "])
+        assert draft_cand.verification_status == CandidateVerificationStatus.DRAFT
+
+        rejected_cand = verified_cand.mark_rejected(
+            reasons=["PRICE_MISMATCH"],
+            increment_rewrite=True,
+        )
+        assert rejected_cand.verification_status == CandidateVerificationStatus.REJECTED
+        assert rejected_cand.verified_by_gate_decision_id is None
+        assert rejected_cand.verified_at is None
+        assert rejected_cand.rewrite_attempt == 1
+        assert verified_cand.is_ready_for_tts() is True
+
+        # Text rỗng, trường tùy chọn chỉ khoảng trắng và list items rỗng bị chặn.
         blank_text = _base_candidate_kwargs()
         blank_text["text"] = "   "
         with pytest.raises(ValidationError):
             SpeechCandidate(**blank_text)
 
+        blank_turn = _base_candidate_kwargs()
+        blank_turn["turn_id"] = "   "
+        with pytest.raises(ValidationError):
+            SpeechCandidate(**blank_turn)
+
+        blank_list = _base_candidate_kwargs()
+        blank_list["rejection_reasons"] = ["   "]
+        with pytest.raises(ValidationError):
+            SpeechCandidate(**blank_list)
+
+    def test_strict_types_rejected_on_binding_and_candidate(self) -> None:
+        """A-MAJ-01 & A-MAJ-02: từ chối bool trong int/float và str/int trong bool."""
+        with pytest.raises(ValidationError):
+            SkuVersionBinding(
+                sku_id="SKU-HONEY-01",
+                knowledge_version=True,  # type: ignore[arg-type]
+                ocop_version=1,
+                rights_version=1,
+            )
+        with pytest.raises(ValidationError):
+            SkuVersionBinding(
+                sku_id="SKU-HONEY-01",
+                knowledge_version=1,
+                ocop_version=1,
+                rights_version=1,
+                stated_price_vnd=True,  # type: ignore[arg-type]
+            )
+        with pytest.raises(ValidationError):
+            SkuVersionBinding(
+                sku_id="SKU-HONEY-01",
+                knowledge_version=1,
+                ocop_version=1,
+                rights_version=1,
+                mentions_ocop="false",  # type: ignore[arg-type]
+            )
+        with pytest.raises(ValidationError):
+            SkuVersionBinding(
+                sku_id="SKU-HONEY-01",
+                product_version_id="   ",
+                knowledge_version=1,
+                ocop_version=1,
+                rights_version=1,
+                cited_evidence_ids=["   "],
+            )
+
+        bad_dur = _base_candidate_kwargs()
+        bad_dur["estimated_duration_sec"] = True
+        with pytest.raises(ValidationError):
+            SpeechCandidate(**bad_dur)
+
+        bad_epoch = _base_candidate_kwargs()
+        bad_epoch["session_epoch"] = True
+        with pytest.raises(ValidationError):
+            SpeechCandidate(**bad_epoch)
+
+        bad_bool = _base_candidate_kwargs()
+        bad_bool["semantic_breakpoint"] = "true"
+        with pytest.raises(ValidationError):
+            SpeechCandidate(**bad_bool)
+
 
 class TestEventsAndCheckpoint:
-    """Kiểm định `PlaybackCompleted` và `StoryCheckpoint` (Bất biến I-06)."""
+    """Kiểm định `PlaybackCompleted`, `PlaybackOutcomeStatus` và `StoryCheckpoint` (Bất biến I-06)."""
 
-    def test_playback_completed_simulated_vs_real_provenance(self) -> None:
-        """Tách biệt rạch ròi sự kiện mô phỏng (`SIMULATED_HARNESS`) với sự kiện thật (`P04_MEDIA_CONTROLLER`)."""
+    def test_playback_completed_simulated_vs_real_provenance_and_strict_types(self) -> None:
+        """Tách biệt `SIMULATED_HARNESS` với `P04_MEDIA_CONTROLLER`, kiểm định `playout_generation` và strict types."""
+        assert {s.value for s in PlaybackOutcomeStatus} == {"COMPLETED", "FAILED", "UNKNOWN"}
+
         sim_event = PlaybackCompleted(
             playback_event_id="pb-sim-01",
             tenant_id="tenant-demo-01",
@@ -395,6 +517,7 @@ class TestEventsAndCheckpoint:
             turn_id="turn-01",
             candidate_id="cand-01",
             chunk_id="chunk-01",
+            playout_generation=2,
             sku_refs=["SKU-HONEY-01"],
             confirmed_topic_ids=["arc-01-t1"],
             spoken_text="   Mật ong hoa cà phê Cư M'gar giá 159.000đ. ",
@@ -405,6 +528,7 @@ class TestEventsAndCheckpoint:
             simulation_run_id="run-e01-001",
         )
         assert sim_event.spoken_text == "Mật ong hoa cà phê Cư M'gar giá 159.000đ."
+        assert sim_event.playout_generation == 2
         assert PlaybackCompleted.model_validate_json(sim_event.model_dump_json()) == sim_event
 
         real_event = PlaybackCompleted(
@@ -457,9 +581,45 @@ class TestEventsAndCheckpoint:
                 simulation_run_id="should-not-exist",
             )
 
-    def test_story_checkpoint_invariant_i06(self) -> None:
-        """I-06: `last_completed_chunk_id` không được tồn tại khi thiếu `last_playback_event_id`."""
+        # Từ chối ép kiểu is_simulated="false"/0, playout_generation=0/True, actual_duration_ms=True
+        for bad_sim in ("false", 0, "0"):
+            with pytest.raises(ValidationError):
+                PlaybackCompleted(
+                    playback_event_id="pb-bad-bool",
+                    tenant_id="tenant-demo-01",
+                    session_id="session-demo-01",
+                    session_epoch=1,
+                    turn_id="turn-01",
+                    candidate_id="cand-01",
+                    spoken_text="Hợp lệ",
+                    actual_duration_ms=1000,
+                    occurred_at=datetime.now(timezone.utc),
+                    event_source=PlaybackEventSource.P04_MEDIA_CONTROLLER,
+                    is_simulated=bad_sim,  # type: ignore[arg-type]
+                    p04_evidence_ref="p04://ok",
+                )
+
+        with pytest.raises(ValidationError):
+            PlaybackCompleted(
+                playback_event_id="pb-bad-gen",
+                tenant_id="tenant-demo-01",
+                session_id="session-demo-01",
+                session_epoch=1,
+                turn_id="turn-01",
+                candidate_id="cand-01",
+                playout_generation=True,  # type: ignore[arg-type]
+                spoken_text="Hợp lệ",
+                actual_duration_ms=1000,
+                occurred_at=datetime.now(timezone.utc),
+                event_source=PlaybackEventSource.P04_MEDIA_CONTROLLER,
+                is_simulated=False,
+                p04_evidence_ref="p04://ok",
+            )
+
+    def test_story_checkpoint_invariant_i06_and_advance_on_playback(self) -> None:
+        """I-06: `last_completed_chunk_id` phải đi kèm `last_playback_event_id` và tịnh tiến qua `advance_on_playback`."""
         initial_cp = StoryCheckpoint(
+            tenant_id="tenant-demo-01",
             session_id="session-demo-01",
             session_epoch=1,
             plan_id="plan-demo-01",
@@ -471,6 +631,7 @@ class TestEventsAndCheckpoint:
         assert initial_cp.resume_mode == ResumeMode.EXACT
 
         completed_cp = StoryCheckpoint(
+            tenant_id="tenant-demo-01",
             session_id="session-demo-01",
             session_epoch=1,
             plan_id="plan-demo-01",
@@ -484,8 +645,88 @@ class TestEventsAndCheckpoint:
         )
         assert StoryCheckpoint.model_validate_json(completed_cp.model_dump_json()) == completed_cp
 
+        # Chặn gán trực tiếp nhờ frozen=True
+        with pytest.raises(ValidationError):
+            initial_cp.last_completed_chunk_id = "chunk-01"  # type: ignore[misc]
+        assert initial_cp.last_completed_chunk_id is None
+
+        # advance_on_playback hợp lệ tạo checkpoint mới, giữ nguyên initial_cp
+        occurred = datetime(2026, 11, 26, 9, 15, tzinfo=timezone.utc)
+        valid_event = PlaybackCompleted(
+            playback_event_id="pb-adv-01",
+            tenant_id="tenant-demo-01",
+            session_id="session-demo-01",
+            session_epoch=1,
+            turn_id="turn-01",
+            candidate_id="cand-01",
+            chunk_id="chunk-01",
+            spoken_text="Đã phát xong đoạn mở đầu.",
+            actual_duration_ms=2500,
+            occurred_at=occurred,
+            event_source=PlaybackEventSource.SIMULATED_HARNESS,
+            is_simulated=True,
+            simulation_run_id="run-e03",
+        )
+        advanced_cp = initial_cp.advance_on_playback(
+            event=valid_event,
+            next_topic_id="arc-01-t2",
+            resume_mode=ResumeMode.CONTEXTUAL_BRIDGE,
+        )
+        assert advanced_cp.last_completed_chunk_id == "chunk-01"
+        assert advanced_cp.last_playback_event_id == "pb-adv-01"
+        assert advanced_cp.next_topic_id == "arc-01-t2"
+        assert advanced_cp.resume_mode == ResumeMode.CONTEXTUAL_BRIDGE
+        assert advanced_cp.updated_at == occurred
+        assert initial_cp.last_completed_chunk_id is None
+
+        # Lượt phát không gắn chunk_id (vd COMMENT_REPLY / RESUME_BRIDGE) phải bảo toàn checkpoint StoryChunk trước đó.
+        reply_occurred = datetime(2026, 11, 26, 9, 16, tzinfo=timezone.utc)
+        comment_reply_event = PlaybackCompleted(
+            playback_event_id="pb-reply-01",
+            tenant_id="tenant-demo-01",
+            session_id="session-demo-01",
+            session_epoch=1,
+            turn_id="turn-02",
+            candidate_id="cand-reply-01",
+            chunk_id=None,
+            spoken_text="Dạ chai này dung tích 500ml giá 159.000đ ạ.",
+            actual_duration_ms=2200,
+            occurred_at=reply_occurred,
+            event_source=PlaybackEventSource.SIMULATED_HARNESS,
+            is_simulated=True,
+            simulation_run_id="run-e03",
+        )
+        after_reply_cp = advanced_cp.advance_on_playback(
+            event=comment_reply_event,
+            next_topic_id="arc-01-t2",
+            current_arc_id="arc-01",
+            resume_mode=ResumeMode.CONTEXTUAL_BRIDGE,
+        )
+        assert after_reply_cp.last_completed_chunk_id == "chunk-01"
+        assert after_reply_cp.last_playback_event_id == "pb-adv-01"
+        assert after_reply_cp.updated_at == reply_occurred
+        assert after_reply_cp.next_topic_id == "arc-01-t2"
+        assert after_reply_cp.resume_mode == ResumeMode.CONTEXTUAL_BRIDGE
+
+        # Lệch tenant/session/epoch bị từ chối khi advance_on_playback
+        wrong_tenant_event = PlaybackCompleted(
+            **{**valid_event.model_dump(), "tenant_id": "tenant-other"}
+        )
+        with pytest.raises(ValueError):
+            initial_cp.advance_on_playback(event=wrong_tenant_event, next_topic_id="arc-01-t2")
+
+        wrong_epoch_event = PlaybackCompleted(
+            **{**valid_event.model_dump(), "session_epoch": 2}
+        )
+        with pytest.raises(ValueError):
+            initial_cp.advance_on_playback(event=wrong_epoch_event, next_topic_id="arc-01-t2")
+
+        with pytest.raises(ValidationError):
+            initial_cp.advance_on_playback(event=valid_event, next_topic_id="   ")
+
         with pytest.raises(ValidationError):
             StoryCheckpoint(
+                tenant_id="tenant-demo-01",
                 session_id="session-demo-01",
                 session_epoch=1,
                 plan_id="plan-demo-01",
@@ -498,6 +739,7 @@ class TestEventsAndCheckpoint:
 
         with pytest.raises(ValidationError):
             StoryCheckpoint(
+                tenant_id="tenant-demo-01",
                 session_id="session-demo-01",
                 session_epoch=1,
                 plan_id="plan-demo-01",

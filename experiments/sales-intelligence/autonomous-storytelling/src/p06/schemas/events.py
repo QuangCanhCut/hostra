@@ -22,13 +22,21 @@
 
 from __future__ import annotations
 
+import copy
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, model_validator
 
-from p06.schemas.story import CONTRACT_VERSION, ContractVersion
+from p06.schemas.story import (
+    CONTRACT_VERSION,
+    ContractVersion,
+    NonBlankStr,
+    OptionalNonBlankStr,
+    StrictPositiveDurationMs,
+    StrictPositiveInt,
+)
 
 
 class PlaybackEventSource(str, Enum):
@@ -41,6 +49,20 @@ class PlaybackEventSource(str, Enum):
 
     P04_MEDIA_CONTROLLER = "P04_MEDIA_CONTROLLER"
     SIMULATED_HARNESS = "SIMULATED_HARNESS"
+
+
+class PlaybackOutcomeStatus(str, Enum):
+    """Trạng thái kết quả phát sóng trả về từ hạ tầng media P04 để phân biệt phát thành công và lỗi.
+
+    Attributes:
+        COMPLETED: Audio/video đã thực sự phát xong tới phòng live theo ACK của P04.
+        FAILED: Quá trình phát sóng gặp lỗi trước hoặc trong khi phát, không được tính là đã phủ topic.
+        UNKNOWN: Mất tín hiệu xác nhận cuối (timeout/reconnect), cần xử lý an toàn tránh phát lặp mù.
+    """
+
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
+    UNKNOWN = "UNKNOWN"
 
 
 class ResumeMode(str, Enum):
@@ -71,6 +93,7 @@ class PlaybackCompleted(BaseModel):
         turn_id: Mã lượt phát sóng do P08 quản lý.
         candidate_id: Mã `SpeechCandidate` đã được phát.
         chunk_id: Mã `StoryChunk` tương ứng nếu lượt phát xuất phát từ mạch kể chuyện chủ động.
+        playout_generation: Thế hệ hàng đợi phát sóng (nếu P04 gắn để chống stale barge-in).
         sku_refs: Danh sách SKU đã thực sự nhắc tới trong lượt phát.
         confirmed_topic_ids: Các `topic_id` được xác nhận đã hoàn tất sau phát sóng.
         confirmed_comment_ids: Các `comment_id` đã được trả lời xong.
@@ -83,45 +106,27 @@ class PlaybackCompleted(BaseModel):
         simulation_run_id: Mã lần chạy thí nghiệm giả lập (chỉ có khi là sự kiện mô phỏng).
     """
 
-    model_config = ConfigDict(extra="forbid", validate_assignment=True)
+    model_config = ConfigDict(extra="forbid", frozen=True)
 
     contract_version: ContractVersion = CONTRACT_VERSION
-    playback_event_id: str = Field(min_length=1)
-    tenant_id: str = Field(min_length=1)
-    session_id: str = Field(min_length=1)
-    session_epoch: int = Field(ge=1)
-    turn_id: str = Field(min_length=1)
-    candidate_id: str = Field(min_length=1)
-    chunk_id: Optional[str] = None
-    sku_refs: list[str] = Field(default_factory=list)
-    confirmed_topic_ids: list[str] = Field(default_factory=list)
-    confirmed_comment_ids: list[str] = Field(default_factory=list)
-    spoken_text: str = Field(min_length=1)
-    actual_duration_ms: int = Field(gt=0)
+    playback_event_id: NonBlankStr
+    tenant_id: NonBlankStr
+    session_id: NonBlankStr
+    session_epoch: StrictPositiveInt
+    turn_id: NonBlankStr
+    candidate_id: NonBlankStr
+    chunk_id: OptionalNonBlankStr = None
+    playout_generation: Optional[StrictPositiveInt] = None
+    sku_refs: list[NonBlankStr] = Field(default_factory=list)
+    confirmed_topic_ids: list[NonBlankStr] = Field(default_factory=list)
+    confirmed_comment_ids: list[NonBlankStr] = Field(default_factory=list)
+    spoken_text: NonBlankStr
+    actual_duration_ms: StrictPositiveDurationMs
     occurred_at: datetime
     event_source: PlaybackEventSource
-    is_simulated: bool
-    p04_evidence_ref: Optional[str] = None
-    simulation_run_id: Optional[str] = None
-
-    @field_validator("spoken_text")
-    @classmethod
-    def strip_and_reject_blank_spoken_text(cls, value: str) -> str:
-        """Loại bỏ khoảng trắng thừa và từ chối `spoken_text` rỗng.
-
-        Args:
-            value: Văn bản đã phát sóng.
-
-        Returns:
-            str: Văn bản sạch đã `strip()`.
-
-        Raises:
-            ValueError: Nếu `spoken_text` chỉ gồm khoảng trắng.
-        """
-        cleaned = value.strip()
-        if not cleaned:
-            raise ValueError("PlaybackCompleted.spoken_text không được rỗng hoặc chỉ chứa khoảng trắng.")
-        return cleaned
+    is_simulated: StrictBool
+    p04_evidence_ref: OptionalNonBlankStr = None
+    simulation_run_id: OptionalNonBlankStr = None
 
     @model_validator(mode="after")
     def validate_event_source_provenance(self) -> PlaybackCompleted:
@@ -170,6 +175,7 @@ class StoryCheckpoint(BaseModel):
 
     Attributes:
         contract_version: Phiên bản hợp đồng dữ liệu (`p06-mock-v0.1`).
+        tenant_id: Mã tenant sở hữu phiên (bảo đảm cô lập R10 khi lưu trữ độc lập).
         session_id: Mã phiên livestream.
         session_epoch: Thế hệ phiên tương ứng.
         plan_id: Mã `StoryPlan` đang thực thi.
@@ -183,18 +189,19 @@ class StoryCheckpoint(BaseModel):
         updated_at: Thời điểm cập nhật checkpoint (UTC).
     """
 
-    model_config = ConfigDict(extra="forbid", validate_assignment=True)
+    model_config = ConfigDict(extra="forbid", frozen=True)
 
     contract_version: ContractVersion = CONTRACT_VERSION
-    session_id: str = Field(min_length=1)
-    session_epoch: int = Field(ge=1)
-    plan_id: str = Field(min_length=1)
-    plan_revision: int = Field(ge=1)
-    active_sku_id: str = Field(min_length=1)
-    current_arc_id: str = Field(min_length=1)
-    next_topic_id: Optional[str] = None
-    last_completed_chunk_id: Optional[str] = None
-    last_playback_event_id: Optional[str] = None
+    tenant_id: NonBlankStr
+    session_id: NonBlankStr
+    session_epoch: StrictPositiveInt
+    plan_id: NonBlankStr
+    plan_revision: StrictPositiveInt
+    active_sku_id: NonBlankStr
+    current_arc_id: NonBlankStr
+    next_topic_id: OptionalNonBlankStr = None
+    last_completed_chunk_id: OptionalNonBlankStr = None
+    last_playback_event_id: OptionalNonBlankStr = None
     resume_mode: ResumeMode = ResumeMode.EXACT
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -216,3 +223,50 @@ class StoryCheckpoint(BaseModel):
                     "last_playback_event_id không rỗng chứng minh đã phát xong."
                 )
         return self
+
+    def advance_on_playback(
+        self,
+        event: PlaybackCompleted,
+        next_topic_id: Optional[str],
+        current_arc_id: Optional[str] = None,
+        resume_mode: Optional[ResumeMode] = None,
+    ) -> StoryCheckpoint:
+        """Tạo checkpoint mới một cách nguyên tử sau khi nhận sự kiện `PlaybackCompleted` (I-06).
+
+        Lý do kỹ thuật: Chỉ cho phép tịnh tiến `last_completed_chunk_id` khi gắn kèm
+        `last_playback_event_id` từ đúng `(tenant_id, session_id, session_epoch)` của phiên.
+
+        Args:
+            event: Sự kiện xác nhận phát sóng hợp lệ.
+            next_topic_id: Mã chủ đề tiếp theo sẽ nói (hoặc `None` nếu đã hoàn tất kế hoạch).
+            current_arc_id: Mã arc hiện tại mới (nếu vừa chuyển sang arc kế tiếp).
+            resume_mode: Chế độ nối mạch cho lượt tiếp theo (giữ nguyên nếu `None`).
+
+        Returns:
+            StoryCheckpoint: Điểm dừng mới đã qua kiểm định `model_validate()`.
+
+        Raises:
+            ValueError: Nếu `event` lệch `tenant_id`, `session_id`, hoặc `session_epoch`.
+            ValidationError: Nếu `next_topic_id` hoặc `current_arc_id` là chuỗi toàn khoảng trắng.
+        """
+        if (
+            event.tenant_id != self.tenant_id
+            or event.session_id != self.session_id
+            or event.session_epoch != self.session_epoch
+        ):
+            raise ValueError(
+                "PlaybackCompleted không khớp (tenant_id, session_id, session_epoch) với StoryCheckpoint."
+            )
+
+        payload = copy.deepcopy(self.model_dump())
+        payload["next_topic_id"] = next_topic_id
+        if current_arc_id is not None:
+            payload["current_arc_id"] = current_arc_id
+        if resume_mode is not None:
+            payload["resume_mode"] = resume_mode
+        # Chỉ ghi đè dấu vết StoryChunk khi lượt phát thực sự thuộc một StoryChunk để không làm mất checkpoint sau comment reply/bridge.
+        if event.chunk_id is not None:
+            payload["last_completed_chunk_id"] = event.chunk_id
+            payload["last_playback_event_id"] = event.playback_event_id
+        payload["updated_at"] = event.occurred_at
+        return type(self).model_validate(payload)

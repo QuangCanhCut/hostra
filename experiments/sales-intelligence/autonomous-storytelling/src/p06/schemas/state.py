@@ -26,20 +26,27 @@
 
 from __future__ import annotations
 
+import copy
+from collections.abc import Mapping
 from datetime import datetime
 from enum import Enum
-from typing import Final, Literal, Optional
+from typing import Annotated, Any, Final, Optional
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictInt, model_validator
 
 from p06.schemas.candidate import CandidateVerificationStatus, SpeechCandidate
 from p06.schemas.events import PlaybackCompleted, StoryCheckpoint
 from p06.schemas.story import (
     CONTRACT_VERSION,
     ContractVersion,
+    NonBlankStr,
+    OptionalNonBlankStr,
     StoryChunk,
     StoryPlan,
     StoryPlanApprovalStatus,
+    StrictFalse,
+    StrictNonNegInt,
+    StrictPositiveInt,
 )
 
 # Hằng số cấu hình mặc định và biên an toàn cho cửa sổ trí nhớ ngắn hạn (W ∈ {5, 10, 20}) & bounded rewrite.
@@ -81,37 +88,18 @@ class PlayedTurnSummary(BaseModel):
         is_simulated: Phân biệt lượt chạy mô phỏng với thực tế.
     """
 
-    model_config = ConfigDict(extra="forbid", validate_assignment=True)
+    model_config = ConfigDict(extra="forbid", frozen=True)
 
-    playback_event_id: str = Field(min_length=1)
-    turn_id: str = Field(min_length=1)
-    candidate_id: str = Field(min_length=1)
-    chunk_id: Optional[str] = None
-    sku_refs: list[str] = Field(default_factory=list)
-    topic_ids: list[str] = Field(default_factory=list)
-    intent: str = Field(min_length=1)
-    spoken_text: str = Field(min_length=1)
+    playback_event_id: NonBlankStr
+    turn_id: NonBlankStr
+    candidate_id: NonBlankStr
+    chunk_id: OptionalNonBlankStr = None
+    sku_refs: list[NonBlankStr] = Field(default_factory=list)
+    topic_ids: list[NonBlankStr] = Field(default_factory=list)
+    intent: NonBlankStr
+    spoken_text: NonBlankStr
     occurred_at: datetime
-    is_simulated: bool
-
-    @field_validator("intent", "spoken_text")
-    @classmethod
-    def strip_and_reject_blank_fields(cls, value: str) -> str:
-        """Chuẩn hóa và ngăn chuỗi chỉ chứa khoảng trắng cho `intent` và `spoken_text`.
-
-        Args:
-            value: Chuỗi đầu vào cần kiểm tra.
-
-        Returns:
-            str: Chuỗi đã `strip()` hợp lệ.
-
-        Raises:
-            ValueError: Nếu chuỗi rỗng sau khi `strip()`.
-        """
-        cleaned = value.strip()
-        if not cleaned:
-            raise ValueError("PlayedTurnSummary không chấp nhận intent hoặc spoken_text chỉ toàn khoảng trắng.")
-        return cleaned
+    is_simulated: StrictBool
 
     @classmethod
     def from_playback_completed(
@@ -129,7 +117,7 @@ class PlayedTurnSummary(BaseModel):
             PlayedTurnSummary: Bản ghi tóm tắt bất biến sẵn sàng nạp vào `played_history`.
 
         Raises:
-            ValueError: Nếu `intent` rỗng hoặc toàn khoảng trắng.
+            ValidationError: Nếu `intent` rỗng, toàn khoảng trắng hoặc không phải chuỗi.
         """
         return cls(
             playback_event_id=event.playback_event_id,
@@ -154,11 +142,13 @@ class RewriteBudgetState(BaseModel):
         last_failure_reasons: Lý do bị P05 chặn ở lần gần nhất, dùng làm phản hồi cho node rewrite.
     """
 
-    model_config = ConfigDict(extra="forbid", validate_assignment=True)
+    model_config = ConfigDict(extra="forbid", frozen=True)
 
-    max_retries: int = Field(default=DEFAULT_MAX_REWRITE_RETRIES, ge=0, le=MAX_REWRITE_RETRIES_LIMIT)
-    retries_used: int = Field(default=0, ge=0)
-    last_failure_reasons: list[str] = Field(default_factory=list)
+    max_retries: Annotated[StrictInt, Field(ge=0, le=MAX_REWRITE_RETRIES_LIMIT)] = (
+        DEFAULT_MAX_REWRITE_RETRIES
+    )
+    retries_used: StrictNonNegInt = 0
+    last_failure_reasons: list[NonBlankStr] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def validate_budget_bounds(self) -> RewriteBudgetState:
@@ -192,6 +182,9 @@ class AgentState(BaseModel):
     Trạng thái này chỉ là working memory tạm thời của P06 (`is_authoritative_session_state=False`),
     không thay thế P08/P09 trong việc giữ `Active SKU` hay xác nhận hoàn tất phát sóng.
 
+    Lưu ý an toàn: Không bao giờ sử dụng `model_copy(update=...)` vì phương thức đó bỏ qua
+    toàn bộ validator của Pydantic v2; hãy dùng `validated_update(...)` hoặc `from_graph_result(...)`.
+
     Attributes:
         contract_version: Phiên bản hợp đồng dữ liệu (`p06-mock-v0.1`).
         is_authoritative_session_state: Luôn là `False` theo bất biến I-01/I-04.
@@ -202,7 +195,7 @@ class AgentState(BaseModel):
         story_plan: Kế hoạch kể chuyện đã ở trạng thái `APPROVED`.
         story_checkpoint: Điểm dừng/nối mạch đồng bộ với `story_plan` và phiên.
         played_history_window_size: Kích thước cửa sổ `W` cấu hình qua YAML (`1..MAX_PLAYED_HISTORY_WINDOW`).
-        played_history: Danh sách các lượt thực sự đã phát gần nhất.
+        played_history: Danh sách các lượt thực sự đã phát gần nhất (`len <= played_history_window_size`).
         completed_topic_ids: Tập các `topic_id` đã hoàn tất (tập con của `story_plan.all_topic_ids()`).
         selected_arc_id: Arc được chọn để sinh nội dung trong lượt hiện tại.
         selected_topic_id: Topic được chọn để sinh nội dung trong lượt hiện tại.
@@ -214,43 +207,42 @@ class AgentState(BaseModel):
         node_trace: Vết tên các node đã đi qua trong lượt để phục vụ kiểm thử và báo cáo E04.
     """
 
-    model_config = ConfigDict(extra="forbid", validate_assignment=True)
+    model_config = ConfigDict(extra="forbid", frozen=True)
 
     contract_version: ContractVersion = CONTRACT_VERSION
-    is_authoritative_session_state: Literal[False] = False
-    tenant_id: str = Field(min_length=1)
-    session_id: str = Field(min_length=1)
-    session_epoch: int = Field(ge=1)
-    active_sku_id: str = Field(min_length=1)
+    is_authoritative_session_state: StrictFalse = False
+    tenant_id: NonBlankStr
+    session_id: NonBlankStr
+    session_epoch: StrictPositiveInt
+    active_sku_id: NonBlankStr
     story_plan: StoryPlan
     story_checkpoint: StoryCheckpoint
-    played_history_window_size: int = Field(
-        default=DEFAULT_PLAYED_HISTORY_WINDOW,
-        ge=1,
-        le=MAX_PLAYED_HISTORY_WINDOW,
-    )
+    played_history_window_size: Annotated[
+        StrictInt, Field(ge=1, le=MAX_PLAYED_HISTORY_WINDOW)
+    ] = DEFAULT_PLAYED_HISTORY_WINDOW
     played_history: list[PlayedTurnSummary] = Field(default_factory=list)
-    completed_topic_ids: set[str] = Field(default_factory=set)
-    selected_arc_id: Optional[str] = None
-    selected_topic_id: Optional[str] = None
+    completed_topic_ids: frozenset[NonBlankStr] = Field(default_factory=frozenset)
+    selected_arc_id: OptionalNonBlankStr = None
+    selected_topic_id: OptionalNonBlankStr = None
     draft_chunk: Optional[StoryChunk] = None
     draft_candidate: Optional[SpeechCandidate] = None
     verified_candidate: Optional[SpeechCandidate] = None
     rewrite_budget: RewriteBudgetState = Field(default_factory=RewriteBudgetState)
     turn_outcome: AgentTurnOutcome = AgentTurnOutcome.IN_PROGRESS
-    node_trace: list[str] = Field(default_factory=list)
+    node_trace: list[NonBlankStr] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def validate_agent_state_invariants(self) -> AgentState:
-        """Kiểm định đồng bộ phiên, bất biến tách biệt draft/verified (I-02) và kết quả lượt.
+        """Kiểm định đồng bộ phiên, toàn vẹn tham chiếu kế hoạch, tách biệt draft/verified (I-02) và kết quả lượt.
 
         Returns:
             AgentState: Trạng thái đồ thị hợp lệ ở bất kỳ bước chuyển nào.
 
         Raises:
             ValueError: Nếu `story_plan` chưa `APPROVED`, lệch tenant/session/epoch/plan/SKU,
-                `completed_topic_ids` chứa topic lạ, `draft_candidate`/`verified_candidate` vi phạm
-                trạng thái hoặc `turn_outcome` mâu thuẫn với `verified_candidate`.
+                vi phạm tham chiếu arc/topic/chunk, vượt `played_history_window_size`,
+                `draft_candidate`/`verified_candidate` vi phạm trạng thái hoặc `turn_outcome`
+                mâu thuẫn với `verified_candidate`.
         """
         # 1. Kế hoạch phải đã được merchant/Owner phê duyệt và khớp ngữ cảnh tenant/session (Gate G6).
         if self.story_plan.approval_status != StoryPlanApprovalStatus.APPROVED:
@@ -269,8 +261,12 @@ class AgentState(BaseModel):
                 f"active_sku_id='{self.active_sku_id}' không nằm trong story_plan.pinned_sku_ids."
             )
 
-        # 3. StoryCheckpoint phải đồng nhất tuyệt đối với phiên, kế hoạch và arc hợp lệ (I-06).
+        # 3. StoryCheckpoint phải đồng nhất tuyệt đối với tenant, phiên, kế hoạch, arc và next_topic_id (I-06, R10).
         cp = self.story_checkpoint
+        if cp.tenant_id != self.tenant_id:
+            raise ValueError(
+                f"story_checkpoint.tenant_id='{cp.tenant_id}' không khớp với AgentState.tenant_id='{self.tenant_id}'."
+            )
         if cp.session_id != self.session_id or cp.session_epoch != self.session_epoch:
             raise ValueError(
                 "story_checkpoint không khớp session_id hoặc session_epoch của AgentState."
@@ -284,20 +280,79 @@ class AgentState(BaseModel):
                 f"story_checkpoint.active_sku_id='{cp.active_sku_id}' không khớp với "
                 f"AgentState.active_sku_id='{self.active_sku_id}'."
             )
-        valid_arc_ids = {arc.arc_id for arc in self.story_plan.arcs}
+
+        topics_by_arc: dict[str, set[str]] = {
+            arc.arc_id: {topic.topic_id for topic in arc.topics}
+            for arc in self.story_plan.arcs
+        }
+        valid_arc_ids = set(topics_by_arc.keys())
+        all_topic_ids = self.story_plan.all_topic_ids()
+
         if cp.current_arc_id not in valid_arc_ids:
             raise ValueError(
                 f"story_checkpoint.current_arc_id='{cp.current_arc_id}' không tồn tại trong story_plan.arcs."
             )
+        if cp.next_topic_id is not None and cp.next_topic_id not in all_topic_ids:
+            raise ValueError(
+                f"story_checkpoint.next_topic_id='{cp.next_topic_id}' không tồn tại trong story_plan."
+            )
 
-        # 4. Độ phủ chủ đề đã hoàn tất phải là tập con của các topic trong kế hoạch hiện hành.
-        unknown_topics = self.completed_topic_ids - self.story_plan.all_topic_ids()
+        # 4. Độ phủ chủ đề, vùng chọn arc/topic hiện tại và draft_chunk phải tham chiếu đúng kế hoạch.
+        unknown_topics = self.completed_topic_ids - all_topic_ids
         if unknown_topics:
             raise ValueError(
                 f"completed_topic_ids chứa topic không thuộc story_plan: {sorted(unknown_topics)}."
             )
 
-        # 5. Cô lập ranh giới Draft vs Verified (Bất biến I-02) và đồng bộ tenant/session/epoch.
+        if self.selected_arc_id is not None and self.selected_arc_id not in valid_arc_ids:
+            raise ValueError(
+                f"selected_arc_id='{self.selected_arc_id}' không tồn tại trong story_plan.arcs."
+            )
+
+        if self.selected_topic_id is not None:
+            if self.selected_topic_id not in all_topic_ids:
+                raise ValueError(
+                    f"selected_topic_id='{self.selected_topic_id}' không tồn tại trong story_plan."
+                )
+            if (
+                self.selected_arc_id is not None
+                and self.selected_topic_id not in topics_by_arc[self.selected_arc_id]
+            ):
+                raise ValueError(
+                    f"selected_topic_id='{self.selected_topic_id}' không thuộc "
+                    f"selected_arc_id='{self.selected_arc_id}'."
+                )
+
+        if self.draft_chunk is not None:
+            chunk = self.draft_chunk
+            if (
+                chunk.plan_id != self.story_plan.plan_id
+                or chunk.plan_revision != self.story_plan.plan_revision
+            ):
+                raise ValueError(
+                    "draft_chunk không khớp plan_id hoặc plan_revision với story_plan."
+                )
+            if chunk.arc_id not in valid_arc_ids:
+                raise ValueError(
+                    f"draft_chunk.arc_id='{chunk.arc_id}' không tồn tại trong story_plan.arcs."
+                )
+            if chunk.topic_id not in topics_by_arc[chunk.arc_id]:
+                raise ValueError(
+                    f"draft_chunk.topic_id='{chunk.topic_id}' không thuộc arc '{chunk.arc_id}' trong story_plan."
+                )
+            if chunk.sku_id is not None and chunk.sku_id not in self.story_plan.pinned_sku_ids:
+                raise ValueError(
+                    f"draft_chunk.sku_id='{chunk.sku_id}' không nằm trong story_plan.pinned_sku_ids."
+                )
+
+        # 5. Cửa sổ trí nhớ ngắn hạn không được vượt quá giới hạn `played_history_window_size`.
+        if len(self.played_history) > self.played_history_window_size:
+            raise ValueError(
+                f"played_history ({len(self.played_history)}) vượt quá "
+                f"played_history_window_size ({self.played_history_window_size})."
+            )
+
+        # 6. Cô lập ranh giới Draft vs Verified (Bất biến I-02) và đồng bộ tenant/session/epoch.
         if self.draft_candidate is not None:
             if self.draft_candidate.verification_status == CandidateVerificationStatus.VERIFIED:
                 raise ValueError(
@@ -313,7 +368,7 @@ class AgentState(BaseModel):
                 )
             self._validate_candidate_context(self.verified_candidate, field_name="verified_candidate")
 
-        # 6. Tính nhất quán giữa kết quả đầu lượt (`turn_outcome`) và sự hiện diện của `verified_candidate`.
+        # 7. Tính nhất quán giữa kết quả đầu lượt (`turn_outcome`) và sự hiện diện của `verified_candidate`.
         if self.turn_outcome in {
             AgentTurnOutcome.VERIFIED_READY,
             AgentTurnOutcome.FALLBACK_PREAPPROVED,
@@ -329,6 +384,52 @@ class AgentState(BaseModel):
                 )
 
         return self
+
+    def validated_update(self, **changes: Any) -> AgentState:
+        """Tạo bản sao `AgentState` mới có kiểm định toàn vẹn thay cho `model_copy(update=...)`.
+
+        Lý do kỹ thuật: `BaseModel.model_copy(update=...)` của Pydantic v2 bỏ qua toàn bộ field
+        validator và `@model_validator(mode="after")`, dễ tạo ra state vi phạm bất biến `I-02`/`I-06`
+        nhưng không bị phát hiện. Phương thức này luôn đi qua `deepcopy` + `model_validate()`.
+
+        Args:
+            **changes: Các trường cần cập nhật theo cặp tên trường -> giá trị mới.
+
+        Returns:
+            AgentState: Bản sao state mới hợp lệ hoàn toàn sau kiểm định.
+
+        Raises:
+            ValidationError: Nếu có trường thừa, sai kiểu, hoặc làm gãy bất biến liên trường.
+        """
+        payload = copy.deepcopy(self.model_dump())
+        payload.update(changes)
+        return type(self).model_validate(payload)
+
+    @classmethod
+    def from_graph_result(cls, result: Mapping[str, Any] | AgentState) -> AgentState:
+        """Kiểm định lại bắt buộc ở ranh giới đầu ra của `StateGraph.invoke()` (khắc phục A-BLK-01).
+
+        Lý do kỹ thuật: LangGraph `StateGraph(AgentState).compile().invoke()` trả về `dict` thô
+        và không tự chạy `@model_validator(mode="after")` trên trạng thái cuối cùng sau node cuối.
+        Mọi caller gọi đồ thị bắt buộc phải đi qua cổng `from_graph_result()` để chặn state lỗi.
+
+        Args:
+            result: Kết quả thô (`Mapping`) hoặc `AgentState` trả về từ LangGraph `invoke()`.
+
+        Returns:
+            AgentState: Đối tượng `AgentState` đã được tái kiểm định toàn bộ bất biến.
+
+        Raises:
+            ValidationError: Nếu kết quả đồ thị vi phạm bất kỳ ràng buộc nào của `AgentState`.
+            TypeError: Nếu `result` không phải `Mapping` hay `AgentState`.
+        """
+        if isinstance(result, cls):
+            return cls.model_validate(copy.deepcopy(result.model_dump()))
+        if isinstance(result, Mapping):
+            return cls.model_validate(dict(result))
+        raise TypeError(
+            f"AgentState.from_graph_result chỉ nhận Mapping hoặc AgentState, nhận được {type(result).__name__}."
+        )
 
     def _validate_candidate_context(self, candidate: SpeechCandidate, field_name: str) -> None:
         """Kiểm tra ứng viên lời thoại khớp đúng `tenant_id`, `session_id` và `session_epoch` của state.
