@@ -102,11 +102,16 @@ class TestPromptLoaderAndTemplates:
         hashes = compute_prompt_hashes()
         assert list(hashes.keys()) == list(expected_files)
 
+        expected_versions = {
+            "rewrite.txt": "v0.2",
+            "story_generation.txt": "v0.2",
+            "story_planner.txt": "v0.1",
+        }
         for filename in expected_files:
             tmpl = load_prompt_template(filename)
             assert isinstance(tmpl, PromptTemplate)
             assert tmpl.name == filename
-            assert tmpl.version == "v0.1"
+            assert tmpl.version == expected_versions[filename]
             assert tmpl.path == (DEFAULT_PROMPTS_DIR / filename).resolve()
             assert len(tmpl.sha256) == 64
             assert hashes[filename] == tmpl.sha256
@@ -180,15 +185,21 @@ class TestPromptLoaderAndTemplates:
             "topic_id": "topic-01",
             "topic_title": "Cách pha mật ong",
             "talking_points": '["Pha nước ấm dưới 50 độ C"]',
+            "allowed_evidence_ids": '["ev-e01-honey-usage"]',
+            "allowed_claim_ids": '["clm-e01-honey-allowed-01"]',
             "mandatory_messages": '["Không dùng cho trẻ dưới 1 tuổi"]',
             "prohibited_topics": '["Chữa bệnh"]',
             "max_duration_sec": "20",
+            "max_words": "50",
+            "target_words_range": "44–50 từ",
             "played_history_summary": "Chưa có lượt nào.",
             "untrusted_knowledge_block": "Dữ liệu mật ong",
         }
         rendered_gen = render_prompt_template(gen_tmpl, gen_vars)
         assert "SKU-HONEY-01" in rendered_gen
         assert '"cited_evidence_ids":' in rendered_gen
+        assert "ev-e01-honey-usage" in rendered_gen
+        assert "44–50 từ" in rendered_gen
 
         rewrite_tmpl = load_prompt_template("rewrite.txt")
         rewrite_vars = {

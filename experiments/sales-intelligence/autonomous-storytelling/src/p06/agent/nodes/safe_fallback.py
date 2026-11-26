@@ -23,7 +23,7 @@ from typing import Any
 from p06.agent.deps import GraphRuntimeDeps, TurnExecutionContext
 from p06.agent.nodes._common import validate_node_updates
 from p06.agent.routing import NODE_SAFE_FALLBACK
-from p06.guardrails.fallback_selector import SafeFallbackSelector
+from p06.guardrails.fallback_selector import SafeFallbackSelector, normalize_fallback_text
 from p06.schemas.state import AgentState
 
 
@@ -32,7 +32,15 @@ def run_safe_fallback(
     deps: GraphRuntimeDeps,
     ctx: TurnExecutionContext,
 ) -> dict[str, Any]:
-    """Chọn và tái kiểm định câu dự phòng an toàn; nếu thất bại thì đặt `verified_candidate=None`."""
+    """Chọn và tái kiểm định câu dự phòng an toàn; bỏ qua câu đã phát gần đây để tránh lặp."""
+    excluded_texts = {
+        normalize_fallback_text(turn.spoken_text)
+        for turn in state.played_history
+        if turn.intent == "FALLBACK_SAFE_INFO"
+    }
+    if state.played_history:
+        excluded_texts.add(normalize_fallback_text(state.played_history[-1].spoken_text))
+
     selected = SafeFallbackSelector.select_safe_fallback(
         verifier=deps.knowledge_verifier,
         candidates=deps.fallback_candidates,
@@ -41,6 +49,7 @@ def run_safe_fallback(
         session_id=state.session_id,
         session_epoch=state.session_epoch,
         require_empty_covered_topics=True,
+        excluded_normalized_texts=excluded_texts,
     )
     # Xóa gợi ý chuyển topic của lượt chính vì câu dự phòng an toàn không hoàn thành chủ đề đó.
     ctx.next_topic_id_hint = None

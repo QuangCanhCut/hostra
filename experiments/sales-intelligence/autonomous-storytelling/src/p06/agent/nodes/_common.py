@@ -50,6 +50,7 @@ from p06.schemas.candidate import (
 )
 from p06.schemas.state import AgentState, PlayedTurnSummary, RewriteBudgetState
 from p06.schemas.story import StoryChunk, StoryTopic
+from p06.simulation.virtual_clock import DEFAULT_SPEECH_WORDS_PER_SEC
 
 MS_PER_SECOND_FLOAT: float = 1000.0
 
@@ -121,6 +122,34 @@ def format_played_history_summary(played_history: Sequence[PlayedTurnSummary]) -
     return "\n".join(lines)
 
 
+def _filter_mandatory_messages_for_sku(
+    messages: Sequence[str],
+    state: AgentState,
+    evidence: SkuEvidenceView,
+) -> list[str]:
+    """Lọc `mandatory_messages` liên quan tới SKU đang nói để tránh nhồi thông tin đa SKU."""
+    if not messages:
+        return []
+    active_tokens = {
+        tok.lower()
+        for tok in evidence.sku_name.split()
+        if len(tok) >= 3 and tok.lower() not in {"chai", "hộp", "gói", "hạt", "túi", "500ml", "500g", "200g"}
+    }
+    filtered: list[str] = []
+    for msg in messages:
+        msg_lower = msg.lower()
+        if any(tok in msg_lower for tok in active_tokens) or state.active_sku_id.lower() in msg_lower:
+            filtered.append(msg)
+    return filtered or list(messages)
+
+
+def _compute_word_budget(max_duration_sec: float) -> tuple[int, str]:
+    """Tính trần số từ an toàn và dải khuyến nghị từ giới hạn thời lượng giây."""
+    max_words = max(8, int(max_duration_sec * DEFAULT_SPEECH_WORDS_PER_SEC) - 2)
+    min_words = max(8, max_words - 6)
+    return max_words, f"{min_words}–{max_words} từ"
+
+
 def build_base_prompt_variables(
     state: AgentState,
     evidence: SkuEvidenceView,
@@ -129,6 +158,30 @@ def build_base_prompt_variables(
     max_duration_sec: float,
 ) -> dict[str, str]:
     """Chuẩn bị tập biến ngữ cảnh chung cho prompt `story_generation.txt` và `rewrite.txt`."""
+    max_words, target_words_range = _compute_word_budget(max_duration_sec)
+    relevant_eids = set(topic.fact_refs)
+    allowed_eids = [
+        chunk["evidence_id"]
+        for chunk in evidence.approved_chunks
+        if not relevant_eids or chunk["evidence_id"] in relevant_eids
+    ] or [chunk["evidence_id"] for chunk in evidence.approved_chunks]
+
+    allowed_cids_filter = set(topic.allowed_claim_ids)
+    allowed_cids = [
+        claim["claim_id"]
+        for claim in evidence.allowed_claims
+        if claim.get("claim_id")
+        and (not allowed_cids_filter or claim["claim_id"] in allowed_cids_filter)
+    ] or [
+        claim["claim_id"]
+        for claim in evidence.allowed_claims
+        if claim.get("claim_id")
+    ]
+    scoped_mandatory = _filter_mandatory_messages_for_sku(
+        state.story_plan.mandatory_messages,
+        state,
+        evidence,
+    )
     return {
         "active_sku_id": state.active_sku_id,
         "session_goal": state.story_plan.session_goal,
@@ -136,9 +189,13 @@ def build_base_prompt_variables(
         "topic_id": topic.topic_id,
         "topic_title": topic.title,
         "talking_points": "; ".join(topic.talking_points) or "(không có)",
-        "mandatory_messages": "; ".join(state.story_plan.mandatory_messages) or "(không có)",
+        "allowed_evidence_ids": json.dumps(allowed_eids, ensure_ascii=False),
+        "allowed_claim_ids": json.dumps(allowed_cids, ensure_ascii=False),
+        "mandatory_messages": "; ".join(scoped_mandatory) or "(không có)",
         "prohibited_topics": "; ".join(state.story_plan.prohibited_topics) or "(không có)",
         "max_duration_sec": f"{max_duration_sec:g}",
+        "max_words": str(max_words),
+        "target_words_range": target_words_range,
         "played_history_summary": format_played_history_summary(state.played_history),
         "untrusted_knowledge_block": format_untrusted_knowledge_block(evidence, topic),
     }
@@ -313,9 +370,13 @@ def execute_chunk_generation(
     if duration_eval.exceeds_limit:
         ctx.last_failed_draft_text = draft.text
         ctx.covered_claim_ids = ()
+        word_count = len(draft.text.split())
+        max_words, target_range = _compute_word_budget(deps.max_chunk_duration_sec)
         over_reason = (
-            f"OVER_MAX_DURATION_SEC: Thời lượng ước lượng {duration_eval.raw_ms / MS_PER_SECOND_FLOAT:.2f}s "
-            f"vượt quá giới hạn {deps.max_chunk_duration_sec:.2f}s."
+            f"OVER_MAX_DURATION_SEC: Lời thoại hiện dài {word_count} từ "
+            f"(~{duration_eval.raw_ms / MS_PER_SECOND_FLOAT:.2f}s), vượt quá giới hạn "
+            f"{deps.max_chunk_duration_sec:.2f}s (tối đa {max_words} từ). Hãy rút gọn về "
+            f"{target_range}, giữ nguyên talking_points của chủ đề và bỏ phần lặp tên/giá nếu không cần."
         )
         ctx.draft_attempts.append(
             DraftAttemptTrace(
