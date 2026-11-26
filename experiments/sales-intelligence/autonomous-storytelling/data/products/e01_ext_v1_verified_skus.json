@@ -1,7 +1,7 @@
 {
   "dataset_meta": {
     "dataset_id": "p06-e01-ext-verified-catalog-v1.0",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "base_dataset_id": "p06-e01-verified-catalog-v0.1",
     "is_synthetic": true,
     "data_origin": "extended_synthetic_evaluation_fixture_for_p06_e01_t09",
@@ -434,7 +434,7 @@
       "claim_id": "clm-e01-honey-allowed-02",
       "tenant_id": "tenant-p06-poc-01",
       "sku_id": "SKU-HONEY-01",
-      "claim_text": "Chai thủy tinh 500ml giá 159.000đ, đóng gói chống sốc hai lớp và đổi mới 1-1 trong 7 ngày nếu nứt vỡ khi giao.",
+      "claim_text": "Chai thủy tinh 500ml giá 159.000đ, đóng gói chống sốc hai lớp và đổi mới 1-1 trong 7 ngày nếu nứt vỡ hoặc rò rỉ khi nhận hàng kèm video mở hộp.",
       "category": "ALLOWED",
       "evidence_ids": ["ev-e01-honey-shipping"],
       "requires_ocop_verified": false,
@@ -602,7 +602,7 @@
       "claim_id": "clm-e01-macadamia-allowed-02",
       "tenant_id": "tenant-p06-poc-01",
       "sku_id": "SKU-MACADAMIA-03",
-      "claim_text": "Hộp 500g giá 195.000đ kèm dụng cụ tách vỏ và gói hút ẩm, đổi mới trong 7 ngày nếu hạt ỉu hoặc ẩm mốc.",
+      "claim_text": "Hộp 500g giá 195.000đ kèm dụng cụ tách vỏ và gói hút ẩm, đổi hộp mới trong 7 ngày nếu hạt ỉu hoặc ẩm mốc khi mở hộp.",
       "category": "ALLOWED",
       "evidence_ids": ["ev-e01-macadamia-usage", "ev-e01-macadamia-shipping"],
       "requires_ocop_verified": false,

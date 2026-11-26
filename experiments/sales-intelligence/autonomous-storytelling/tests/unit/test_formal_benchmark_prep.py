@@ -12,11 +12,14 @@
 
 from __future__ import annotations
 
+import csv
+import importlib.util
 import json
 import shutil
+import sys
 import uuid
 from collections.abc import Iterator
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -26,7 +29,21 @@ from p06.adapters.mocks import MockPlaybackAckBus
 from p06.adapters.p05_knowledge_adapter import P05KnowledgeAdapter
 from p06.agent.nodes._common import _compute_word_budget
 from p06.baselines import BaselineScriptSource, ScriptFirstBaseline
-from p06.providers import MockBehavior, MockLLMProvider, MockResponseStep
+from p06.baselines.script_first import _UPFRONT_SYSTEM_PROMPT_TEMPLATE
+from p06.evaluation.metrics.coverage import compute_coverage_metrics
+from p06.evaluation.models import (
+    PlaybackEventRecord,
+    RunEvidence,
+    TranscriptEntry,
+)
+from p06.planning.prompt_loader import load_prompt_template
+from p06.providers import (
+    GeminiRawResponse,
+    MockBehavior,
+    MockLLMProvider,
+    MockResponseStep,
+    ProviderConfigError,
+)
 from p06.runner import (
     ExperimentMethod,
     RunTerminationReason,
@@ -42,8 +59,23 @@ EXT_SKUS_PATH = P06_ROOT / "data" / "products" / "e01_ext_v1_verified_skus.json"
 EXT_PLANS_PATH = P06_ROOT / "data" / "story_plans" / "e01_ext_v1_story_plans.json"
 FORMAL_SKUS_PATH = P06_ROOT / "data" / "products" / "e01_formal_v1_verified_skus.json"
 FORMAL_PLANS_PATH = P06_ROOT / "data" / "story_plans" / "e01_formal_v1_story_plans.json"
-PILOT_V2_HE_DIR = P06_ROOT / "runs" / "P06-E01" / "gemini_3.5_flash_lite_pilot_v2" / "human_eval"
+BATCH1A_CONFIG_PATH = P06_ROOT / "configs" / "experiments" / "p06_e01_formal_batch1a.yaml"
+FORMAL_BATCH_SCRIPT_PATH = (
+    P06_ROOT / "experiments" / "p06_e01_no_comments" / "run_gemini_formal_batch.py"
+)
+PILOT_V2_DIR = P06_ROOT / "runs" / "P06-E01" / "gemini_3.5_flash_lite_pilot_v2"
+PILOT_V2_HE_DIR = PILOT_V2_DIR / "human_eval"
+PILOT_V2_AI_DIR = PILOT_V2_DIR / "ai_assisted_eval"
 START_AT = datetime(2026, 11, 27, 0, 0, 0, tzinfo=timezone.utc)
+
+
+def _load_formal_batch_module() -> Any:
+    spec = importlib.util.spec_from_file_location("run_gemini_formal_batch", FORMAL_BATCH_SCRIPT_PATH)
+    assert spec is not None and spec.loader is not None
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = mod
+    spec.loader.exec_module(mod)
+    return mod
 
 
 @pytest.fixture
@@ -204,14 +236,302 @@ def test_e01_formal_v1_capacity_and_window_lag12_mock_validation(tmp_path: Path)
     assert sweep_res.comparison_report.compatible is True
     for run in sweep_res.run_results:
         assert run.report is not None
-        assert run.report.coverage["mandatory_topic_coverage"].value == pytest.approx(1.0)
+        cov = run.report.coverage["mandatory_topic_coverage"]
+        assert cov.value is not None
         assert len(run.evidence.transcript) >= 72
         if run.manifest.get("history_window") == 20:
             # Ở lag=12 < W=20, lượt thứ 2 của cùng topic (chỉ có 1 claim_id) kích hoạt REPEATED_FACTS
-            # và cạn 2 fallback/SKU -> dừng an toàn MAX_CONSECUTIVE_ABORTS, phân tách rõ W=20 khỏi W=5/10.
+            # và cạn 2 fallback/SKU -> dừng an toàn MAX_CONSECUTIVE_ABORTS khi chưa đủ 2 chunks cho mọi
+            # topic; mandatory_topic_coverage phải phản ánh trung thực (< 1.0) thay vì báo nhầm 1.0.
             assert run.termination_reason == RunTerminationReason.MAX_CONSECUTIVE_ABORTS
+            assert 0.0 < cov.value < 1.0
+            assert cov.metadata["min_chunks_per_topic"] == 2
+            assert len(cov.metadata["partially_covered_topic_ids"]) > 0
         else:
+            assert cov.value == pytest.approx(1.0)
             assert run.termination_reason == RunTerminationReason.EARLY_COMPLETION
+
+
+def test_coverage_metric_respects_min_chunks_per_topic() -> None:
+    """`compute_coverage_metrics` chỉ tính hoàn tất topic khi số ACK không-fallback >= `min_chunks_per_topic`."""
+    plan, _, _ = load_e01_story_plan("pilot_short_3sku_ext", story_plans_path=EXT_PLANS_PATH)
+    mandatory_topics = sorted(plan.mandatory_topic_ids())
+    first_topic = mandatory_topics[0]
+
+    def _make_evidence(min_chunks: int, topic_ack_counts: dict[str, int]) -> RunEvidence:
+        transcript: list[TranscriptEntry] = []
+        playback: list[PlaybackEventRecord] = []
+        idx = 0
+        for tid, count in topic_ack_counts.items():
+            for part in range(count):
+                turn_id = f"turn-{idx}"
+                occ_iso = (
+                    (START_AT + timedelta(seconds=(idx + 1) * 4))
+                    .isoformat()
+                    .replace("+00:00", "Z")
+                )
+                transcript.append(
+                    TranscriptEntry(
+                        turn_id=turn_id,
+                        turn_index=idx,
+                        sku_id="SKU-HONEY-01",
+                        candidate_id=f"cand-{idx}",
+                        intent="STORY_TELLING",
+                        text=f"Lời thoại hợp lệ cho {tid} phần {part}.",
+                        confirmed_topic_ids=(tid,),
+                        origin="PROACTIVE_STORY",
+                        verification_status="VERIFIED",
+                        is_fallback=False,
+                        actual_duration_ms=4000,
+                        playback_event_id=f"pb-{idx}",
+                        occurred_at_utc=occ_iso,
+                    )
+                )
+                playback.append(
+                    PlaybackEventRecord(
+                        sequence_index=idx,
+                        playback_event_id=f"pb-{idx}",
+                        turn_id=turn_id,
+                        candidate_id=f"cand-{idx}",
+                        sku_id="SKU-HONEY-01",
+                        outcome="COMPLETED",
+                        apply_status="APPLIED",
+                        applied=True,
+                        confirmed_topic_ids=(tid,),
+                        actual_duration_ms=4000,
+                        occurred_at_utc=occ_iso,
+                    )
+                )
+                idx += 1
+        return RunEvidence(
+            manifest={
+                "run_id": "test-min-chunks",
+                "min_chunks_per_topic": min_chunks,
+                "virtual_clock_start_utc": "2026-11-27T00:00:00Z",
+            },
+            story_plan=plan,
+            transcript=tuple(transcript),
+            playback_events=tuple(playback),
+            graph_traces=(),
+            target_duration_sec=600.0,
+            simulated_elapsed_sec=float(idx * 4),
+        )
+
+    # 1 chunk/topic với min_chunks_per_topic=2 -> coverage phải bằng 0.0 và ghi vào partially_covered_topic_ids.
+    res_partial = compute_coverage_metrics(_make_evidence(2, {tid: 1 for tid in mandatory_topics}))
+    assert res_partial["completed_topic_count"].value == 0
+    assert res_partial["mandatory_topic_coverage"].value == pytest.approx(0.0)
+    assert set(res_partial["mandatory_topic_coverage"].metadata["partially_covered_topic_ids"]) == set(
+        mandatory_topics
+    )
+    assert res_partial["time_to_complete_mandatory_topics_sec"].value is None
+
+    # 2 chunks/topic cho riêng first_topic, các topic khác mới 1 -> 1 / len(mandatory_topics).
+    counts_mixed = {tid: 1 for tid in mandatory_topics}
+    counts_mixed[first_topic] = 2
+    res_mixed = compute_coverage_metrics(_make_evidence(2, counts_mixed))
+    assert res_mixed["completed_topic_count"].value == 1
+    assert res_mixed["mandatory_topic_coverage"].value == pytest.approx(1.0 / len(mandatory_topics))
+
+    # Đủ 2 chunks cho toàn bộ mandatory_topics -> 1.0 và có time_to_complete_mandatory_topics_sec.
+    res_full = compute_coverage_metrics(_make_evidence(2, {tid: 2 for tid in mandatory_topics}))
+    assert res_full["completed_topic_count"].value == len(mandatory_topics)
+    assert res_full["mandatory_topic_coverage"].value == pytest.approx(1.0)
+    assert res_full["mandatory_topic_coverage"].metadata["partially_covered_topic_ids"] == []
+    assert res_full["time_to_complete_mandatory_topics_sec"].value == pytest.approx(
+        float(len(mandatory_topics) * 2 * 4)
+    )
+
+
+def test_safety_review_fixes_in_datasets_and_prompts() -> None:
+    """Xác minh các sửa lỗi Targeted Safety Review (A/B/C) và quy tắc prompt v0.2.1."""
+    ext_plans = json.loads(EXT_PLANS_PATH.read_text(encoding="utf-8"))
+    formal_plans = json.loads(FORMAL_PLANS_PATH.read_text(encoding="utf-8"))
+    assert ext_plans["dataset_meta"]["version"] == "1.0.2"
+    assert formal_plans["dataset_meta"]["version"] == "1.1.1"
+
+    ext_topics = {
+        t["topic_id"]: t
+        for sc in ext_plans["plans"].values()
+        for a in sc["arcs"]
+        for t in a["topics"]
+    }
+    formal_topics = {
+        t["topic_id"]: t
+        for sc in formal_plans["plans"].values()
+        for a in sc["arcs"]
+        for t in a["topics"]
+    }
+
+    # A. Bảo toàn điều kiện chính sách đổi trả ("khi nhận hàng kèm video mở hộp" / "khi mở hộp").
+    for tid in ("topic-pilot-honey-02", "topic-ext-sales-honey-offer"):
+        joined = " ".join(ext_topics[tid]["talking_points"]).lower()
+        assert "khi nhận hàng" in joined and "video mở hộp" in joined
+    assert "khi nhận hàng" in " ".join(formal_topics["topic-formal-honey-09"]["talking_points"]).lower()
+    assert "video mở hộp" in " ".join(formal_topics["topic-formal-honey-09"]["talking_points"]).lower()
+    for tid in ("topic-ext-sales-macadamia-offer", "topic-stress-macadamia-08"):
+        assert "khi mở hộp" in " ".join(ext_topics[tid]["talking_points"]).lower()
+    assert "khi mở hộp" in " ".join(formal_topics["topic-formal-macadamia-09"]["talking_points"]).lower()
+
+    # B. Sửa suy diễn nhân quả chưa được chứng minh & lỗi Batch 1A tea-pairing ("hạt rang bùi").
+    mac_pilot_tp = " ".join(ext_topics["topic-pilot-macadamia-01"]["talking_points"]).lower()
+    assert "giữ độ giòn béo" not in mac_pilot_tp
+    assert "chín đều" in mac_pilot_tp and "giòn béo tự nhiên" in mac_pilot_tp
+
+    tea_edu_tp = " ".join(ext_topics["topic-ext-edu-tea-pairing"]["talking_points"]).lower()
+    assert "hạt rang bùi" not in tea_edu_tp
+    assert "bánh quy nhạt" in tea_edu_tp and "mứt gừng nhẹ" in tea_edu_tp
+
+    # C. Prompt safety rules + version bump.
+    gen_tmpl = load_prompt_template("story_generation.txt")
+    rew_tmpl = load_prompt_template("rewrite.txt")
+    assert gen_tmpl.version == "v0.2.1"
+    assert rew_tmpl.version == "v0.2.1"
+    assert "video mở hộp" in gen_tmpl.content and "nhân quả" in gen_tmpl.content
+    assert "video mở hộp" in rew_tmpl.content and "nhân quả" in rew_tmpl.content
+    assert "video mở hộp" in _UPFRONT_SYSTEM_PROMPT_TEMPLATE
+    assert "nhân quả" in _UPFRONT_SYSTEM_PROMPT_TEMPLATE
+
+
+def test_formal_batch1a_config_guard_and_global_ledger_offline(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Batch 1A khóa đúng thông số, chặn live provider thiếu cờ và chạy Mock+FakeClient ổn định."""
+    mod = _load_formal_batch_module()
+    cfg = mod.load_batch_config(BATCH1A_CONFIG_PATH)
+    assert cfg["model_id"] == "gemini-3.5-flash-lite"
+    assert cfg["billing_tier"] == "free_tier"
+    assert cfg["max_cost_usd"] == 0.0
+    assert cfg["dataset_profile"] == "e01_ext_v1"
+    assert cfg["scenario"] == "product_education_10m_ext"
+    assert cfg["seed"] == 42
+    assert cfg["min_chunks_per_topic"] == 1
+    assert cfg["max_chunk_duration_sec"] == 8.0
+    assert cfg["max_requests_per_run"] == 30
+    assert cfg["global_max_requests"] == 120
+    assert cfg["min_request_interval_sec"] == 6.0
+    assert [(r["method"], r["history_window"]) for r in cfg["runs"]] == [
+        ("script_first_upfront_llm", None),
+        ("langgraph_structured_story", 5),
+        ("langgraph_structured_story", 10),
+        ("langgraph_structured_story", 20),
+    ]
+
+    # Offline Guard: không có allow_live_provider=True phải chặn ngay.
+    with pytest.raises(ProviderConfigError, match="Offline Guard"):
+        mod.execute_formal_batch(BATCH1A_CONFIG_PATH, output_dir_override=tmp_path / "blocked")
+
+    # Chạy 100% ngoại tuyến bằng Mock qua execute_formal_batch -> tạo đủ ledger, summary, comparison, human_eval.
+    mock_out = tmp_path / "batch1a_mock"
+    summary_mock = mod.execute_formal_batch(
+        BATCH1A_CONFIG_PATH,
+        provider_override="mock",
+        output_dir_override=mock_out,
+    )
+    assert summary_mock["status"] == "COMPLETED"
+    assert len(summary_mock["runs"]) == 4
+    assert summary_mock["comparison_compatible"] is True
+    assert (mock_out / "budget_ledger.json").is_file()
+    assert (mock_out / "batch_summary.json").is_file()
+    assert (mock_out / "comparison.json").is_file()
+    assert (mock_out / "human_eval" / "blind_eval_sheet.csv").is_file()
+
+    # Giả lập FakeGeminiRestClient ngoại tuyến để xác minh global_max_requests & shared client accounting.
+    ext_skus_doc = json.loads(EXT_SKUS_PATH.read_text(encoding="utf-8"))
+    evidence_by_sku: dict[str, list[str]] = {}
+    claims_by_sku: dict[str, list[str]] = {}
+    for c in ext_skus_doc["evidence_chunks"]:
+        evidence_by_sku.setdefault(c["sku_id"], []).append(c["evidence_id"])
+    for c in ext_skus_doc["claim_registry"]:
+        if c["category"] == "ALLOWED":
+            claims_by_sku.setdefault(c["sku_id"], []).append(c["claim_id"])
+
+    class FakeGeminiRestClient:
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            _ = args
+            self.max_requests = int(kwargs.get("max_requests") or 120)
+            self.requests_attempted = 0
+            self.rate_limited = False
+
+        def generate_json(
+            self,
+            model_id: str,
+            system_prompt: str,
+            user_prompt: str,
+            json_schema: dict[str, Any],
+            sampling: dict[str, Any],
+            timeout_sec: float,
+        ) -> GeminiRawResponse:
+            _ = (model_id, json_schema, sampling, timeout_sec)
+            self.requests_attempted += 1
+            active_sku = "SKU-HONEY-01"
+            for sku in ("SKU-HONEY-01", "SKU-TEA-02", "SKU-MACADAMIA-03"):
+                if sku in system_prompt or sku in user_prompt:
+                    active_sku = sku
+                    break
+            ev_id = evidence_by_sku[active_sku][self.requests_attempted % len(evidence_by_sku[active_sku])]
+            clm_id = claims_by_sku[active_sku][self.requests_attempted % len(claims_by_sku[active_sku])]
+            # Tạo câu có vốn từ khác nhau theo lượt để tránh kích hoạt ngưỡng Word Jaccard 0.65.
+            noun_a = (
+                "hương thơm", "độ sánh", "màu sắc", "chất lượng", "quy trình",
+                "đóng gói", "bảo quản", "thu hoạch", "nguyên liệu", "tiêu chuẩn",
+            )[self.requests_attempted % 10]
+            noun_b = (
+                "tự nhiên", "đặc trưng", "tinh tế", "ổn định", "cẩn thận",
+                "an toàn", "minh bạch", "truyền thống", "hài hòa", "thanh nhẹ",
+            )[(self.requests_attempted // 3) % 10]
+            phrase = f"Điểm nhấn thứ {self.requests_attempted} về {noun_a} mang nét {noun_b} cho sản phẩm."
+            payload = {
+                "text": phrase,
+                "role": "PRODUCT_STORY",
+                "cited_evidence_ids": [ev_id],
+                "covered_claim_ids": [clm_id],
+                "stated_price_vnd": None,
+                "mentions_ocop": False,
+                "semantic_breakpoint": True,
+                "breakpoint_type": "TOPIC_END",
+                "rationale": "Fake Gemini offline verification.",
+            }
+            return GeminiRawResponse(
+                raw_text=json.dumps(payload, ensure_ascii=False),
+                input_tokens=100,
+                output_tokens=25,
+                thinking_tokens=None,
+                finish_reason="STOP",
+            )
+
+    monkeypatch.setenv("GEMINI_API_KEY", "dummy-offline-test-key")
+    fake_out = tmp_path / "batch1a_fake_gemini"
+    summary_fake = mod.execute_formal_batch(
+        BATCH1A_CONFIG_PATH,
+        provider_override="gemini",
+        allow_live_provider=True,
+        output_dir_override=fake_out,
+        rest_client_factory=FakeGeminiRestClient,
+    )
+    assert summary_fake["status"] == "COMPLETED"
+    assert summary_fake["cumulative_global_requests"] <= 120
+    assert summary_fake["total_requests_attempted_in_session"] >= 72
+    assert summary_fake["artifact_locks"]["story_plans_version"] == "1.0.2"
+    ledger = json.loads((fake_out / "budget_ledger.json").read_text(encoding="utf-8"))
+    assert ledger["global_max_requests"] == 120
+    assert ledger["max_requests_per_run"] == 30
+    assert len(ledger["runs"]) == 4
+
+
+def test_pilot_v2_ai_assisted_eval_isolated_from_human_eval() -> None:
+    """Bảo đảm hai CSV AI-assisted tách biệt hoàn toàn khỏi phiếu chấm mù human_eval gốc."""
+    if not PILOT_V2_DIR.is_dir():
+        pytest.skip("Không có thư mục Pilot v2.")
+    assert (PILOT_V2_AI_DIR / "pilot_v2_ai_assisted_quality.csv").is_file()
+    assert (PILOT_V2_AI_DIR / "pilot_v2_ai_assisted_factual_semantic.csv").is_file()
+    assert (PILOT_V2_AI_DIR / "README.md").is_file()
+
+    with (PILOT_V2_HE_DIR / "blind_eval_sheet.csv").open("r", encoding="utf-8", newline="") as handle:
+        he_rows = list(csv.DictReader(handle))
+    assert len(he_rows) == 2
+    assert all(row["narrative_coherence"] == "" for row in he_rows)
 
 
 def test_pilot_v2_reviewer_guides_remain_strictly_blind_if_present() -> None:

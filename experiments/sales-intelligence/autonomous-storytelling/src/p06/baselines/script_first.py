@@ -89,12 +89,13 @@ from p06.simulation.virtual_clock import (
 
 # Giới hạn số từ mục tiêu khi ghép kịch bản tất định để thời lượng đọc luôn nằm gọn dưới ngưỡng 30s.
 _DETERMINISTIC_MAX_WORDS: Final[int] = int(MAX_CHUNK_DURATION_SEC * DEFAULT_SPEECH_WORDS_PER_SEC) - 6
-_UPFRONT_PROMPT_VERSION: Final[str] = "baseline-script-first-v0.2.1"
+_UPFRONT_PROMPT_VERSION: Final[str] = "baseline-script-first-v0.2.2"
 _UPFRONT_SYSTEM_PROMPT_TEMPLATE: Final[str] = (
     "Bạn là trợ lý viết kịch bản livestream tiếng Việt tự nhiên, trung thực với dữ liệu. "
     "Chỉ sử dụng thông tin trong `sku_evidence` và `topic`, giữ khung độ dài khuyến nghị {target_words_range}, "
     "tuyệt đối không vượt quá {hard_max_words} từ (<= {max_duration_sec} giây đọc), bám sát `talking_points` của `topic` "
     "và KHÔNG cần lặp lại tên sản phẩm đầy đủ hay giá niêm yết nếu chủ đề không yêu cầu. "
+    "Khi nêu chính sách đổi trả, không lược bỏ điều kiện áp dụng quan trọng (như khi nhận hàng kèm video mở hộp hoặc khi mở hộp) chỉ để rút ngắn câu; không suy diễn quan hệ nhân quả không có trực tiếp trong dữ liệu. "
     "Tách biệt lời nói và metadata: TUYỆT ĐỐI không đưa mã `ev-...`, `clm-...`, `SKU-...`, `topic-...`, "
     "dấu ngoặc trích ID hay mảnh JSON vào trường `text`; chỉ khai báo `evidence_id` và `claim_id` hợp lệ "
     "vào `cited_evidence_ids` và `covered_claim_ids`. Không bịa công dụng chữa bệnh và không nhắc SKU khác."

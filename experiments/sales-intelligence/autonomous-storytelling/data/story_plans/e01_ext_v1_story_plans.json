@@ -1,7 +1,7 @@
 {
   "dataset_meta": {
     "dataset_id": "p06-e01-ext-story-plans-v1.0",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "base_dataset_id": "p06-e01-story-plans-v0.1",
     "fixture_role": "extended_synthetic_evaluation_fixture_v1",
     "simulated_approval": true,
@@ -157,12 +157,12 @@
             },
             {
               "topic_id": "topic-ext-edu-tea-pairing",
-              "title": "Thưởng trà buổi sáng, tiếp khách hoặc dùng kèm hạt rang bùi",
+              "title": "Thưởng trà buổi sáng, tiếp khách hoặc dùng kèm bánh quy nhạt",
               "sku_id": "SKU-TEA-02",
               "is_mandatory": false,
               "fact_refs": ["ev-e01-ext-tea-pairing"],
               "allowed_claim_ids": ["clm-e01-ext-tea-allowed-04"],
-              "talking_points": ["Phù hợp phòng trà gia đình hoặc thưởng thức buổi sáng.", "Dùng kèm hạt rang bùi giúp cân bằng vị trà thanh."]
+              "talking_points": ["Phù hợp phòng trà gia đình hoặc thưởng thức buổi sáng.", "Dùng kèm bánh quy nhạt hoặc mứt gừng nhẹ để cân bằng vị giác."]
             }
           ]
         },
@@ -318,7 +318,7 @@
               "title": "Cách thưởng thức buổi sáng cùng nước ấm dưới 50 độ C",
               "sku_id": "SKU-HONEY-01",
               "is_mandatory": false,
-              "fact_refs": ["ev-e01-honey-usage"],
+              "fact_refs": ["ev-e01-honey-usage", "ev-e01-ext-honey-safety"],
               "allowed_claim_ids": ["clm-e01-ext-honey-allowed-04"],
               "talking_points": ["Pha 1-2 thìa với nước ấm dưới 50 độ C và tránh dùng cho trẻ dưới 1 tuổi."]
             }
@@ -500,7 +500,7 @@
             {"topic_id": "topic-ext-sales-honey-pairing", "title": "Kết hợp bánh mì nướng, sữa chua và món nướng", "sku_id": "SKU-HONEY-01", "is_mandatory": false, "fact_refs": ["ev-e01-ext-honey-pairing", "ev-e01-honey-usage"], "allowed_claim_ids": ["clm-e01-ext-honey-allowed-04"], "talking_points": ["Linh hoạt ăn sáng hoặc pha cùng nước chanh ấm."]},
             {"topic_id": "topic-ext-sales-honey-quality", "title": "Cách xử lý kết tinh tự nhiên và bảo quản thoáng mát", "sku_id": "SKU-HONEY-01", "is_mandatory": true, "fact_refs": ["ev-e01-honey-quality"], "allowed_claim_ids": ["clm-e01-honey-allowed-01"], "talking_points": ["Ngâm nước ấm 40 độ C nếu kết tinh, không bỏ tủ lạnh."]},
             {"topic_id": "topic-ext-sales-honey-safety", "title": "Lưu ý trẻ dưới 1 tuổi và dùng thìa khô sạch", "sku_id": "SKU-HONEY-01", "is_mandatory": true, "fact_refs": ["ev-e01-ext-honey-safety"], "allowed_claim_ids": ["clm-e01-ext-honey-allowed-05"], "talking_points": ["Tuyệt đối không dùng cho trẻ dưới 1 tuổi, tránh lẫn nước."]},
-            {"topic_id": "topic-ext-sales-honey-offer", "title": "Giá 159.000đ chai 500ml, chống sốc 2 lớp và đổi vỡ 7 ngày", "sku_id": "SKU-HONEY-01", "is_mandatory": true, "fact_refs": ["ev-e01-honey-shipping", "ev-e01-ext-honey-packaging"], "allowed_claim_ids": ["clm-e01-honey-allowed-02"], "talking_points": ["Giá niêm yết 159.000đ, bọc chống sốc 2 lớp, đổi mới 1-1 trong 7 ngày."]}
+            {"topic_id": "topic-ext-sales-honey-offer", "title": "Giá 159.000đ chai 500ml, chống sốc 2 lớp và đổi vỡ 7 ngày", "sku_id": "SKU-HONEY-01", "is_mandatory": true, "fact_refs": ["ev-e01-honey-shipping", "ev-e01-ext-honey-packaging"], "allowed_claim_ids": ["clm-e01-honey-allowed-02"], "talking_points": ["Giá 159.000đ, bọc chống sốc 2 lớp, đổi 1-1 trong 7 ngày nếu vỡ hoặc rò rỉ khi nhận hàng kèm video mở hộp."]}
           ]
         },
         {
@@ -540,7 +540,7 @@
             {"topic_id": "topic-ext-sales-macadamia-pairing", "title": "Ăn vặt văn phòng, làm sữa hạt hoặc trộn salad", "sku_id": "SKU-MACADAMIA-03", "is_mandatory": false, "fact_refs": ["ev-e01-ext-macadamia-pairing"], "allowed_claim_ids": ["clm-e01-ext-macadamia-allowed-04"], "talking_points": ["Xay cùng đường phèn hoặc giã rắc yến mạch."]},
             {"topic_id": "topic-ext-sales-macadamia-quality", "title": "Bảo quản hộp PET trong với gói hút ẩm hạn 12 tháng", "sku_id": "SKU-MACADAMIA-03", "is_mandatory": true, "fact_refs": ["ev-e01-macadamia-quality", "ev-e01-ext-macadamia-packaging"], "allowed_claim_ids": ["clm-e01-macadamia-allowed-01"], "talking_points": ["Vặn chặt nắp sau khi lấy hạt, đặt nơi khô ráo."]},
             {"topic_id": "topic-ext-sales-macadamia-safety", "title": "Lưu ý dị ứng hạt cây và không ăn gói hút ẩm", "sku_id": "SKU-MACADAMIA-03", "is_mandatory": true, "fact_refs": ["ev-e01-ext-macadamia-safety"], "allowed_claim_ids": ["clm-e01-ext-macadamia-allowed-05"], "talking_points": ["Xoay đúng rãnh nứt trên vỏ, tránh dùng nếu dị ứng hạt."]},
-            {"topic_id": "topic-ext-sales-macadamia-offer", "title": "Giá 195.000đ hộp 500g kèm dụng cụ tách đổi mới 7 ngày", "sku_id": "SKU-MACADAMIA-03", "is_mandatory": true, "fact_refs": ["ev-e01-macadamia-shipping", "ev-e01-ext-macadamia-packaging", "ev-e01-macadamia-usage"], "allowed_claim_ids": ["clm-e01-macadamia-allowed-02"], "talking_points": ["Đổi hộp mới trong 7 ngày nếu hạt ỉu hoặc ẩm mốc."]}
+            {"topic_id": "topic-ext-sales-macadamia-offer", "title": "Giá 195.000đ hộp 500g kèm dụng cụ tách đổi mới 7 ngày", "sku_id": "SKU-MACADAMIA-03", "is_mandatory": true, "fact_refs": ["ev-e01-macadamia-shipping", "ev-e01-ext-macadamia-packaging", "ev-e01-macadamia-usage"], "allowed_claim_ids": ["clm-e01-macadamia-allowed-02"], "talking_points": ["Đổi hộp mới trong 7 ngày nếu hạt ỉu hoặc ẩm mốc khi mở hộp."]}
           ]
         }
       ]
@@ -575,7 +575,7 @@
           "reviewed_by_merchant": true,
           "topics": [
             {"topic_id": "topic-pilot-honey-01", "title": "Cảm quan hổ phách và lọc mịn mật ong Đắk Lắk", "sku_id": "SKU-HONEY-01", "is_mandatory": true, "fact_refs": ["ev-e01-ext-honey-sensory", "ev-e01-ext-honey-harvest"], "allowed_claim_ids": ["clm-e01-ext-honey-allowed-03"], "talking_points": ["Mật sánh dẻo màu vàng hổ phách, vị ngọt dịu."]},
-            {"topic_id": "topic-pilot-honey-02", "title": "Đóng gói chống sốc 159.000đ chai 500ml", "sku_id": "SKU-HONEY-01", "is_mandatory": true, "fact_refs": ["ev-e01-honey-shipping"], "allowed_claim_ids": ["clm-e01-honey-allowed-02"], "talking_points": ["Chai 500ml giá 159.000đ, đổi 1-1 trong 7 ngày nếu vỡ."]}
+            {"topic_id": "topic-pilot-honey-02", "title": "Đóng gói chống sốc 159.000đ chai 500ml", "sku_id": "SKU-HONEY-01", "is_mandatory": true, "fact_refs": ["ev-e01-honey-shipping"], "allowed_claim_ids": ["clm-e01-honey-allowed-02"], "talking_points": ["Chai 500ml giá 159.000đ, đổi 1-1 trong 7 ngày nếu vỡ khi nhận hàng kèm video mở hộp."]}
           ]
         },
         {
@@ -600,7 +600,7 @@
           "breakpoint_hint": "ARC_BOUNDARY",
           "reviewed_by_merchant": true,
           "topics": [
-            {"topic_id": "topic-pilot-macadamia-01", "title": "Sấy đối lưu chậm và nhân giòn vị bơ", "sku_id": "SKU-MACADAMIA-03", "is_mandatory": true, "fact_refs": ["ev-e01-ext-macadamia-harvest", "ev-e01-ext-macadamia-sensory", "ev-e01-macadamia-quality"], "allowed_claim_ids": ["clm-e01-ext-macadamia-allowed-03"], "talking_points": ["Sấy nhiệt độ thấp giữ độ giòn béo tự nhiên."]},
+            {"topic_id": "topic-pilot-macadamia-01", "title": "Sấy đối lưu chậm và nhân giòn vị bơ", "sku_id": "SKU-MACADAMIA-03", "is_mandatory": true, "fact_refs": ["ev-e01-ext-macadamia-harvest", "ev-e01-ext-macadamia-sensory", "ev-e01-macadamia-quality"], "allowed_claim_ids": ["clm-e01-ext-macadamia-allowed-03"], "talking_points": ["Sấy đối lưu nhiệt độ thấp chín đều từ lõi; nhân hạt giòn béo tự nhiên."]},
             {"topic_id": "topic-pilot-macadamia-02", "title": "Hộp PET 500g giá 195.000đ kèm dụng cụ tách vỏ", "sku_id": "SKU-MACADAMIA-03", "is_mandatory": true, "fact_refs": ["ev-e01-macadamia-shipping", "ev-e01-ext-macadamia-packaging", "ev-e01-macadamia-usage"], "allowed_claim_ids": ["clm-e01-macadamia-allowed-02"], "talking_points": ["Giá 195.000đ hộp 500g, kèm thanh tách thép và gói hút ẩm."]}
           ]
         }
@@ -683,7 +683,7 @@
             {"topic_id": "topic-stress-macadamia-05", "title": "Ăn vặt văn phòng và xay sữa hạt đường phèn", "sku_id": "SKU-MACADAMIA-03", "is_mandatory": true, "fact_refs": ["ev-e01-ext-macadamia-pairing"], "allowed_claim_ids": ["clm-e01-ext-macadamia-allowed-04"], "talking_points": ["Giã nhỏ rắc lên yến mạch hoặc salad."]},
             {"topic_id": "topic-stress-macadamia-06", "title": "Hộp PET trong nắp vặn kèm gói hút ẩm", "sku_id": "SKU-MACADAMIA-03", "is_mandatory": true, "fact_refs": ["ev-e01-macadamia-quality", "ev-e01-ext-macadamia-packaging"], "allowed_claim_ids": ["clm-e01-macadamia-allowed-01"], "talking_points": ["Hạn 12 tháng, vặn chặt nắp sau khi lấy hạt."]},
             {"topic_id": "topic-stress-macadamia-07", "title": "Lưu ý dị ứng hạt cây và gói hút ẩm", "sku_id": "SKU-MACADAMIA-03", "is_mandatory": true, "fact_refs": ["ev-e01-ext-macadamia-safety"], "allowed_claim_ids": ["clm-e01-ext-macadamia-allowed-05"], "talking_points": ["Không ăn gói hút ẩm, xoay đúng rãnh nứt."]},
-            {"topic_id": "topic-stress-macadamia-08", "title": "Giá 195.000đ hộp 500g đổi mới 7 ngày nếu ỉu", "sku_id": "SKU-MACADAMIA-03", "is_mandatory": true, "fact_refs": ["ev-e01-macadamia-shipping", "ev-e01-macadamia-ocop"], "allowed_claim_ids": ["clm-e01-macadamia-allowed-02"], "talking_points": ["Đổi mới 7 ngày nếu hạt ỉu hoặc ẩm mốc."]}
+            {"topic_id": "topic-stress-macadamia-08", "title": "Giá 195.000đ hộp 500g đổi mới 7 ngày nếu ỉu", "sku_id": "SKU-MACADAMIA-03", "is_mandatory": true, "fact_refs": ["ev-e01-macadamia-shipping", "ev-e01-macadamia-ocop"], "allowed_claim_ids": ["clm-e01-macadamia-allowed-02"], "talking_points": ["Đổi hộp mới trong 7 ngày nếu hạt ỉu hoặc ẩm mốc khi mở hộp."]}
           ]
         }
       ]

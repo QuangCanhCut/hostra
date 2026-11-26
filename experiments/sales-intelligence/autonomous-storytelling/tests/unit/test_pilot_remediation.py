@@ -563,15 +563,15 @@ class TestProvenanceSanitizationAndPilotRunnerOffline:
 
         mapping = json.loads(map_p.read_text(encoding="utf-8"))
         assert mapping[0]["dataset_profile"] == "e01_ext_v1"
-        assert mapping[0]["prompt_versions"]["baseline_script_first"] == "baseline-script-first-v0.2.1"
-        assert mapping[0]["prompt_versions"]["story_generation.txt"] == "v0.2"
-        assert mapping[0]["prompt_versions"]["rewrite.txt"] == "v0.2"
+        assert mapping[0]["prompt_versions"]["baseline_script_first"] == "baseline-script-first-v0.2.2"
+        assert mapping[0]["prompt_versions"]["story_generation.txt"] == "v0.2.1"
+        assert mapping[0]["prompt_versions"]["rewrite.txt"] == "v0.2.1"
         assert mapping[0]["exported_at_utc"].endswith("Z")
 
         csv_text = csv_p.read_text(encoding="utf-8")
         jsonl_text = jsonl_p.read_text(encoding="utf-8")
         assert "e01_ext_v1" not in csv_text
-        assert "baseline-script-first-v0.2.1" not in jsonl_text
+        assert "baseline-script-first-v0.2.2" not in jsonl_text
         with csv_p.open("r", encoding="utf-8", newline="") as handle:
             rows = list(csv.DictReader(handle))
         assert len(rows) == 1

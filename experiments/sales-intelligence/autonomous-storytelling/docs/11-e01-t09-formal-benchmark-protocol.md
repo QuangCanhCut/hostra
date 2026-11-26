@@ -4,9 +4,9 @@
 **Branch:** `research/p06-autonomous-storytelling`  
 **Base Commit trước phiên:** `cb4d0c0`  
 **Module:** `experiments/sales-intelligence/autonomous-storytelling/`  
-**Quyết định Tech Lead:** `CONDITIONAL GO FOR FORMAL BENCHMARK`  
-**Trạng thái hiện tại:** **`AWAITING_FINAL_BENCHMARK_EXECUTION_APPROVAL`** *(Hoàn tất 100% chuẩn bị ngoại tuyến; **`0`** cuộc gọi Gemini API mới trong phiên này)*  
-**Kiểm thử hồi quy ngoại tuyến sau chỉnh sửa cuối:** **`283 passed in 80.83s`** (`0 failed, 0 skipped`), `pip check` -> `No broken requirements found.`
+**Quyết định Tech Lead:** `CONDITIONAL GO FOR FORMAL BENCHMARK` *(Scope Freeze & Final Protocol Lock)*  
+**Trạng thái hiện tại:** **`AWAITING_FINAL_BENCHMARK_EXECUTION_APPROVAL`** *(Khóa giao thức, dữ liệu, prompt & cấu hình Batch 1A ngoại tuyến; **`0`** cuộc gọi Gemini API mới)*  
+**Kiểm thử hồi quy ngoại tuyến:** **`287 passed in 67.87s`** (`0 failed, 0 skipped`), `pip check` -> `No broken requirements found.`
 
 ---
 
@@ -26,10 +26,24 @@ Tuân thủ nguyên tắc đóng băng kiến trúc (không thêm dynamic rewrit
 - **Nguyên nhân phát hiện ở Pilot v2:** Một số topic trong [`e01_ext_v1_story_plans.json`](file:///g:/PTIT%20TL/P_Inovation/hostra-ai/experiments/sales-intelligence/autonomous-storytelling/data/story_plans/e01_ext_v1_story_plans.json) có `talking_points` tổng hợp ý từ 2–3 mảnh bằng chứng hợp lệ của cùng SKU (đặc biệt các topic mắc ca về sấy + độ giòn béo, bao bì + gói hút ẩm, dụng cụ tách vỏ), nhưng `topic.fact_refs` chỉ liệt kê `1` `evidence_id`.
 - **Khắc phục đã triển khai:** Nâng `e01_ext_v1_story_plans.json` lên version **`1.0.1`**, bổ sung đầy đủ các `evidence_id` **đã tồn tại và đã `APPROVED`** trong [`e01_ext_v1_verified_skus.json`](file:///g:/PTIT%20TL/P_Inovation/hostra-ai/experiments/sales-intelligence/autonomous-storytelling/data/products/e01_ext_v1_verified_skus.json) cho `15` topics thuộc cả 5 kịch bản (trong đó cập nhật đầy đủ các topic mắc ca `topic-pilot-macadamia-01/02`, `topic-ext-edu-macadamia-packaging`, `topic-ext-brand-macadamia-sensory/packaging/pairing`, `topic-ext-sales-macadamia-sensory/offer`, `topic-stress-macadamia-03` cùng các topic mật ong/trà liên quan). **Không** tạo thêm claim không căn cứ và **không** chỉnh sửa P05.
 
-### 1.3. Human Evaluation Readiness — Bộ Tài liệu Chấm 2 Bước Cho Reviewer Thật (Pilot v2)
-Toàn bộ phiếu Pilot v2 gốc ([`blind_eval_sheet.csv`](file:///g:/PTIT%20TL/P_Inovation/hostra-ai/experiments/sales-intelligence/autonomous-storytelling/runs/P06-E01/gemini_3.5_flash_lite_pilot_v2/human_eval/blind_eval_sheet.csv), [`blind_eval_sheet.jsonl`](file:///g:/PTIT%20TL/P_Inovation/hostra-ai/experiments/sales-intelligence/autonomous-storytelling/runs/P06-E01/gemini_3.5_flash_lite_pilot_v2/human_eval/blind_eval_sheet.jsonl), [`factual_and_semantic_review_sheet.csv`](file:///g:/PTIT%20TL/P_Inovation/hostra-ai/experiments/sales-intelligence/autonomous-storytelling/runs/P06-E01/gemini_3.5_flash_lite_pilot_v2/human_eval/factual_and_semantic_review_sheet.csv), [`blind_key_mapping.private.json`](file:///g:/PTIT%20TL/P_Inovation/hostra-ai/experiments/sales-intelligence/autonomous-storytelling/runs/P06-E01/gemini_3.5_flash_lite_pilot_v2/human_eval/blind_key_mapping.private.json)) được bảo toàn nguyên vẹn (`0` điểm giả, `leaks=[]`). Bổ sung 2 tài liệu hướng dẫn tách biệt rõ hai giai đoạn chấm:
-1. [`REVIEWER_GUIDE_BLIND_QUALITY.md`](file:///g:/PTIT%20TL/P_Inovation/hostra-ai/experiments/sales-intelligence/autonomous-storytelling/runs/P06-E01/gemini_3.5_flash_lite_pilot_v2/human_eval/REVIEWER_GUIDE_BLIND_QUALITY.md) *(Làm Bước 1)*: Chứa 2 transcript mù `METHOD_A`/`METHOD_B`, bảng neo hành vi 1–5 rút gọn từ rubric `v0.1` và quy tắc không bù trừ Hard Gate. **Không** chứa `origin`, `PREAPPROVED_FALLBACK`, `cited_evidence_ids`, `method`, `model`, `W` hay `run_id`.
-2. [`REVIEWER_GUIDE_FACTUAL_AND_SEMANTIC_AUDIT.md`](file:///g:/PTIT%20TL/P_Inovation/hostra-ai/experiments/sales-intelligence/autonomous-storytelling/runs/P06-E01/gemini_3.5_flash_lite_pilot_v2/human_eval/REVIEWER_GUIDE_FACTUAL_AND_SEMANTIC_AUDIT.md) *(Làm Bước 2)*: Chứa đầy đủ `expected_talking_points`, thông số `ProductFact` và nguyên văn `approved_chunks` cho từng SKU để đối chiếu từng lượt trong `factual_and_semantic_review_sheet.csv`, vẫn giữ ẩn danh `METHOD_A`/`METHOD_B`.
+### 1.4. Pilot v2 AI-Assisted Evaluation & Targeted Safety Review (`A/B/C`)
+
+Sau Pilot v2, Tech Lead đã dùng ChatGPT thực hiện một vòng **AI-assisted non-blind evaluation** (theo rubric `v0.1`) dựa trên `REVIEWER_GUIDE_BLIND_QUALITY.md`, `REVIEWER_GUIDE_FACTUAL_AND_SEMANTIC_AUDIT.md` và hai transcript mù. Hai tệp CSV kết quả được lưu **tách biệt hoàn toàn** tại [`runs/P06-E01/gemini_3.5_flash_lite_pilot_v2/ai_assisted_eval/`](file:///g:/PTIT%20TL/P_Inovation/hostra-ai/experiments/sales-intelligence/autonomous-storytelling/runs/P06-E01/gemini_3.5_flash_lite_pilot_v2/ai_assisted_eval/README.md) ([quality CSV](file:///g:/PTIT%20TL/P_Inovation/hostra-ai/experiments/sales-intelligence/autonomous-storytelling/runs/P06-E01/gemini_3.5_flash_lite_pilot_v2/ai_assisted_eval/pilot_v2_ai_assisted_quality.csv), [factual/semantic CSV](file:///g:/PTIT%20TL/P_Inovation/hostra-ai/experiments/sales-intelligence/autonomous-storytelling/runs/P06-E01/gemini_3.5_flash_lite_pilot_v2/ai_assisted_eval/pilot_v2_ai_assisted_factual_semantic.csv)), **không** ghi đè [`human_eval/`](file:///g:/PTIT%20TL/P_Inovation/hostra-ai/experiments/sales-intelligence/autonomous-storytelling/runs/P06-E01/gemini_3.5_flash_lite_pilot_v2/human_eval/blind_eval_sheet.csv):
+
+> [!WARNING]
+> **Ranh giới Provenance Bắt buộc:** Kết quả dưới đây là **AI-assisted non-blind evaluation**, tuyệt đối **KHÔNG phải Human Blind Evaluation** và **KHÔNG phải `GoldFactualLabel`**. Trạng thái **Human Evaluation Calibration** và **Gold Factual Assessment** vẫn là **`PENDING`** cho tới khi reviewer người thật chấm trực tiếp trên các phiếu `human_eval/` còn trống.
+
+- **Tóm tắt quan sát AI-assisted trên Pilot v2 (rubric `v0.1`):**
+  - `LangGraph W=5`: Mean `3.33/5` (`Coherence=3`, `Naturalness=3`, `Persuasiveness=3`, `Context Relevance=4`, `Transition Quality=2`, `Repetition Quality=5`), Semantic Alignment `5 FULL / 1 PARTIAL / 0 MISS`, Factual `4 PASS / 1 FAIL / 1 UNSURE`, Evidence Support `3 PASS / 3 FAIL`, Metadata leak `0/6`.
+  - `Script-first`: Mean `3.17/5` (`Coherence=3`, `Naturalness=3`, `Persuasiveness=4`, `Context Relevance=3`, `Transition Quality=2`, `Repetition Quality=4`), Semantic Alignment `5 FULL / 1 PARTIAL / 0 MISS`, Factual `5 PASS / 0 FAIL / 1 UNSURE`, Evidence Support `3 PASS / 3 FAIL`, Metadata leak `0/6`.
+- **Các chỉnh sửa tối thiểu cho 3 phát hiện Targeted Safety Review (`A`, `B`, `C`):**
+  - **A. Bảo toàn điều kiện chính sách đổi trả:** Khôi phục đầy đủ điều kiện `"khi nhận hàng kèm video mở hộp"` (mật ong) và `"khi mở hộp"` (mắc ca) trong `clm-e01-honey-allowed-02` / `clm-e01-macadamia-allowed-02` (`e01_ext_v1_verified_skus.json v1.0.1`, `e01_formal_v1_verified_skus.json v1.1.1`), các `talking_points` liên quan trong `e01_ext_v1_story_plans.json (v1.0.2)` và `e01_formal_v1_story_plans.json (v1.1.1)`. Đồng thời bổ sung quy tắc vào [`story_generation.txt`](file:///g:/PTIT%20TL/P_Inovation/hostra-ai/experiments/sales-intelligence/autonomous-storytelling/prompts/story_generation.txt) (`v0.2.1`), [`rewrite.txt`](file:///g:/PTIT%20TL/P_Inovation/hostra-ai/experiments/sales-intelligence/autonomous-storytelling/prompts/rewrite.txt) (`v0.2.1`) và [`script_first.py`](file:///g:/PTIT%20TL/P_Inovation/hostra-ai/experiments/sales-intelligence/autonomous-storytelling/src/p06/baselines/script_first.py) (`baseline-script-first-v0.2.2`) cấm lược bỏ điều kiện chính sách đổi trả chỉ để nén số từ.
+  - **B. Loại bỏ suy diễn nhân quả chưa được chứng minh & lỗi lệch evidence Batch 1A:** Sửa `topic-pilot-macadamia-01` từ `"Sấy nhiệt độ thấp giữ độ giòn béo tự nhiên."` thành hai sự kiện độc lập đúng bằng chứng (`"Sấy đối lưu nhiệt độ thấp chín đều từ lõi; nhân hạt giòn béo tự nhiên."`); cấm suy diễn nhân quả không nêu trực tiếp trong prompt `v0.2.1`. Ngoài ra, kiểm toán chéo toàn bộ kịch bản đã phát hiện và sửa lỗi lệch bằng chứng ngay trong Batch 1A tại `topic-ext-edu-tea-pairing` (`"hạt rang bùi"` không có trong `ev-e01-ext-tea-pairing` -> sửa thành `"bánh quy nhạt hoặc mứt gừng nhẹ để cân bằng vị giác"`).
+  - **C. Hoàn thiện `fact_refs`:** Rà soát 15 topics đã vá từ vòng trước (`v1.0.1`), giữ nguyên kết quả đã bao phủ vật liệu thép/gói hút ẩm/cảm quan và bổ sung thêm `ev-e01-ext-honey-safety` cho `topic-ext-brand-honey-pairing` (vì nhắc trẻ dưới 1 tuổi). Không refactor LangGraph hay P05.
+
+### 1.5. Sửa lỗi đo `mandatory_topic_coverage` khi `min_chunks_per_topic >= 2`
+- Phát hiện sai lệch trong [`coverage.py`](file:///g:/PTIT%20TL/P_Inovation/hostra-ai/experiments/sales-intelligence/autonomous-storytelling/src/p06/evaluation/metrics/coverage.py): trước đây `completed_topic_ids` và `time_to_complete_mandatory_topics_sec` chỉ kiểm tra topic có `>= 1` `COMPLETED` ACK (bỏ qua `min_chunks_per_topic`).
+- Đã cập nhật `compute_coverage_metrics()` đọc `min_chunks_per_topic` từ `manifest` và chỉ đánh dấu hoàn tất topic khi số ACK không-fallback `>= min_chunks_per_topic` (ghi rõ `partially_covered_topic_ids` và `played_chunk_counts_by_topic` trong `metadata`). Nhờ vậy, khi `W=20` dừng sớm `MAX_CONSECUTIVE_ABORTS` trước khi hoàn tất lượt 2 trên toàn bộ 36 topics (`m=2`), `mandatory_topic_coverage` phản ánh trung thực **`0.9722` (`35/36`)** thay vì báo nhầm `1.0000`.
 
 ---
 
@@ -74,11 +88,11 @@ Toàn bộ phiếu Pilot v2 gốc ([`blind_eval_sheet.csv`](file:///g:/PTIT%20TL
 | **`e01_formal_v1` · `window_stress_12lag_3sku`** | **`2`** | `script_first_upfront_llm` | `N/A` | `EARLY_COMPLETION` | `72` | `440.78s / 600s` | `0.7346` | `1.0` | `0.1549` | `0.0` | `0.0` | `72` |
 | **`e01_formal_v1` · `window_stress_12lag_3sku`** | **`2`** | `langgraph_structured_story` | **`5`** | `EARLY_COMPLETION` | `72` | `439.62s / 600s` | `0.7327` | `1.0` | `0.0423` | `0.3056` | `0.0` | `97` |
 | **`e01_formal_v1` · `window_stress_12lag_3sku`** | **`2`** | `langgraph_structured_story` | **`10`** | `EARLY_COMPLETION` | `74` | `451.93s / 600s` | `0.7532` | `1.0` | `0.0274` | `0.2973` | `0.0270` | `102` |
-| **`e01_formal_v1` · `window_stress_12lag_3sku`** | **`2`** | `langgraph_structured_story` | **`20`** | `MAX_CONSECUTIVE_ABORTS` | `77` | `473.85s / 600s` | `0.7898` | `1.0` | `0.0` | `0.3061` | `0.0612` | `156` |
+| **`e01_formal_v1` · `window_stress_12lag_3sku`** | **`2`** | `langgraph_structured_story` | **`20`** | `MAX_CONSECUTIVE_ABORTS` | `77` | `473.85s / 600s` | `0.7898` | `0.9722` | `0.0` | `0.3061` | `0.0612` | `156` |
 
 > **Phát hiện thực nghiệm quan trọng từ kiểm định Mock:**
 > 1. Trên `product_education_10m_ext (m=2)`, `W=10` và `W=20` cho kết quả giống hệt (`42` turns, `52` calls) vì `lag=6`. Trên `window_stress_12lag_3sku (m=2)` (`lag=12`), `W=5`, `W=10` và `W=20` tách biệt rõ (`72 -> 74 -> 77` turns; `97 -> 102 -> 156` calls; `lex_rep: 0.0423 -> 0.0274 -> 0.0`).
-> 2. Ở `W=20 > lag=12` trên `m=2`, vì mỗi topic chỉ gắn `1` `allowed_claim_id`, khi lượt 2 quay lại topic cũ, `RepetitionDetector` tầng 3 (`REPEATED_FACTS`) cảnh báo nếu lượt trước vẫn nằm trong cửa sổ 20 lượt, dẫn đến cạn fallback và kích hoạt `MAX_CONSECUTIVE_ABORTS` ở SKU thứ 3 (nhưng `topic_cov` vẫn đạt `1.0` vì mỗi topic đã hoàn tất ít nhất 1 chunk ở vòng 1). Điều này cho thấy rõ: **nên chạy `min_chunks_per_topic=1` cho Track 1 (Natural Storytelling) và chỉ chạy `min_chunks_per_topic=2` cho Track 2 (Controlled Window Sensitivity Stress)**.
+> 2. Ở `W=20 > lag=12` trên `m=2`, vì mỗi topic chỉ gắn `1` `allowed_claim_id`, khi lượt 2 quay lại topic cũ, `RepetitionDetector` tầng 3 (`REPEATED_FACTS`) cảnh báo nếu lượt trước vẫn nằm trong cửa sổ 20 lượt, dẫn đến cạn fallback và kích hoạt `MAX_CONSECUTIVE_ABORTS` ở SKU thứ 3 (còn `1/36` topic chưa hoàn tất lượt 2 nên `mandatory_topic_coverage = 35/36 = 0.9722`). Điều này khẳng định: **chạy `min_chunks_per_topic=1` cho Track 1 (Natural Storytelling) và chỉ dùng `min_chunks_per_topic=2` cho Track 2 (Controlled Window Sensitivity Stress)**.
 
 ---
 
@@ -98,7 +112,8 @@ Toàn bộ phiếu Pilot v2 gốc ([`blind_eval_sheet.csv`](file:///g:/PTIT%20TL
 ## 4. Ma trận Thực nghiệm Formal Benchmark (`Formal Experiment Matrix`)
 
 - **Model & Tham số Cố định (`100%` giống nhau giữa các runs):** `gemini-3.5-flash-lite` Free Tier (`0 USD`, dữ liệu `SYNTHETIC` only), `thinking_level: "MINIMAL"`, `temperature: 0.3`, `top_p: 0.9`, `max_tokens: 1024`, `max_chunk_duration_sec: 8.0s` (`12–18 từ`, trần `20 từ`), `max_rewrite_retries: 2`, `min_request_interval_sec: 6.0s` (tuần tự, dừng khi `HTTP 429`).
-- **Quy tắc tách bạch dữ liệu:** Tuyệt đối **không gộp** Pilot v1 (`v0.1`) hoặc Pilot v2 (`v0.2` trước chỉnh sửa) vào bảng Formal Benchmark `v1` (`v0.2.1` + `fact_refs v1.0.1`).
+- **Quy tắc tách bạch dữ liệu:** Tuyệt đối **không gộp** Pilot v1 (`v0.1`) hoặc Pilot v2 (`v0.2` trước chỉnh sửa an toàn) vào bảng Formal Benchmark `v1` (`v0.2.1` + `baseline-script-first-v0.2.2` + `e01_ext_v1 v1.0.2` / `e01_formal_v1 v1.1.1`).
+- **Tách bạch khoảng cách cửa sổ (`lag`):** `product_education_10m_ext` có `6` topics/SKU (`lag=6`, chỉ tách `W=5` khỏi `W=10/20`), `window_sensitivity_stress_24t` có `8` topics/SKU (`lag=8`, vẫn `< 10`), chỉ `window_stress_12lag_3sku` có `12` topics/SKU (`lag=12`) mới thỏa `W=5 < lag=12`, `W=10 < lag=12` và `W=20 >= lag=12` khi `m=2`.
 
 | Track & Mục tiêu Nghiên cứu | Dataset & Scenario | `min_chunks` | Cấu hình Phương pháp (`4` cấu hình) | Số lần lặp (`n`) | Lý do Thiết kế & Lưu ý Thống kê |
 |---|---|---:|---|---:|---|
@@ -140,9 +155,29 @@ Toàn bộ phiếu Pilot v2 gốc ([`blind_eval_sheet.csv`](file:///g:/PTIT%20TL
 | `provider_latency_p50_ms` / `p95_ms` | Thời gian chờ mỗi request Gemini (`MEASURED`) | Ghi nhận phân bố thực tế đóng góp vào budget `W1` (`P50 <= 7s`, `P95 <= 10s` cho đơn lượt) |
 | **Human Rubric (`1–5`, trung bình theo mẫu)** | `narrative_coherence`, `naturalness`, `persuasiveness`, `context_relevance`, `transition_quality`, `repetition_quality` | Trung bình mỗi trục **`>= 3.5 / 5.0`**, không trục nào **`< 3.0`** *(chỉ khóa sau Pilot v2 Calibration)* |
 
+### 5.3. Phân định Rạch ròi Các Khái niệm Đánh giá & Tiêu chuẩn Khóa Ngưỡng
+1. **Playback Coverage (`mandatory_topic_coverage`) ≠ Semantic Content Coverage:** `mandatory_topic_coverage` đo tỷ lệ chủ đề bắt buộc có ít nhất `min_chunks_per_topic` `PlaybackCompleted` ACK không-fallback (`0/1` kỹ thuật). Nó **không** chứng minh lời thoại truyền đạt đủ ý chính; phần đó đo riêng bằng `semantic_alignment_FULL_PARTIAL_MISS`.
+2. **Factual Correctness ≠ Evidence Support:** `factual_correctness (PASS / FAIL / UNSURE)` thẩm định lời thoại có đúng với toàn bộ tri thức đã duyệt (`ProductFact` + `approved_chunks`) và chính sách an toàn/đổi trả hay không; còn `evidence_support (PASS / FAIL)` thẩm định chặt xem riêng các `cited_evidence_ids` được gán ở lượt đó có đủ chứng minh mọi chi tiết trong câu nói hay không.
+3. **Định nghĩa `FULL / PARTIAL / MISS` (Semantic Alignment):** `FULL` = truyền tải trọn vẹn mọi ý chính trong `expected_talking_points` của chủ đề; `PARTIAL` = giữ được một phần ý chính hoặc giá/quy cách nhưng thiếu nhánh thông tin trọng tâm (hoặc dùng câu fallback thay thế); `MISS` = lạc chủ đề hoặc không truyền đạt được ý chính nào của topic.
+4. **Giữ nguyên ngưỡng chất lượng đề xuất (`PROPOSED / TO VALIDATE`):** Vẫn giữ mục tiêu trung bình mỗi trục **`>= 3.5 / 5.0`** và không trục nào **`< 3.0`**; **không** hạ chuẩn xuống mức Pilot v2 AI-assisted (`3.33 / 3.17`, `transition_quality = 2/5`) để làm đẹp báo cáo.
+5. **`Duration Fulfillment` & `termination_reason`:** Báo cáo trung thực cặp `(duration_fulfillment, termination_reason)` với đủ 4 trạng thái dừng (`EARLY_COMPLETION`, `CONTENT_EXHAUSTED`, `TIME_BUDGET_EXHAUSTED`, `MAX_CONSECUTIVE_ABORTS`), ghi nhận rõ giới hạn nghiên cứu không đạt đủ `10–30` phút trên 3 SKU ở trần `8.0s/chunk` thay vì ép lặp.
+
 ---
 
-## 6. Ước lượng Ngân sách Request (`Estimated Request Budget`)
+## 5B. Bảng Khóa Phiên bản & SHA-256 Tài nguyên (`Artifact Lock Table`)
+
+| Thành phần Khóa | Đường dẫn Tương đối | Version | SHA-256 |
+|---|---|---|---|
+| Dataset `e01_ext_v1` SKUs | `data/products/e01_ext_v1_verified_skus.json` | `1.0.1` | `6ab12c62f3545d804b55ba5e23477f7b610313f81775cdd5452a783916518c64` |
+| StoryPlans `e01_ext_v1` | `data/story_plans/e01_ext_v1_story_plans.json` | `1.0.2` | `42c446c4f0c36293b48f985a78079360abd7db243bc66ca532e058f47047f020` |
+| Dataset `e01_formal_v1` SKUs | `data/products/e01_formal_v1_verified_skus.json` | `1.1.1` | `bd70430b9f5dfa34fc5ea13560aa437f9dd994ce92159f9000106ca7eb1a71c6` |
+| StoryPlans `e01_formal_v1` | `data/story_plans/e01_formal_v1_story_plans.json` | `1.1.1` | `f969ec242b30578275cac01c2d10eaf602b57a3b6a3bbf12a42dcdc924f055f3` |
+| Prompt `story_planner.txt` | `prompts/story_planner.txt` | `v0.1` *(LF)* | `f07514cc307bff4a3332d419a539f843bb18510722bdc7774a26a9ff98ddd118` |
+| Prompt `story_generation.txt` | `prompts/story_generation.txt` | `v0.2.1` *(LF)* | `0f1eb7e856654d9565a9e6dbe468f59180c3dc20bc4cb723cd1441d5000d5912` |
+| Prompt `rewrite.txt` | `prompts/rewrite.txt` | `v0.2.1` *(LF)* | `1126789faaf84f547a455b677af4b025103e3a1b60513e1fc0910cc14a5c61d5` |
+| Prompt `ScriptFirstBaseline` | `src/p06/baselines/script_first.py` | `baseline-script-first-v0.2.2` | `50ed84045f0014400ae60a799513968c5f4d68054e77cf79f9578823184554d4` |
+| Model Config Free Tier | `configs/models/gemini_3.5_flash_lite_free.yaml` | `free_tier` | `c836c82baee490a4b4d728e2877d19e4fd15c16a87c64372a9af3692a7ab344b` |
+| Batch 1A Config | `configs/experiments/p06_e01_formal_batch1a.yaml` | `batch1a_s42` | `3792162ed9c7b3e0b35054575e82804f00615f759efe44c42968fc825716cfdc` |
 
 ### 6.1. Thông số Hạn mức & Nguyên tắc Tính
 - **Quota Free Tier tham chiếu:** `RPM = 15`, `TPM = 250,000`, `RPD = 500`, **`0 USD`** (cần xác minh lại số RPD còn dư thực tế trên Google AI Studio ngay trước khi kích hoạt từng batch; **không** cộng hay tái sử dụng slot dư từ Pilot v2).
@@ -167,16 +202,34 @@ Toàn bộ phiếu Pilot v2 gốc ([`blind_eval_sheet.csv`](file:///g:/PTIT%20TL
 > [!CAUTION]
 > Các lệnh dưới đây là lệnh dự kiến chỉ chạy **sau khi có phê duyệt `FINAL BENCHMARK EXECUTION APPROVAL`**, xác minh lại `RPD` thực tế trên Google AI Studio và hoàn tất chấm điểm Pilot v2.
 
-### 7.1. Batch 1 — Track 1 Natural Storytelling (`e01_ext_v1`, `min_chunks_per_topic=1`)
+### 7.1. Batch 1A — Khóa cấu hình thực thi chính thức đầu tiên (`run_gemini_formal_batch.py`, `Global Cap = 120`)
+Nhóm đã đóng gói cấu hình Batch 1A vào [`configs/experiments/p06_e01_formal_batch1a.yaml`](file:///g:/PTIT%20TL/P_Inovation/hostra-ai/experiments/sales-intelligence/autonomous-storytelling/configs/experiments/p06_e01_formal_batch1a.yaml) và bộ điều phối sổ cái toàn cục [`run_gemini_formal_batch.py`](file:///g:/PTIT%20TL/P_Inovation/hostra-ai/experiments/sales-intelligence/autonomous-storytelling/experiments/p06_e01_no_comments/run_gemini_formal_batch.py):
+- **Cấu hình khóa:** `gemini-3.5-flash-lite` Free Tier (`0 USD`, `SYNTHETIC` only), `e01_ext_v1` · `product_education_10m_ext`, `seed=42`, `min_chunks_per_topic=1`, `max_chunk_duration_sec=8.0`, `4` phương pháp (`script_first_upfront_llm`, `langgraph W=5`, `W=10`, `W=20`), **`max_requests_per_run = 30`**, **`global_max_requests = 120`** (tính cả failed requests, retries, rewrites), `min_request_interval_sec = 6.0`, dừng ngay khi `HTTP 429` và lưu `budget_ledger.json` + `batch_summary.json` + `comparison.*` + `human_eval/`.
+
 ```powershell
-# Chạy sweep Track 1 seed 42 (product_education_10m_ext + brand_storytelling_10m_ext, m=1)
+# CHỈ CHẠY SAU KHI CÓ PHÊ DUYỆT FINAL_BENCHMARK_EXECUTION_APPROVAL:
+.\.venv\Scripts\python.exe experiments/sales-intelligence/autonomous-storytelling/experiments/p06_e01_no_comments/run_gemini_formal_batch.py `
+  --config experiments/sales-intelligence/autonomous-storytelling/configs/experiments/p06_e01_formal_batch1a.yaml `
+  --allow-live-provider
+```
+
+```powershell
+# Kiểm thử dry-run ngoại tuyến với Mock (0 API call):
+.\.venv\Scripts\python.exe experiments/sales-intelligence/autonomous-storytelling/experiments/p06_e01_no_comments/run_gemini_formal_batch.py `
+  --config experiments/sales-intelligence/autonomous-storytelling/configs/experiments/p06_e01_formal_batch1a.yaml `
+  --provider mock --output-dir experiments/sales-intelligence/autonomous-storytelling/.pytest_cache/batch1a_mock_dryrun
+```
+
+### 7.2. Batch 1B & Track 2 (`lag=12`) tham khảo bằng `run_e01.py` / Batch YAML tương ứng
+```powershell
+# Chạy sweep Track 1 bổ sung (ví dụ brand_storytelling_10m_ext hoặc seed=43) với run_e01.py:
 .\.venv\Scripts\python.exe experiments/sales-intelligence/autonomous-storytelling/experiments/p06_e01_no_comments/run_e01.py `
   --provider gemini --allow-live-provider `
   --config experiments/sales-intelligence/autonomous-storytelling/configs/models/gemini_3.5_flash_lite_free.yaml `
-  --dataset-profile e01_ext_v1 --scenario product_education_10m_ext `
+  --dataset-profile e01_ext_v1 --scenario brand_storytelling_10m_ext `
   --min-chunks-per-topic 1 --seed 42 --max-turns 40 --max-llm-calls 30 `
   --sweep --export-human-eval `
-  --output-dir experiments/sales-intelligence/autonomous-storytelling/runs/P06-E01/formal_benchmark_v1/track1_product_edu_s42
+  --output-dir experiments/sales-intelligence/autonomous-storytelling/runs/P06-E01/formal_benchmark_v1/track1_brand_s42
 ```
 *(Lưu ý quan trọng khi dùng `--sweep` với `DEFAULT_E01_METHODS`: hiện tại `DEFAULT_E01_METHODS` trong `sweep.py` gồm cả `script_first_deterministic`, phương pháp này `0` LLM call và giúp đối chứng thêm baseline tất định; hoặc gọi từng `--method` riêng cho `script_first_upfront_llm` và `langgraph_structured_story` `--history-window 5/10/20` nếu muốn kiểm soát từng run và chỉ xuất human eval cho 4 phương pháp LLM).*
 
@@ -207,8 +260,8 @@ Toàn bộ phiếu Pilot v2 gốc ([`blind_eval_sheet.csv`](file:///g:/PTIT%20TL
 
 ## 8. Kết quả Kiểm thử Hồi quy (`Regression Tests`)
 
-Chạy toàn bộ bộ test P06 và kiểm tra phụ thuộc sau chỉnh sửa cuối cùng:
-- `.\.venv\Scripts\python.exe -m pytest experiments/sales-intelligence/autonomous-storytelling/tests -q` -> **`283 passed in 80.83s (0:01:20)`** (`0 failed, 0 skipped`) — gồm `279` tests cũ (`1` cập nhật chuỗi version `v0.2.1`) và `4` tests mới trong [`tests/unit/test_formal_benchmark_prep.py`](file:///g:/PTIT%20TL/P_Inovation/hostra-ai/experiments/sales-intelligence/autonomous-storytelling/tests/unit/test_formal_benchmark_prep.py).
+Chạy toàn bộ bộ test P06 và kiểm tra phụ thuộc sau chỉnh sửa code/data/prompt cuối cùng:
+- `.\.venv\Scripts\python.exe -m pytest experiments/sales-intelligence/autonomous-storytelling/tests -q` -> **`287 passed in 67.87s (0:01:07)`** (`0 failed, 0 skipped`) — gồm `279` tests cũ (`2` cập nhật chuỗi version `v0.2.1` / `baseline-script-first-v0.2.2`) và `8` tests trong [`tests/unit/test_formal_benchmark_prep.py`](file:///g:/PTIT%20TL/P_Inovation/hostra-ai/experiments/sales-intelligence/autonomous-storytelling/tests/unit/test_formal_benchmark_prep.py) (bao gồm kiểm tra `coverage.py` khi `min_chunks_per_topic=2`, các bản vá an toàn A/B/C, cô lập `ai_assisted_eval/` khỏi `human_eval/`, và dry-run Batch 1A với Mock + `FakeGeminiRestClient`).
 - `.\.venv\Scripts\python.exe -m pip check` -> **`No broken requirements found.`**
 
 ---
@@ -219,8 +272,9 @@ Chạy toàn bộ bộ test P06 và kiểm tra phụ thuộc sau chỉnh sửa c
 2. **Hành vi `W=20` khi `min_chunks_per_topic=2` và `1 claim/topic`:** Như đã quan sát ở Mock validation trên `window_stress_12lag_3sku (m=2)`, khi cửa sổ `W=20 > lag=12` giữ lại lượt 1 của topic chỉ có 1 `claim_id`, cơ chế `REPEATED_FACTS` có thể kích hoạt `MAX_CONSECUTIVE_ABORTS` nếu model không có claim thay thế trong cùng topic. Kết quả trên Gemini thật sẽ làm rõ mức nhạy thực tế của `W=10` vs `W=20`.
 3. **P05 chưa kiểm tra semantic entailment:** `P05KnowledgeAdapter` kiểm tra `evidence_id` tồn tại, giá, OCOP, từ cấm và hygiene, nhưng chưa có NLI/entailment kiểm chứng từng câu văn có suy diễn đúng 100% từ `cited_evidence_ids` hay không. Việc chấm tay ở Bước 2 vẫn bắt buộc.
 4. **Nhiễu `HTTP 503` của Free Tier:** Vẫn là rủi ro hạ tầng thực tế khi chạy chuỗi `18–72` requests liên tiếp.
-5. **Chưa có điểm chấm người thật trên Pilot v2:** Phiếu Pilot v2 vừa xuất xong bộ hướng dẫn và đang chờ reviewer chấm.
-6. **Tier 2 Ollama CPU:** Vẫn ở trạng thái **`DEFERRED WITH USER APPROVAL`**.
+5. **Chưa có điểm chấm người thật trên Pilot v2 (`PENDING`):** Các tệp trong `ai_assisted_eval/` chỉ là AI-assisted non-blind (không phải Human Blind Evaluation hay `GoldFactualLabel`); phiếu `human_eval/` vẫn đang chờ reviewer người thật chấm để hiệu chuẩn rubric trước Formal runs.
+6. **Cần xác minh quota RPD & phê duyệt cuối trước khi chạy Batch 1A:** Phải kiểm tra số RPD còn dư trên Google AI Studio (`>= 120` requests cho Batch 1A) và nhận phê duyệt tường minh `FINAL_BENCHMARK_EXECUTION_APPROVAL`.
+7. **Tier 2 Ollama CPU:** Vẫn ở trạng thái **`DEFERRED WITH USER APPROVAL`**.
 
 ---
 

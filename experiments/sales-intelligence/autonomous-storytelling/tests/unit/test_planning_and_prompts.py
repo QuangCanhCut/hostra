@@ -103,8 +103,8 @@ class TestPromptLoaderAndTemplates:
         assert list(hashes.keys()) == list(expected_files)
 
         expected_versions = {
-            "rewrite.txt": "v0.2",
-            "story_generation.txt": "v0.2",
+            "rewrite.txt": "v0.2.1",
+            "story_generation.txt": "v0.2.1",
             "story_planner.txt": "v0.1",
         }
         for filename in expected_files:
