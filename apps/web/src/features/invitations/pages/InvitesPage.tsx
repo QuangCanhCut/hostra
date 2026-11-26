@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom'
 import { Lock, Plus, ShieldAlert } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
+import { PageHeader } from '@/components/ui/PageHeader'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { Banner } from '@/components/ui/Banner'
 import { Modal } from '@/components/ui/Modal'
@@ -98,24 +99,19 @@ export function InvitesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-[var(--text-primary)]">
-            Lời mời xem livestream & Mã QR
-          </h1>
-          <p className="mt-1 text-sm text-[var(--text-secondary)]">
-            Tạo nhiều liên kết mời đặt tên bất biến kèm thời hạn và giới hạn lượt vào. Thu hồi liên kết sẽ ngắt khách đang xem từ liên kết đó.
-          </p>
-        </div>
-
-        <Button
-          variant="primary"
-          leftIcon={<Plus className="h-4 w-4" />}
-          onClick={() => setCreateOpen(true)}
-        >
-          Tạo lời mời mới
-        </Button>
-      </div>
+      <PageHeader
+        title="Lời mời xem livestream & Mã QR"
+        subtitle="Tạo nhiều liên kết mời đặt tên bất biến kèm thời hạn và giới hạn lượt vào. Thu hồi liên kết sẽ ngắt khách đang xem từ liên kết đó."
+        actions={
+          <Button
+            variant="primary"
+            leftIcon={<Plus className="h-4 w-4" />}
+            onClick={() => setCreateOpen(true)}
+          >
+            Tạo lời mời mới
+          </Button>
+        }
+      />
 
       {notice ? <Banner severity="info" title="Cập nhật lời mời" description={notice} /> : null}
 
@@ -140,7 +136,7 @@ export function InvitesPage() {
                 className={cn(
                   'cursor-pointer transition-colors space-y-2.5',
                   selected
-                    ? 'border-[var(--brand-amber)] bg-[var(--bg-hero)]'
+                    ? 'border-[var(--accent-gold)] bg-[var(--bg-raised)]'
                     : 'hover:border-[var(--border-strong)]',
                 )}
               >
@@ -179,7 +175,7 @@ export function InvitesPage() {
           })}
         </div>
 
-        <Card padding="md" className="lg:col-span-5 h-fit">
+        <Card featured padding="md" className="lg:col-span-5 h-fit">
           {activeInvite ? (
             <div className="space-y-4">
               <div className="flex items-center justify-between gap-2">
@@ -237,8 +233,8 @@ export function InvitesPage() {
                   className={cn(
                     'h-9 rounded-[8px] border text-xs font-semibold cursor-pointer',
                     expiryHours === h
-                      ? 'border-[var(--brand-amber)] bg-[var(--bg-hero)] text-[var(--text-primary)]'
-                      : 'border-[var(--border-default)] text-[var(--text-secondary)]',
+                      ? 'border-[var(--accent-gold)] bg-[var(--bg-raised)] text-[var(--accent-gold)]'
+                      : 'border-[var(--border-default)] text-[var(--text-secondary)] hover:border-[var(--border-strong)]',
                   )}
                 >
                   {h} giờ

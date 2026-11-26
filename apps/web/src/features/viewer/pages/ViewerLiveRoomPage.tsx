@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { ThemeToggle } from '@/components/shared/ThemeToggle'
+import { BrandLogo } from '@/components/shared/BrandLogo'
 import { PresenterPortrait, ProductThumb } from '@/components/shared/PortraitAvatar'
 import { useScenario } from '@/hooks/useScenario'
 import {
@@ -118,18 +119,10 @@ export function ViewerLiveRoomPage() {
         : room?.lifecycle ?? 'LIVE'
 
   const header = (
-    <header className="flex h-14 items-center justify-between bg-[var(--brand-navy)] px-4 text-white">
-      <div className="flex items-center gap-2.5">
-        <div className="flex h-7 w-7 items-center justify-center rounded-[7px] bg-[var(--brand-amber)] text-[var(--brand-navy)] font-bold text-sm">
-          H
-        </div>
-        <div className="leading-tight">
-          <p className="text-xs font-bold tracking-wide">HOSTRA</p>
-          <p className="text-[10px] tracking-[0.1em] text-slate-300">LIVE RIÊNG TƯ</p>
-        </div>
-      </div>
+    <header className="flex h-14 items-center justify-between border-b border-[var(--bg-sidebar-border)] [background:var(--bg-sidebar)] px-4 text-[#f5ebdd]">
+      <BrandLogo tone="on-dark" subtitle="LIVE RIÊNG TƯ" />
       <div className="flex items-center gap-2">
-        <ThemeToggle className="h-8 w-8 border-white/15 bg-white/10 text-white hover:bg-white/20" />
+        <ThemeToggle tone="on-dark" className="h-8 w-8" />
       </div>
     </header>
   )
@@ -151,11 +144,11 @@ export function ViewerLiveRoomPage() {
       <div className="min-h-screen bg-[var(--bg-canvas)] flex flex-col">
         {header}
         <main className="flex flex-1 items-center justify-center p-4">
-          <Card padding="lg" className="w-full max-w-sm text-center space-y-4">
+          <Card featured elevated padding="lg" className="w-full max-w-sm text-center space-y-4">
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[var(--status-danger-bg)] text-[var(--status-danger-fg)]">
               <AlertCircle className="h-7 w-7" />
             </div>
-            <h1 className="text-lg font-bold text-[var(--text-primary)]">Không thể tham gia</h1>
+            <h1 className="font-display text-xl font-bold text-[var(--text-primary)]">Không thể tham gia</h1>
             <p className="text-sm text-[var(--text-secondary)]">
               {room?.accessReason ||
                 'Lời mời đã hết hạn hoặc không còn hiệu lực. Vui lòng liên hệ người mời.'}
@@ -177,11 +170,11 @@ export function ViewerLiveRoomPage() {
       <div className="min-h-screen bg-[var(--bg-canvas)] flex flex-col">
         {header}
         <main className="flex flex-1 items-center justify-center p-4">
-          <Card padding="lg" className="w-full max-w-sm text-center space-y-4">
+          <Card featured elevated padding="lg" className="w-full max-w-sm text-center space-y-4">
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[var(--status-success-bg)] text-[var(--status-success-fg)]">
               <CheckCircle2 className="h-7 w-7" />
             </div>
-            <h1 className="text-lg font-bold text-[var(--text-primary)]">Phiên đã kết thúc</h1>
+            <h1 className="font-display text-xl font-bold text-[var(--text-primary)]">Phiên đã kết thúc</h1>
             <p className="text-sm text-[var(--text-secondary)]">
               Cảm ơn bạn đã theo dõi! Hẹn gặp lại ở livestream tiếp theo.
             </p>
@@ -202,15 +195,15 @@ export function ViewerLiveRoomPage() {
       <div className="min-h-screen bg-[var(--bg-canvas)] flex flex-col">
         {header}
         <main className="flex flex-1 items-center justify-center p-4">
-          <Card padding="lg" className="w-full max-w-sm space-y-5">
-            <div className="flex aspect-video items-center justify-center rounded-[12px] bg-[var(--bg-hero)] border border-[var(--bg-hero-border)]">
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--brand-amber)] text-[var(--brand-navy)] shadow-sm">
+          <Card featured elevated padding="lg" className="w-full max-w-sm space-y-5">
+            <div className="flex aspect-video items-center justify-center rounded-[12px] [background:var(--bg-hero)] border border-[var(--bg-hero-border)]">
+              <div className="flex h-14 w-14 items-center justify-center rounded-full [background:var(--cta-primary-bg)] text-[var(--cta-primary-fg)] shadow-[0_6px_18px_rgba(0,0,0,0.28)]">
                 <Play className="h-6 w-6 fill-current ml-0.5" />
               </div>
             </div>
 
             <div className="text-center space-y-1">
-              <h1 className="text-xl font-bold text-[var(--text-primary)]">
+              <h1 className="font-display text-xl font-bold text-[var(--text-primary)]">
                 Tham gia livestream cùng HOSTRA
               </h1>
               <p className="text-sm text-[var(--text-secondary)]">
@@ -229,7 +222,7 @@ export function ViewerLiveRoomPage() {
                   value={nickname}
                   onChange={(e) => setNickname(e.target.value)}
                   placeholder="Nhập tên để tham gia..."
-                  className="h-11 w-full rounded-[8px] border border-[var(--border-strong)] bg-[var(--bg-surface)] px-3 text-sm"
+                  className="h-11 w-full rounded-[8px] border border-[var(--border-strong)] bg-[var(--bg-surface)] px-3 text-sm text-[var(--text-primary)] focus:border-[var(--accent-gold)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
                 />
               </div>
 
@@ -263,13 +256,13 @@ export function ViewerLiveRoomPage() {
       <div className="min-h-screen bg-[var(--bg-canvas)] flex flex-col">
         {header}
         <main className="flex flex-1 items-center justify-center p-4">
-          <Card padding="lg" className="w-full max-w-sm text-center space-y-4">
+          <Card featured elevated padding="lg" className="w-full max-w-sm text-center space-y-4">
             <StatusBadge
               label={effectiveLifecycle === 'STARTING' ? 'Đang chuẩn bị phát' : 'Phòng chờ'}
               tone="info"
               pulse={effectiveLifecycle === 'STARTING'}
             />
-            <h1 className="text-xl font-bold text-[var(--text-primary)]">
+            <h1 className="font-display text-xl font-bold text-[var(--text-primary)]">
               Livestream sắp bắt đầu
             </h1>
             <p className="text-sm text-[var(--text-secondary)]">
@@ -298,7 +291,7 @@ export function ViewerLiveRoomPage() {
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
           {/* Video + Active Product Card (VR-D1=B, VR-D2=A, VR-D4=A) */}
           <div className="lg:col-span-7 space-y-3">
-            <div className="relative aspect-video w-full overflow-hidden rounded-[12px] bg-[#0B1322]">
+            <div className="relative aspect-video w-full overflow-hidden rounded-[14px] border border-[var(--border-strong)] bg-[var(--media-stage-bg)]">
               <PresenterPortrait
                 presenterId={room?.presenterId ?? 'prs-linh-01'}
                 name={room?.presenterName ?? 'AI Presenter'}
@@ -306,7 +299,7 @@ export function ViewerLiveRoomPage() {
               />
               <div className="absolute top-3 left-3 flex items-center gap-2">
                 <StatusBadge label="LIVE" tone="danger" pulse />
-                <span className="rounded-full bg-slate-900/80 px-2.5 py-0.5 text-[11px] font-medium text-white">
+                <span className="rounded-full border border-[#5a4632]/70 bg-[#120d0a]/80 px-2.5 py-0.5 text-[11px] font-medium text-[#f5ebdd] backdrop-blur-xs">
                   Người dẫn AI
                 </span>
               </div>
@@ -314,16 +307,16 @@ export function ViewerLiveRoomPage() {
                 type="button"
                 aria-label={muted ? 'Bật âm thanh' : 'Tắt âm thanh'}
                 onClick={() => setMuted((m) => !m)}
-                className="absolute top-3 right-3 flex h-11 w-11 items-center justify-center rounded-full bg-slate-900/75 text-white hover:bg-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] cursor-pointer"
+                className="absolute top-3 right-3 flex h-11 w-11 items-center justify-center rounded-full border border-[#5a4632]/60 bg-[#120d0a]/75 text-[#f5ebdd] hover:bg-[#1a130e] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] cursor-pointer"
               >
                 {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
               </button>
 
               {simBuffering ? (
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/85 p-4 text-center text-white">
-                  <Loader2 className="h-7 w-7 animate-spin text-[var(--brand-amber)]" />
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#120d0a]/85 p-4 text-center text-[#f5ebdd] backdrop-blur-[2px]">
+                  <Loader2 className="h-7 w-7 animate-spin text-[#f2c47d]" />
                   <p className="mt-2 text-sm font-bold">Đang tải video...</p>
-                  <p className="mt-0.5 text-xs text-slate-300">
+                  <p className="mt-0.5 text-xs text-[#c3b4a2]">
                     Phiên vẫn đang phát trực tiếp · Bạn vẫn có thể gửi bình luận
                   </p>
                 </div>
@@ -337,7 +330,7 @@ export function ViewerLiveRoomPage() {
 
             {/* Thẻ sản phẩm đang giới thiệu nằm dưới khung video */}
             {room?.activeSku ? (
-              <Card padding="sm" className="flex items-center justify-between gap-3">
+              <Card featured padding="sm" className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0">
                   <ProductThumb skuId={room.activeSku.skuId} name={room.activeSku.name} />
                   <div className="min-w-0">
@@ -406,7 +399,7 @@ export function ViewerLiveRoomPage() {
 
               <ul className="space-y-2.5 max-h-[300px] overflow-y-auto pr-1">
                 {pendingLocal ? (
-                  <li className="rounded-[10px] border border-[var(--border-strong)] bg-[var(--bg-hero)] p-2.5 text-xs">
+                  <li className="rounded-[10px] border border-[var(--accent-gold)] bg-[var(--bg-raised)] p-2.5 text-xs">
                     <div className="flex items-center justify-between">
                       <span className="font-bold">Bạn</span>
                       <StatusBadge

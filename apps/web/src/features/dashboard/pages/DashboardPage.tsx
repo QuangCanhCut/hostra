@@ -1,6 +1,7 @@
 import { AlertTriangle, Plus, RefreshCw, ShieldBan } from 'lucide-react'
 import { Button, ButtonLink } from '@/components/ui/Button'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { PageHeader } from '@/components/ui/PageHeader'
 import { useAuth } from '@/features/auth/hooks/useAuth'
 import { useDashboard } from '@/features/dashboard/hooks/useDashboard'
 import { DashboardHero } from '@/features/dashboard/components/DashboardHero'
@@ -10,6 +11,24 @@ import { AssetStatusGrid } from '@/features/dashboard/components/AssetStatusGrid
 import { RecentSessionsSection } from '@/features/dashboard/components/RecentSessionsSection'
 import { DashboardSkeleton } from '@/features/dashboard/components/DashboardSkeleton'
 import { ApiError } from '@/services/api-client'
+
+function MountainMark() {
+  return (
+    <svg
+      viewBox="0 0 44 26"
+      className="hidden sm:block h-7 w-11 text-[var(--accent-gold)]"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M2 22 14 7l8 10 6-7 14 12" />
+      <path d="M6 23c9-4 17-4 32 0" opacity="0.65" />
+    </svg>
+  )
+}
 
 export function DashboardPage() {
   const { data: auth } = useAuth()
@@ -70,34 +89,34 @@ export function DashboardPage() {
   return (
     <div className="space-y-6">
       {/* Z02: Page Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-[var(--text-primary)] sm:text-[26px]">
-            Tổng quan
-          </h1>
-          <p className="mt-1 text-sm text-[var(--text-secondary)]">
-            Tổng quan phiên livestream và những công việc quan trọng nhất.
-          </p>
-        </div>
-
-        {canCreateSession ? (
-          <ButtonLink
-            to="/studio/sessions/new"
-            variant="primary"
-            size="md"
-            className="shrink-0"
-            leftIcon={<Plus className="h-4 w-4" />}
-          >
-            Tạo phiên mới
-          </ButtonLink>
-        ) : null}
-      </div>
+      <PageHeader
+        leading={<MountainMark />}
+        title="Tổng quan"
+        subtitle="Tổng quan phiên livestream và những công việc quan trọng nhất."
+        actions={
+          canCreateSession ? (
+            <ButtonLink
+              to="/studio/sessions/new"
+              variant="primary"
+              size="md"
+              className="shrink-0"
+              leftIcon={<Plus className="h-4 w-4" />}
+            >
+              Tạo phiên mới
+            </ButtonLink>
+          ) : null
+        }
+      />
 
       {/* Z03: Critical Alerts + Next Best Action Hero */}
-      <DashboardHero hero={data.hero} criticalAlerts={data.criticalAlerts} />
+      <DashboardHero
+        hero={data.hero}
+        criticalAlerts={data.criticalAlerts}
+        workspaceName={data.workspaceName}
+      />
 
       {/* Z04: Two-column 60/40 (Action Center + Featured Session) */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-12 items-stretch">
         <div className="lg:col-span-7">
           <ActionCenter
             items={data.actionItems}

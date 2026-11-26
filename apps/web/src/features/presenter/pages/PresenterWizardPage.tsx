@@ -121,10 +121,10 @@ export function PresenterWizardPage() {
             <ArrowLeft className="h-3.5 w-3.5" />
             Quay lại Thư viện Presenter
           </Link>
-          <h1 className="text-2xl font-bold text-[var(--text-primary)]">
+          <h1 className="font-display text-[26px] sm:text-[32px] font-bold leading-[1.16] tracking-[-0.02em] text-[var(--text-primary)]">
             Tạo AI Presenter mới
           </h1>
-          <p className="mt-1 text-sm text-[var(--text-secondary)]">
+          <p className="mt-1 text-sm text-[var(--text-muted)]">
             Tải ảnh chân dung hợp lệ, gửi yêu cầu quyền độc lập và chọn 1 trong 3 phong cách.
           </p>
         </div>
@@ -151,17 +151,17 @@ export function PresenterWizardPage() {
                   type="button"
                   onClick={() => setStep(s.num)}
                   className={cn(
-                    'flex w-full items-center gap-2.5 rounded-[10px] px-3 py-2.5 text-left text-xs font-semibold transition-colors cursor-pointer',
+                    'flex w-full items-center gap-2.5 rounded-[8px] border px-3 py-2.5 text-left text-xs font-semibold transition-colors cursor-pointer',
                     active
-                      ? 'bg-[var(--bg-hero)] border border-[var(--bg-hero-border)] text-[var(--text-primary)]'
-                      : 'hover:bg-[var(--bg-subtle)] text-[var(--text-secondary)]',
+                      ? 'border-[var(--border-strong)] bg-[var(--bg-raised)] text-[var(--accent-gold)]'
+                      : 'border-transparent hover:bg-[var(--bg-subtle)] text-[var(--text-muted)]',
                   )}
                 >
                   <span
                     className={cn(
                       'flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold tabular-nums',
                       active
-                        ? 'bg-[var(--brand-amber)] text-[var(--text-on-amber)]'
+                        ? '[background:var(--cta-primary-bg)] text-[var(--cta-primary-fg)]'
                         : done
                           ? 'bg-[var(--status-success-bg)] text-[var(--status-success-fg)]'
                           : 'bg-[var(--bg-subtle)] text-[var(--text-muted)]',
@@ -290,7 +290,7 @@ export function PresenterWizardPage() {
                       className={cn(
                         'flex flex-col justify-between rounded-[12px] border p-4 text-left transition-colors cursor-pointer',
                         selected
-                          ? 'border-[var(--brand-amber)] bg-[var(--bg-hero)] ring-2 ring-[var(--brand-amber)]/40'
+                          ? 'border-[var(--accent-gold)] bg-[var(--bg-raised)] ring-1 ring-[var(--accent-gold)]/50'
                           : 'border-[var(--border-default)] bg-[var(--bg-surface)] hover:border-[var(--border-strong)]',
                       )}
                     >
@@ -300,7 +300,7 @@ export function PresenterWizardPage() {
                             {preset.name}
                           </span>
                           {selected ? (
-                            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--brand-amber)] text-[var(--text-on-amber)]">
+                            <span className="flex h-5 w-5 items-center justify-center rounded-full [background:var(--cta-primary-bg)] text-[var(--cta-primary-fg)]">
                               <Check className="h-3.5 w-3.5" />
                             </span>
                           ) : null}
@@ -332,10 +332,10 @@ export function PresenterWizardPage() {
                     type="button"
                     onClick={() => setVoicePresetLabel(v)}
                     className={cn(
-                      'rounded-[10px] border px-3.5 py-3 text-left text-xs font-medium cursor-pointer',
+                      'rounded-[10px] border px-3.5 py-3 text-left text-xs font-medium cursor-pointer transition-colors',
                       voicePresetLabel === v
-                        ? 'border-[var(--brand-amber)] bg-[var(--bg-hero)] text-[var(--text-primary)] font-semibold'
-                        : 'border-[var(--border-default)] bg-[var(--bg-surface)] text-[var(--text-secondary)]',
+                        ? 'border-[var(--accent-gold)] bg-[var(--bg-raised)] text-[var(--accent-gold)] font-semibold'
+                        : 'border-[var(--border-default)] bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:border-[var(--border-strong)]',
                     )}
                   >
                     {v}

@@ -125,7 +125,7 @@ export function PresenterDetailPage() {
             Quay lại Thư viện Presenter
           </Link>
           <div className="flex flex-wrap items-center gap-2.5">
-            <h1 className="text-2xl font-bold text-[var(--text-primary)]">
+            <h1 className="font-display text-[26px] sm:text-[32px] font-bold leading-[1.16] tracking-[-0.02em] text-[var(--text-primary)]">
               {presenter.displayName}
             </h1>
             <StatusBadge label={rightsCopy.label} tone={rightsCopy.tone} />
@@ -211,7 +211,7 @@ export function PresenterDetailPage() {
               <div className="relative">
                 <PresenterPortrait presenterId={presenter.id} name={presenter.displayName} />
                 {canCompareAB ? (
-                  <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between rounded-[8px] bg-slate-900/80 px-3 py-1.5 text-xs text-white">
+                  <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between rounded-[8px] bg-[var(--media-stage-bg)]/85 px-3 py-1.5 text-xs text-[#f5ebdd]">
                     <span>Bản xem trước minh họa tĩnh · v1</span>
                     <span className="tabular-nums">3 clips</span>
                   </div>
@@ -238,9 +238,9 @@ export function PresenterDetailPage() {
               {activePack ? (
                 <div className="relative">
                   <PresenterPortrait presenterId={presenter.id} name={presenter.displayName} />
-                  <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between rounded-[8px] bg-[var(--brand-navy)]/90 px-3 py-1.5 text-xs text-white">
+                  <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between rounded-[8px] bg-[var(--media-stage-bg)]/85 px-3 py-1.5 text-xs text-[#f5ebdd]">
                     <span className="inline-flex items-center gap-1.5">
-                      <Play className="h-3.5 w-3.5 text-[var(--brand-amber)]" />
+                      <Play className="h-3.5 w-3.5 text-[#f2c47d]" />
                       Bản xem trước minh họa · {activePack.clips.length} clips
                     </span>
                     <span className="tabular-nums">v{presenter.candidates.indexOf(activePack) + 1}</span>
@@ -273,7 +273,7 @@ export function PresenterDetailPage() {
                       onClick={() => setSelectedPackId(cand.packId)}
                       className={
                         isSelected
-                          ? 'rounded-[8px] border border-[var(--brand-amber)] bg-[var(--bg-hero)] px-3 py-2 text-xs font-semibold text-[var(--text-primary)] cursor-pointer'
+                          ? 'rounded-[8px] border border-[var(--accent-gold)] bg-[var(--bg-raised)] px-3 py-2 text-xs font-semibold text-[var(--accent-gold)] cursor-pointer'
                           : 'rounded-[8px] border border-[var(--border-default)] bg-[var(--bg-surface)] px-3 py-2 text-xs font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] cursor-pointer'
                       }
                     >

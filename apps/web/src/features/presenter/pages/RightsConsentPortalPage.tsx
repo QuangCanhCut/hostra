@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { Banner } from '@/components/ui/Banner'
+import { BrandLogo } from '@/components/shared/BrandLogo'
 import { ThemeToggle } from '@/components/shared/ThemeToggle'
 import {
   useRightsConsent,
@@ -33,42 +34,35 @@ export function RightsConsentPortalPage() {
   const statusCopy = consent ? RIGHTS_STATUS_COPY[consent.status] : null
 
   return (
-    <div className="min-h-screen bg-[var(--bg-canvas)] text-[var(--text-primary)]">
-      <header className="flex h-16 items-center justify-between border-b border-[var(--border-default)] bg-[var(--bg-surface)] px-4 sm:px-8">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-[8px] bg-[var(--brand-amber)] text-[var(--brand-navy)] font-bold">
-            H
-          </div>
-          <span className="text-sm font-bold">HOSTRA · Cổng xác nhận Chủ thể quyền</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <ThemeToggle />
-        </div>
+    <div className="min-h-screen flex flex-col text-[var(--text-primary)]">
+      <header className="flex h-[60px] items-center justify-between border-b border-[var(--border-default)] bg-[var(--bg-canvas)]/95 px-4 backdrop-blur-xs sm:px-8">
+        <BrandLogo tone="adaptive" subtitle="CỔNG XÁC NHẬN CHỦ THỂ QUYỀN" />
+        <ThemeToggle />
       </header>
 
-      <main className="mx-auto max-w-2xl px-4 py-8 space-y-5">
+      <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-10 space-y-5">
         {isLoading ? (
-          <Card padding="lg">Đang tải thông tin yêu cầu xác nhận quyền...</Card>
+          <Card padding="lg" featured>Đang tải thông tin yêu cầu xác nhận quyền...</Card>
         ) : !consent ? (
-          <Card padding="lg">Không tìm thấy yêu cầu xác nhận quyền này.</Card>
+          <Card padding="lg" featured>Không tìm thấy yêu cầu xác nhận quyền này.</Card>
         ) : (
           <>
             {notice ? <Banner severity="info" title="Đã ghi nhận quyết định" description={notice} /> : null}
 
-            <Card padding="lg" className="space-y-5">
+            <Card padding="lg" featured elevated className="space-y-5">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <h1 className="text-xl font-bold text-[var(--text-primary)]">
+                  <h1 className="font-display text-2xl font-bold text-[var(--text-primary)]">
                     Xác nhận quyền sử dụng hình ảnh cá nhân
                   </h1>
-                  <p className="mt-1 text-xs text-[var(--text-secondary)]">
+                  <p className="mt-1.5 text-xs text-[var(--text-muted)] leading-relaxed">
                     Luồng xác nhận độc lập dành riêng cho Chủ thể quyền ({consent.subjectName}), tách biệt hoàn toàn với tài khoản Merchant Owner.
                   </p>
                 </div>
                 {statusCopy ? <StatusBadge label={statusCopy.label} tone={statusCopy.tone} /> : null}
               </div>
 
-              <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2 rounded-[10px] bg-[var(--bg-subtle)] p-4 text-xs">
+              <dl className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 rounded-[10px] border border-[var(--border-default)] bg-[var(--bg-subtle)]/70 p-4 text-xs">
                 <div>
                   <dt className="text-[var(--text-muted)]">Presenter đề nghị</dt>
                   <dd className="mt-0.5 font-semibold text-[var(--text-primary)]">{data?.presenterName}</dd>
@@ -84,7 +78,7 @@ export function RightsConsentPortalPage() {
                   <dd className="mt-0.5 font-medium text-[var(--text-primary)]">{consent.purpose}</dd>
                 </div>
                 <div>
-                  <dt className="text-[var(--text-muted)]">Quyền ảnh & video livestream</dt>
+                  <dt className="text-[var(--text-muted)]">Quyền ảnh &amp; video livestream</dt>
                   <dd className="mt-0.5 font-semibold text-[var(--text-primary)]">Có trong đề nghị</dd>
                 </div>
                 <div>
@@ -94,6 +88,10 @@ export function RightsConsentPortalPage() {
                   </dd>
                 </div>
               </dl>
+
+              <div className="rounded-[10px] border border-[var(--status-info-border)] bg-[var(--status-info-bg)] px-3.5 py-2.5 text-xs text-[var(--status-info-fg)]">
+                Bạn có toàn quyền từ chối hoặc thu hồi đồng thuận bất kỳ lúc nào theo chính sách bảo vệ quyền chủ thể.
+              </div>
 
               <div className="flex flex-wrap gap-2.5 pt-2 border-t border-[var(--border-default)]">
                 <Button

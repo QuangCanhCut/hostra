@@ -90,16 +90,16 @@ export function KnowledgeReviewPage() {
         <StatusBadge label={pkg.sourceDocVersion} tone="neutral" />
       </div>
 
-      <div className="space-y-3">
+      <div className="rounded-[8px] border border-[var(--border-default)] bg-[var(--doc-paper-bg)] p-5 text-[var(--doc-paper-fg)] shadow-md space-y-4 font-display">
         {pkg.sourceDocPassages.map((p, idx) => (
           <div
             key={idx}
-            className="rounded-[10px] border border-[var(--border-default)] bg-[var(--bg-subtle)] p-3.5 space-y-1"
+            className="border-b border-[#d8c6ad]/80 pb-3.5 last:border-b-0 last:pb-0 space-y-1"
           >
-            <p className="text-[11px] font-semibold text-[var(--text-muted)]">
+            <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.06em] text-[#7a6349]">
               {p.page} · {p.heading}
             </p>
-            <p className="text-xs text-[var(--text-primary)] leading-relaxed">{p.text}</p>
+            <p className="text-[13px] leading-relaxed">{p.text}</p>
           </div>
         ))}
       </div>
@@ -118,7 +118,7 @@ export function KnowledgeReviewPage() {
             Quay lại Thư viện Tri thức
           </Link>
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-2xl font-bold text-[var(--text-primary)]">
+            <h1 className="font-display text-[26px] sm:text-[32px] font-bold leading-[1.16] tracking-[-0.02em] text-[var(--text-primary)]">
               Duyệt thông tin · {pkg.productName}
             </h1>
             <StatusBadge label={ocop.label} tone={ocop.tone} />
@@ -166,8 +166,8 @@ export function KnowledgeReviewPage() {
                 onClick={() => setGroup(g.key)}
                 className={
                   group === g.key
-                    ? 'h-9 rounded-full bg-[var(--brand-navy)] px-3.5 text-xs font-semibold text-white cursor-pointer'
-                    : 'h-9 rounded-full border border-[var(--border-default)] bg-[var(--bg-surface)] px-3.5 text-xs font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] cursor-pointer'
+                    ? 'min-h-9 rounded-[8px] border border-[var(--border-strong)] bg-[var(--bg-raised)] px-3.5 text-xs font-semibold text-[var(--accent-gold)] cursor-pointer'
+                    : 'min-h-9 rounded-[8px] border border-[var(--border-default)] bg-[var(--bg-surface)] px-3.5 text-xs font-medium text-[var(--text-muted)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)] cursor-pointer'
                 }
               >
                 {g.label}

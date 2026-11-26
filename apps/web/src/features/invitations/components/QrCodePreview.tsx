@@ -26,7 +26,7 @@ export function QrCodePreview({
     QRCode.toDataURL(url, {
       width: 240,
       margin: 2,
-      color: { dark: '#0F172A', light: '#FFFFFF' },
+      color: { dark: '#21160C', light: '#FFFFFF' },
     })
       .then((res) => {
         if (active) setDataUrl(res)
@@ -65,7 +65,7 @@ export function QrCodePreview({
 
   return (
     <div className="space-y-4 text-center">
-      <div className="mx-auto inline-flex flex-col items-center rounded-[14px] border border-[var(--border-default)] bg-white p-4">
+      <div className="mx-auto inline-flex flex-col items-center rounded-[14px] border border-[var(--border-strong)] bg-white p-4 shadow-[var(--shadow-card)]">
         {dataUrl ? (
           <img
             src={dataUrl}
@@ -73,11 +73,11 @@ export function QrCodePreview({
             className={`h-48 w-48 ${disabled ? 'opacity-30 grayscale' : ''}`}
           />
         ) : (
-          <div className="flex h-48 w-48 items-center justify-center text-xs text-slate-500">
+          <div className="flex h-48 w-48 items-center justify-center text-xs text-[#665748]">
             Đang tạo mã QR...
           </div>
         )}
-        <p className="mt-2 text-xs font-semibold text-slate-900">
+        <p className="mt-2 text-xs font-semibold text-[#2A2018]">
           {sessionCode} · {label}
         </p>
       </div>

@@ -16,34 +16,27 @@ export function SignInPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--bg-canvas)] flex flex-col">
-      <header className="flex h-16 items-center justify-between border-b border-[var(--border-default)] bg-[var(--bg-surface)] px-4 sm:px-8">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-[8px] bg-[var(--brand-amber)] text-[var(--brand-navy)] font-bold">
-            H
-          </div>
-          <span className="text-sm font-bold tracking-wide text-[var(--text-primary)]">
-            HOSTRA AI
-          </span>
-        </div>
+    <div className="min-h-screen flex flex-col text-[var(--text-primary)]">
+      <header className="flex h-[60px] items-center justify-between border-b border-[var(--border-default)] bg-[var(--bg-canvas)]/95 px-4 backdrop-blur-xs sm:px-8">
+        <BrandLogo tone="adaptive" subtitle="AI LIVESTREAM" />
         <ThemeToggle />
       </header>
 
       <main className="flex flex-1 items-center justify-center px-4 py-12">
-        <Card padding="lg" elevated className="w-full max-w-md space-y-6">
-          <div className="rounded-[12px] bg-[var(--brand-navy)] p-5">
-            <BrandLogo subtitle="MERCHANT STUDIO · ĐĂNG NHẬP" />
-            <p className="mt-3 text-xs text-slate-300 leading-relaxed">
+        <Card padding="lg" featured elevated className="w-full max-w-[460px] space-y-6">
+          <div className="rounded-[12px] border border-[var(--border-strong)] [background:var(--bg-hero)] p-5 text-[#f5ebdd]">
+            <BrandLogo tone="on-dark" subtitle="MERCHANT STUDIO · ĐĂNG NHẬP" />
+            <p className="mt-3 text-xs leading-relaxed text-[#e6d8c5]">
               Cổng đăng nhập tập trung (Managed OIDC) cho không gian làm việc livestream
               riêng tư của nhà bán hàng.
             </p>
           </div>
 
-          <div className="space-y-3">
-            <h1 className="text-xl font-bold text-[var(--text-primary)]">
+          <div className="space-y-2">
+            <h1 className="font-display text-2xl font-bold text-[var(--text-primary)]">
               Đăng nhập vào Merchant Studio
             </h1>
-            <p className="text-sm text-[var(--text-secondary)]">
+            <p className="text-sm text-[var(--text-muted)]">
               Chọn vai trò mô phỏng để trải nghiệm luồng quản trị và phân quyền trong bản
               dựng giao diện.
             </p>
@@ -69,10 +62,10 @@ export function SignInPage() {
             </Button>
           </div>
 
-          <p className="text-center text-xs text-[var(--text-muted)]">
+          <div className="rounded-[10px] border border-[var(--status-info-border)] bg-[var(--status-info-bg)] px-3.5 py-2.5 text-xs text-[var(--status-info-fg)]">
             Khách xem livestream tham gia bằng liên kết mời và tên hiển thị, không cần tài
             khoản Merchant Studio.
-          </p>
+          </div>
         </Card>
       </main>
     </div>

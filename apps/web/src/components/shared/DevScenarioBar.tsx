@@ -30,9 +30,9 @@ export function DevScenarioBar() {
           type="button"
           onClick={() => setOpen(true)}
           aria-label="Mở bảng chọn kịch bản mô phỏng"
-          className="inline-flex h-10 items-center gap-2 rounded-full border border-[var(--border-strong)] bg-[var(--brand-navy)] px-3.5 text-xs font-medium text-white shadow-[var(--shadow-elevated)] hover:opacity-95 cursor-pointer"
+          className="inline-flex h-10 items-center gap-2 rounded-full border border-[var(--border-strong)] bg-[var(--bg-sidebar-solid)] px-3.5 text-xs font-medium text-[#f5ebdd] shadow-[var(--shadow-elevated)] hover:opacity-95 cursor-pointer"
         >
-          <SlidersHorizontal className="h-3.5 w-3.5 text-[var(--brand-amber)]" />
+          <SlidersHorizontal className="h-3.5 w-3.5 text-[#f2c47d]" />
           <span>Mock: {role === 'OWNER' ? 'Owner' : 'Operator'}</span>
         </button>
       ) : (

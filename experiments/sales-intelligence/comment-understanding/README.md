@@ -2,9 +2,29 @@
 
 [Nhóm nghiên cứu](../README.md) · [Trung tâm experiments](../../README.md)
 
-**Module:** P07 · **Rủi ro:** R04, R03, R10 · **Gate:** G2, G3 · **Mốc tham chiếu:** M4.
+**Module:** P07 · **Rủi ro:** R04 (chính), R03, R10, R17 · **Gate:** G2, G3, G4 · **Mốc tham chiếu:** M4.
 
-**Tiến độ khởi tạo:** NOT STARTED — chưa có evidence chạy thí nghiệm trong thư mục tại lần kiểm kê này. **Quyết định công nghệ:** SELECTED FOR PoC; tính khả thi và các kết quả vẫn TO VALIDATE. Owner/reviewer cần nhóm phân công.
+**Trạng thái hiện tại (`26/11/2026`):** `PRE-EXPERIMENT DESIGN IN REVIEW (v0.1.3)` · **Tiến độ chạy thí nghiệm (`E01–E04`):** `NOT STARTED` *(chưa có dữ liệu trong `data/` và chưa có kết quả chạy mô hình)* · **Cổng sẵn sàng:** `Gate 1 (Source Discovery): READY` · `Gate 2 (Data Pilot 50–100): CONDITIONALLY READY` · `Gate 3–4 (Main Dataset / E01): BLOCKED`. **Quyết định công nghệ:** `SELECTED FOR PoC`; mọi ngưỡng chất lượng và phương án tiền xử lý vẫn `PROPOSED / VALIDATION PENDING`.
+
+## Hồ sơ Chuẩn bị Thực nghiệm (`docs/` — `v0.1.3`)
+
+Trước khi thu thập dữ liệu hoặc viết mã huấn luyện, xem bộ 6 tài liệu chuẩn hóa trong `docs/`:
+
+- **Bài toán, ranh giới & 10 bất biến miền:** [p07-problem-and-requirements.md](./docs/p07-problem-and-requirements.md)
+- **Hợp đồng tích hợp tối thiểu (`Intake -> P07 -> P08/P09`):** [p07-contract-v0.1.md](./docs/p07-contract-v0.1.md)
+- **Intent Taxonomy (`4/9/7`), quy tắc biên & ví dụ chuẩn:** [p07-annotation-guideline-v0.1.md](./docs/p07-annotation-guideline-v0.1.md)
+- **Kế hoạch thu thập Real-First & `Quick Start — Data Acquisition Pilot` (`50–100` mẫu):** [p07-data-acquisition-and-annotation-plan-v0.1.md](./docs/p07-data-acquisition-and-annotation-plan-v0.1.md)
+- **Giao thức đánh giá, chống rò rỉ, `Unseen Product Holdout` & `E01–E04`:** [p07-dataset-and-evaluation-protocol.md](./docs/p07-dataset-and-evaluation-protocol.md)
+- **Đánh giá 4 cổng sẵn sàng (`Gate 1 → Gate 4`):** [p07-experiment-readiness.md](./docs/p07-experiment-readiness.md)
+
+### Cấu trúc thư mục làm việc
+
+- `docs/` — Đặc tả bài toán, hợp đồng `PROPOSED`, hướng dẫn gán nhãn, kế hoạch Pilot & giao thức thí nghiệm.
+- `data/{raw,annotations,processed}/` — Dữ liệu đã khử PII / manifest `SHA-256` *(cấm đẩy tệp thô chưa khử PII hoặc dữ liệu đối tác không có quyền chia sẻ lên Git)*.
+- `configs/` — Cấu hình khóa tham số cho `P07-E01..E04`.
+- `src/{preprocessing,baselines,models,evaluation}/` — Tiền xử lý, baseline (`B0`/`B1`/`G0`), mô hình ứng viên và harness đánh giá.
+- `tests/` — Kiểm thử hợp đồng, schema validator và bộ negative tests an toàn.
+- `notebooks/` & `results/{metrics,reports}/` — Notebook thực nghiệm, `ExperimentManifest` JSON và báo cáo kết quả.
 
 ## 1. Tổng quan bài toán
 
@@ -19,9 +39,10 @@ Bình luận live có tiếng lóng, thiếu dấu, spam và câu hỏi tham chi
 
 ## 3. Câu hỏi nghiên cứu
 
-- PhoBERT-base hay SetFit tốt hơn với 8/16/32 mẫu mỗi lớp trên cùng held-out test?
-- Tiếng lóng và thiếu dấu làm giảm intent F1/SKU precision bao nhiêu?
-- Grouping theo intent/SKU/rules có gom nhầm SKU không, và selective LLM tăng latency/chi phí thế nào?
+- PhoBERT-base (`vinai/phobert-base`, MIT; cấm `v2` AGPLv3) hay SetFit tốt hơn với 8/16/32 mẫu mỗi lớp và toàn tập `train` trên cùng `Seen-Product` & `Unseen-Product Holdout`?
+- Trong 4 biến thể tiền xử lý (`Raw Text`, `Normalized Text`, `Product Entity Masked Text`, `Normalized + Product Masked Text` — `PROPOSED / VALIDATION PENDING`), phương án nào cho `Unseen-Product Macro-F1` và `Generalization Gap` tốt nhất mà không làm mất ngữ cảnh?
+- Tiếng lóng, thiếu dấu và danh mục SKU động chưa từng thấy làm ảnh hưởng tới `Intent F1`, `Unseen-Product SKU Resolution Accuracy` và `Wrong-SKU Rate` bao nhiêu?
+- Grouping có bảo vệ `product_version_id + knowledge_snapshot_id` và `secondary_intents` (`G0` vs `G1` vs `G2`) giảm tỷ lệ gom sai thuộc tính thế nào, và selective LLM tăng latency/chi phí ra sao?
 
 ## 4. Kiến thức nền cần tìm hiểu
 
@@ -37,21 +58,21 @@ Bình luận live có tiếng lóng, thiếu dấu, spam và câu hỏi tham chi
 
 ### Chuẩn bị dữ liệu và môi trường
 
-Stage 03 dự kiến 500–1.000 comment v0.1, có nhãn intent/SKU và nguồn dữ liệu. Giữ test thật có quyền riêng, báo riêng synthetic; không chia paraphrase của cùng một câu vào cả train và test. Kaggle/Colab phù hợp train/evaluate classifier; lưu split, seed, revision model và confusion matrix.
+Áp dụng lộ trình **Real-First & Pilot-First** ([kế hoạch chi tiết](./docs/p07-data-acquisition-and-annotation-plan-v0.1.md)): khảo sát đa dạng sản phẩm/merchant (không bó hẹp trong 5 SKU fixture của P05), chạy `Data Acquisition Pilot` `50–100` bình luận trước, kiểm tra tương quan giả `Product × Intent`, giữ nguyên các ràng buộc chống rò rỉ (`Guarded Connected-Component Split` theo `viewer_thread_id`, `participant_id`, `paraphrase_cluster_id`, `template_family_id`, `source_id`) khi tách `test_seen_product` và `test_unseen_product`. Báo cáo tách riêng từng nguồn (`real`, `human_simulated`, `synthetic`). Kaggle/Colab phù hợp train/evaluate classifier; lưu split, seed, revision model và confusion matrix.
 
-Mỗi lượt chạy dùng manifest theo [quy tắc tái lập](../../README.md#5-tái-lập-thí-nghiệm). Các giả thuyết dưới đây là cách diễn đạt để kiểm chứng quyết định Stage 03, **không phải kết quả đã đạt**. Chốt baseline, số lượt lặp và tiêu chí trước khi chạy; báo cả lượt lỗi. Mã Pxx-Eyy giữ theo tài liệu nguồn.
+Mỗi lượt chạy dùng manifest theo [quy tắc tái lập](../../README.md#5-tái-lập-thí-nghiệm) và khuôn mẫu `ExperimentManifest` trong [giao thức P07](./docs/p07-dataset-and-evaluation-protocol.md). Các giả thuyết dưới đây là cách diễn đạt để kiểm chứng quyết định Stage 03, **không phải kết quả đã đạt**. Chốt baseline, số lượt lặp và tiêu chí trước khi chạy; báo cả lượt lỗi. Mã Pxx-Eyy giữ theo tài liệu nguồn.
 
-### P07-E01 — So sánh classifier
+### P07-E01 — So sánh classifier độc lập sản phẩm & Ablation tiền xử lý
 
-- **Mục tiêu và giả thuyết:** Một classifier nhỏ có thể giảm chi phí mà giữ chất lượng so baseline LLM.
-- **Đầu vào/tình huống và cách làm:** Cùng train/dev/test, so PhoBERT-base/SetFit ở 8/16/32 mẫu mỗi lớp.
-- **Đầu ra, metrics và evidence:** Macro/per-class F1, P95, chi phí; lưu split, predictions và confusion matrix.
+- **Mục tiêu và giả thuyết:** Một classifier nhỏ (`product-agnostic`, 9 lớp Intent cố định không chứa SKU) có thể giảm chi phí/độ trễ mà giữ chất lượng tổng quát hóa sang sản phẩm mới so với baseline LLM.
+- **Đầu vào/tình huống và cách làm:** Cùng `train/dev/test_seen_product/test_unseen_product`, so `PhoBERT-base` / `SetFit` ở `{8, 16, 32, full}` kết hợp ablation 4 biến thể tiền xử lý (`Raw`, `Normalized`, `Product Masked`, `Normalized + Product Masked`).
+- **Đầu ra, metrics và evidence:** `Seen-Product Macro-F1`, `Unseen-Product Macro-F1`, `Generalization Gap`, `Per-class F1`, `Moderation FPR`, `P95`, chi phí; lưu split, predictions và confusion matrix.
 
-### P07-E02 — Ngôn ngữ khó
+### P07-E02 — Ngôn ngữ khó & Phân giải SKU động (`Seen` vs `Unseen Products`)
 
-- **Mục tiêu và giả thuyết:** Mô hình đủ ổn định với thiếu dấu/tiếng lóng và nhắc nhiều SKU.
-- **Đầu vào/tình huống và cách làm:** Chạy 200 trường hợp khó thật/synthetic có nhãn và tách nguồn.
-- **Đầu ra, metrics và evidence:** Intent F1, SKU precision; lưu lỗi theo nhóm ngôn ngữ.
+- **Mục tiêu và giả thuyết:** Pipeline chuẩn hóa + `SessionScopedSkuResolver` chạy trên `pinned_catalog` động giữ `Wrong-SKU Rate` tối thiểu ngay cả với thiếu dấu/tiếng lóng, đa SKU và sản phẩm chưa từng thấy lúc train.
+- **Đầu vào/tình huống và cách làm:** Chạy `>= 200` trường hợp khó thật/diễn tập/synthetic có nhãn và tách nguồn + lát cắt `seen` vs `unseen product`.
+- **Đầu ra, metrics và evidence:** `Intent F1`, `Unseen-Product SKU Resolution Accuracy`, `Wrong-SKU Rate`, `Cross-Viewer Bleed = 0`; lưu lỗi theo nhóm ngôn ngữ.
 
 ### P07-E03 — Gom nhóm và từ chối suy đoán
 
@@ -103,9 +124,10 @@ Các liên kết ngoài sau được lấy từ hồ sơ Stage 03; đây là đi
 
 ## 11. Checklist tiến độ nghiên cứu
 
-- [ ] Đọc nguồn và chốt câu hỏi/phạm vi P07, owner và reviewer.
-- [ ] Xác minh quyền dữ liệu/model; chuẩn bị bộ test và baseline.
-- [ ] Khóa cấu hình, cách đo, rubric và các ngưỡng cần nhóm phê duyệt.
+- [x] Đọc nguồn Stage 01–04 và hoàn thiện bộ hồ sơ chuẩn bị thực nghiệm `v0.1.3` trong `docs/` *(đang chờ Owner duyệt chốt)*.
+- [ ] **Gate 1–2:** Khảo sát nguồn đa dạng sản phẩm (`Source Discovery`), xác minh quyền/ToS và chạy `Data Acquisition Pilot` (`50–100` bình luận) + gán nhãn kép IAA.
+- [ ] **Gate 3:** Hiệu chỉnh quy mô sau Pilot, khóa Taxonomy `v0.1`, thu thập tập chính, kiểm tra tương quan giả `Product × Intent` và chia tập chống rò rỉ gồm cả `Unseen Product Holdout`.
+- [ ] **Gate 4:** Khóa cấu hình, công cụ tách từ, baseline (`B0`/`B1`), 4 biến thể tiền xử lý và các ngưỡng cần nhóm phê duyệt trước khi mở `held-out test`.
 - [ ] Chạy P07-E01, lưu output/metrics/evidence và ghi cả trường hợp thất bại.
 - [ ] Chạy P07-E02, lưu output/metrics/evidence và ghi cả trường hợp thất bại.
 - [ ] Chạy P07-E03, lưu output/metrics/evidence và ghi cả trường hợp thất bại.

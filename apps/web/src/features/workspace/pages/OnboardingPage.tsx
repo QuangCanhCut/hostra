@@ -4,6 +4,8 @@ import { ArrowRight, BookOpenCheck, PackageCheck, Radio, Save, Sparkles } from '
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { Banner } from '@/components/ui/Banner'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { FormField, TextInput } from '@/components/ui/FormField'
 import {
   useOnboardingDraft,
   useSaveOnboardingDraft,
@@ -41,42 +43,50 @@ export function OnboardingPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-[var(--text-primary)]">
-            Thiết lập không gian làm việc
-          </h1>
-          <p className="mt-1 text-sm text-[var(--text-secondary)]">
-            Lưu nháp linh hoạt — các tác vụ chạy nền (tạo AI Presenter, xác minh OCOP) không khóa bước chuẩn bị.
-          </p>
-        </div>
-        {isOwner ? (
-          <Button
-            variant="primary"
-            leftIcon={<Save className="h-4 w-4" />}
-            loading={saveMutation.isPending}
-            onClick={handleSaveDraft}
-          >
-            Lưu bản nháp
-          </Button>
-        ) : null}
-      </div>
+      <PageHeader
+        title="Thiết lập không gian làm việc"
+        subtitle="Lưu nháp linh hoạt — các tác vụ chạy nền (tạo AI Presenter, xác minh OCOP) không khóa bước chuẩn bị."
+        actions={
+          isOwner ? (
+            <Button
+              variant="primary"
+              leftIcon={<Save className="h-4 w-4" />}
+              loading={saveMutation.isPending}
+              onClick={handleSaveDraft}
+            >
+              Lưu bản nháp
+            </Button>
+          ) : null
+        }
+      />
 
       {savedNotice ? <Banner severity="info" title="Đã lưu nháp" description={savedNotice} /> : null}
 
-      <Card padding="lg" className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div>
-          <label htmlFor="ob-ws" className="block text-xs font-semibold mb-1.5">Tên hiển thị Workspace</label>
-          <input id="ob-ws" value={workspaceName} onChange={(e) => setWorkspaceName(e.target.value)} disabled={!isOwner} className="h-10 w-full rounded-[8px] border border-[var(--border-strong)] bg-[var(--bg-surface)] px-3 text-sm disabled:opacity-60" />
-        </div>
-        <div>
-          <label htmlFor="ob-legal" className="block text-xs font-semibold mb-1.5">Đơn vị / HTX chủ quản</label>
-          <input id="ob-legal" value={merchantLegalName} onChange={(e) => setMerchantLegalName(e.target.value)} disabled={!isOwner} className="h-10 w-full rounded-[8px] border border-[var(--border-strong)] bg-[var(--bg-surface)] px-3 text-sm disabled:opacity-60" />
-        </div>
-        <div className="sm:col-span-2">
-          <label htmlFor="ob-cat" className="block text-xs font-semibold mb-1.5">Nhóm sản phẩm trọng tâm</label>
-          <input id="ob-cat" value={categoryFocus} onChange={(e) => setCategoryFocus(e.target.value)} disabled={!isOwner} className="h-10 w-full rounded-[8px] border border-[var(--border-strong)] bg-[var(--bg-surface)] px-3 text-sm disabled:opacity-60" />
-        </div>
+      <Card padding="lg" featured className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <FormField label="Tên hiển thị Workspace" htmlFor="ob-ws">
+          <TextInput
+            id="ob-ws"
+            value={workspaceName}
+            onChange={(e) => setWorkspaceName(e.target.value)}
+            disabled={!isOwner}
+          />
+        </FormField>
+        <FormField label="Đơn vị / HTX chủ quản" htmlFor="ob-legal">
+          <TextInput
+            id="ob-legal"
+            value={merchantLegalName}
+            onChange={(e) => setMerchantLegalName(e.target.value)}
+            disabled={!isOwner}
+          />
+        </FormField>
+        <FormField label="Nhóm sản phẩm trọng tâm" htmlFor="ob-cat" className="sm:col-span-2">
+          <TextInput
+            id="ob-cat"
+            value={categoryFocus}
+            onChange={(e) => setCategoryFocus(e.target.value)}
+            disabled={!isOwner}
+          />
+        </FormField>
       </Card>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -89,12 +99,14 @@ export function OnboardingPage() {
           const Icon = step.icon
           return (
             <Link key={step.to} to={step.to} className="group block">
-              <Card padding="md" className="h-full space-y-2 group-hover:border-[var(--border-strong)] transition-colors">
-                <Icon className="h-5 w-5 text-[var(--text-secondary)]" />
-                <p className="text-sm font-bold text-[var(--text-primary)]">{step.label}</p>
-                <p className="text-xs text-[var(--text-secondary)]">{step.desc}</p>
-                <span className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--text-primary)] pt-1">
-                  Thực hiện <ArrowRight className="h-3.5 w-3.5" />
+              <Card padding="md" className="h-full space-y-2.5 transition-colors group-hover:border-[var(--accent-gold)]">
+                <Icon className="h-5 w-5 text-[var(--accent-gold)]" aria-hidden="true" />
+                <p className="text-sm font-bold text-[var(--text-primary)] group-hover:text-[var(--accent-gold)] transition-colors">
+                  {step.label}
+                </p>
+                <p className="text-xs text-[var(--text-muted)] leading-relaxed">{step.desc}</p>
+                <span className="inline-flex items-center gap-1 pt-1 text-xs font-semibold text-[var(--accent-gold)]">
+                  Thực hiện <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
                 </span>
               </Card>
             </Link>
