@@ -1,7 +1,7 @@
 # Thư mục Tài liệu Báo cáo & Onboarding P06 (`docs/`)
 
 **Module:** `P06 — Sales Intelligence & Autonomous Storytelling`  
-**Trạng thái:** `IN RESEARCH` (Scaffolding hoàn tất · `P06-E01`..`P06-E04`: `NOT STARTED`)  
+**Trạng thái:** `IN RESEARCH` (Phase 1 `E01-T01..T02` hoàn tất · `E01-T03..T09` & `P06-E01..E04`: `NOT STARTED`)  
 **Cập nhật lần cuối:** `2026-11-26`
 
 ---
@@ -45,4 +45,5 @@ Các tài liệu trong `docs/` tuân theo quy ước đánh số tăng dần the
 | :--- | :--- | :---: | :---: | :--- |
 | [00-context-and-scaffolding-report.md](./00-context-and-scaffolding-report.md) | **Báo cáo Bối cảnh, Rà soát Hợp đồng & Khởi tạo Khung P06 (Session 01):** Tổng hợp kiểm kê tài liệu trên `030682c` & `research/p07-comment-understanding`, 7 sai lệch hợp đồng, `P06-OPEN-1..6`, cấu trúc scaffold và kế hoạch `P06-E01` (`E01-T01..T08`) | `IN RESEARCH` *(Scaffolding xong; `E01..E04`: `NOT STARTED`)* | `2026-11-26` | Tech Lead, Reviewer, Coding Agents |
 | [01-p06-structure-and-mission-guide.md](./01-p06-structure-and-mission-guide.md) | **Hướng dẫn Nhiệm vụ P06 & Cấu trúc Thư mục cho Thành viên Mới:** Giải thích bài toán kinh doanh/kỹ thuật, 3 trạng thái `Generated ≠ Verified ≠ Played`, kiến trúc 3 tầng provider, memory 4 thành phần, `p06-mock-v0.1`, rubric và lộ trình đọc 5 phút | `IN RESEARCH` *(Tài liệu hướng dẫn hiện hành)* | `2026-11-26` | Thành viên mới, Product Owner, Dev/AI Engineers |
-| [02-open-decisions-alignment-and-e01-plan.md](./02-open-decisions-alignment-and-e01-plan.md) | **Báo cáo Session 02 — Đồng bộ `P06-OPEN-1..6`, Kiến trúc 3 Tầng LLM & Kế hoạch `P06-E01`:** Phân tách `SELECTED FOR PoC` vs `RESEARCH VARIABLE` vs `TO VALIDATE`, cơ chế Antigravity `.agents/rules/p06-autonomous-storytelling.md`, contract `p06-mock-v0.1` và kế hoạch chi tiết `E01-T01..T09` | `IN RESEARCH` *(Kế hoạch E01 hiện hành; Code & Runs: `NOT STARTED`)* | `2026-11-26` | Tech Lead, Reviewer, Coding Agents |
+| [02-open-decisions-alignment-and-e01-plan.md](./02-open-decisions-alignment-and-e01-plan.md) | **Báo cáo Session 02 — Đồng bộ `P06-OPEN-1..6`, Kiến trúc 3 Tầng LLM & Kế hoạch `P06-E01`:** Phân tách `SELECTED FOR PoC` vs `RESEARCH VARIABLE` vs `TO VALIDATE`, cơ chế Antigravity `.agents/rules/p06-autonomous-storytelling.md`, contract `p06-mock-v0.1` và kế hoạch chi tiết `E01-T01..T09` | `IN RESEARCH` *(Kế hoạch E01 hiện hành; `E01-T03..T09` & Runs: `NOT STARTED`)* | `2026-11-26` | Tech Lead, Reviewer, Coding Agents |
+| [03-phase1-foundation-e01-t01-t02-report.md](./03-phase1-foundation-e01-t01-t02-report.md) | **Báo cáo Phase 1 — Thiết lập Môi trường (`E01-T01`) & Core Pydantic Schemas `p06-mock-v0.1` (`E01-T02`):** Xác minh `.venv` Python `3.13.2`, hoàn thiện `src/p06/schemas/` (`story.py`, `candidate.py`, `events.py`, `state.py`, `__init__.py`) và `28/28` pytest tests pass | `IN RESEARCH` *(Phase 1 `E01-T01..T02` hoàn tất; `E01-T03..T09`: `NOT STARTED`)* | `2026-11-26` | Tech Lead, Reviewer, Coding Agents |

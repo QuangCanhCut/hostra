@@ -116,7 +116,7 @@ Các liên kết ngoài sau được lấy từ hồ sơ Stage 03; đây là đi
 
 ## 12. Cấu trúc thư mục nghiên cứu & Điều hướng tài liệu
 
-**Trạng thái hiện tại:** Đã khởi tạo khung nghiên cứu (`IN RESEARCH` preparation); toàn bộ các lượt chạy thực nghiệm `P06-E01`..`P06-E04` vẫn đang ở trạng thái `NOT STARTED`.
+**Trạng thái hiện tại:** Hoàn tất Phase 1 (`E01-T01` môi trường `.venv` & `E01-T02` core Pydantic schemas `p06-mock-v0.1` với `28/28` pytest tests pass); `E01-T03..E01-T09` và toàn bộ các lượt chạy thực nghiệm `P06-E01`..`P06-E04` vẫn đang ở trạng thái `NOT STARTED`.
 
 - **Quy tắc chung repository:** [AGENTS.md](../../../AGENTS.md) · **Quy tắc module P06:** [P06 AGENTS.md](AGENTS.md)
 - **Tài liệu báo cáo & Hướng dẫn dự án (`docs/`):**
@@ -124,6 +124,7 @@ Các liên kết ngoài sau được lấy từ hồ sơ Stage 03; đây là đi
   - [Báo cáo bối cảnh & khởi tạo khung (Session 01)](docs/00-context-and-scaffolding-report.md) (`00-context-and-scaffolding-report.md`)
   - [Hướng dẫn nhiệm vụ & cấu trúc thư mục P06](docs/01-p06-structure-and-mission-guide.md) (`01-p06-structure-and-mission-guide.md`)
   - [Đồng bộ `P06-OPEN-1..6`, Kiến trúc 3 tầng LLM & Kế hoạch `P06-E01` (Session 02)](docs/02-open-decisions-alignment-and-e01-plan.md) (`02-open-decisions-alignment-and-e01-plan.md`)
+  - [Báo cáo Phase 1 — Môi trường (`E01-T01`) & Core Schemas `p06-mock-v0.1` (`E01-T02`)](docs/03-phase1-foundation-e01-t01-t02-report.md) (`03-phase1-foundation-e01-t01-t02-report.md`)
 - **Tài liệu nghiên cứu (`research/`):**
   - [Định nghĩa bài toán](research/problem_definition.md) (`problem_definition.md`)
   - [Câu hỏi nghiên cứu](research/research_questions.md) (`research_questions.md`)

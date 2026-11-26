@@ -59,7 +59,7 @@ Theo cơ chế phát hiện tùy biến của Antigravity (`agy-customizations`)
 
 ## 6. Directory Structure & Responsibilities
 
-Khung tài liệu/cấu hình đã sẵn sàng; mã nguồn Python `src/p06/` và các tệp cấu hình/rubric bổ sung được triển khai theo lộ trình `E01-T01..T09`:
+Khung tài liệu/cấu hình và Phase 1 (`E01-T01..T02`) đã hoàn tất; các bước `E01-T03..T09` đang chờ triển khai:
 
 ```text
 autonomous-storytelling/
@@ -70,7 +70,8 @@ autonomous-storytelling/
 │   ├── README.md
 │   ├── 00-context-and-scaffolding-report.md
 │   ├── 01-p06-structure-and-mission-guide.md
-│   └── 02-open-decisions-alignment-and-e01-plan.md
+│   ├── 02-open-decisions-alignment-and-e01-plan.md
+│   └── 03-phase1-foundation-e01-t01-t02-report.md
 ├── research/                 # problem_definition.md, research_questions.md, methodology.md, context_and_dependencies.md, decision_log.md, literature_review.md
 ├── configs/
 │   ├── default.yaml
@@ -80,7 +81,7 @@ autonomous-storytelling/
 ├── prompts/                  # Prompt templates có version & SHA-256 hash
 ├── notebooks/                # CHỈ khám phá/visualize; CẤM chứa core business logic
 ├── src/p06/                  # Toàn bộ logic tái sử dụng (experiments phải import từ đây)
-│   ├── schemas/              # StoryPlan, StoryArc, StoryChunk, SpeechCandidate (p06-mock-v0.1), ProposedResponseCoverage
+│   ├── schemas/              # [DONE E01-T02] __init__.py, story.py, candidate.py, events.py, state.py (p06-mock-v0.1)
 │   ├── providers/            # base.py, mock_provider.py, ollama_provider.py, gemini_provider.py, factory.py
 │   ├── planning/             # StoryPlanner, arc sequencing, mandatory topic coverage tracker
 │   ├── agent/nodes/          # LangGraph StateGraph nodes (load, plan, draft, verify_p05, rewrite, bridge)
@@ -93,7 +94,7 @@ autonomous-storytelling/
 ├── evaluation/
 │   ├── metrics/              # Automatic metrics (coverage, repetition, replay_count, latency, tokens)
 │   └── rubrics/              # human_eval_rubric_v0.1.md (6 tiêu chí 1–5 + pilot calibration)
-├── tests/                    # unit/, contract/, integration/
+├── tests/                    # unit/, contract/, integration/ (Phase 1 E01-T02: 28/28 passed)
 ├── runs/                     # runs/<exp_id>/<run_id>/ (manifest.json + logs + failures/)
 └── reports/                  # Báo cáo tổng hợp so baseline & đề xuất GO/CHANGE/NO-GO/INCONCLUSIVE
 ```
@@ -149,9 +150,14 @@ autonomous-storytelling/
 
 ## 10. Testing, Reproducibility & Coding Conventions
 
-- **Phân tầng test:** `tests/unit/`, `tests/contract/` (tương thích DTO P05/P07/P08 `p06-mock-v0.1`), `tests/integration/` (`MockLLMProvider`). **Tier 1 deterministic tests (`MockLLMProvider`) phải pass 100% trước khi gọi Ollama hay Gemini API.**
-- **Reproducibility:** Mọi lượt chạy xuất `runs/<exp_id>/<run_id>/` gồm `manifest.json`, logs và toàn bộ `failures/`.
-- **Stack & Bảo mật:** Python `3.11–3.13`, `from __future__ import annotations`, **Pydantic v2** cho boundary schemas, type hints đầy đủ. Tuyệt đối không commit `.env`, API keys, PII hay gửi dữ liệu merchant thật khi chưa xong DPA/terms review.
+Mọi tác vụ triển khai từ `E01-T03..E01-T09` trở đi bắt buộc tuân thủ các chuẩn kỹ thuật bền vững sau:
+
+- **Clean Code & Bảo mật (Python `3.11–3.13`):** Tuân thủ PEP 8, `from __future__ import annotations`, full type hints trên toàn bộ public functions/methods/Pydantic v2 models. Áp dụng Single Responsibility (SRP), ưu tiên composition thay vì kế thừa phức tạp, không magic numbers (định danh hằng số/YAML), không bare `except` hoặc nuốt exception im lặng, không premature abstractions, và tuyệt đối không commit `.env`, API keys, PII hay gửi dữ liệu thật khi chưa xong DPA/terms review.
+- **Tài liệu & Comment Giáo dục bằng Tiếng Việt có dấu:** Giữ định danh mã nguồn (`class`, `def`, fields, enum members) bằng tiếng Anh chuẩn; toàn bộ docstring và inline comment dùng **tiếng Việt có dấu** rõ ràng để sinh viên Data Science học AI Agent Engineering đọc hiểu được:
+  - Header docstring mỗi module trả lời đủ **5 câu hỏi**: (1) giải quyết vấn đề gì, (2) trách nhiệm chính, (3) liên kết thành phần nào, (4) I/O chính, (5) constraints/invariants.
+  - Docstring hàm/method/class theo chuẩn Google (`Args`, `Returns`, `Raises`, `Attributes`).
+  - Inline comment chỉ giải thích **WHY** (lý do thiết kế/bất biến), **cấm** comment thừa lặp lại **WHAT**.
+- **Chuẩn Kiểm thử Pytest & Reproducibility:** Phân tầng `tests/unit/`, `tests/contract/` (đối chiếu P05/P07/P08 `p06-mock-v0.1`), `tests/integration/` (`MockLLMProvider`). Bao phủ unit + schema validation + contract + negative + edge-case tests. **Cấm** nới lỏng hoặc xóa assertion đang fail để ép pass; **cấm** báo pass khi chưa chạy test sau sửa đổi cuối; **cấm** đánh đồng pass trên `MockLLMProvider` với chất lượng tiếng Việt hay năng lực LLM thật. Mọi lượt chạy thực nghiệm xuất `runs/<exp_id>/<run_id>/` gồm `manifest.json`, logs và `failures/`.
 
 ---
 
@@ -177,7 +183,8 @@ autonomous-storytelling/
 | Hạng mục | Trạng thái | Ghi chú |
 | :--- | :---: | :--- |
 | Tài liệu nền, `P06-OPEN-1..6`, Rubric v0.1, Model configs & Kế hoạch E01 (`02-...`) | `IN RESEARCH` | Hoàn tất alignment tài liệu & kế hoạch `E01-T01..T09` |
-| Phase 3 (`src/p06/` core, 3-tier providers, LangGraph, P05 adapter, Mocks, Tests) | `NOT STARTED` | Triển khai theo `E01-T01..T08` |
+| Phase 1 (`E01-T01` Environment Setup & `E01-T02` Core Pydantic Schemas `p06-mock-v0.1`) | `COMPLETED (Phase 1)` | `.venv` Python `3.13.2`, `src/p06/schemas/` + `28/28` pytest tests pass; chi tiết tại [`03-...`](./docs/03-phase1-foundation-e01-t01-t02-report.md) |
+| `E01-T03..E01-T09` (Providers, Data, Guardrails, Memory, Graph, CLI Runner) | `NOT STARTED` | Triển khai tuần tự theo `02-open-decisions-alignment-and-e01-plan.md` |
 | `P06-E01`, `P06-E04`, `P06-E03`, `P06-E02` & Phase 5 Handoff `M4` | `NOT STARTED` | Chưa có manifest trong `runs/`; Owner/Reviewer `PENDING ASSIGNMENT` |
 
 - **Done một thí nghiệm:** Runner tái lập, tests pass, đủ `manifest.json` + logs + `failures/` trong `runs/`, đối chiếu baseline & giới hạn mock/synthetic; kết luận `GO/CHANGE/NO-GO/INCONCLUSIVE` theo bằng chứng thật.
