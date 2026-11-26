@@ -131,9 +131,12 @@ def _build_variant_texts(
     )
     results: list[str] = []
     for idx in range(count):
-        raw_candidate = base_templates[idx % len(base_templates)]
-        if idx >= len(base_templates):
-            raw_candidate = f"Lượt bổ sung {idx + 1}: {raw_candidate}"
+        base = base_templates[idx % len(base_templates)]
+        if idx < len(base_templates):
+            raw_candidate = base
+        else:
+            pass_num = idx // len(base_templates) + 1
+            raw_candidate = f"Phần bổ sung {pass_num}.{idx % len(base_templates) + 1}: {base}"
         results.append(_clamp_word_window(raw_candidate))
     return results
 
@@ -173,6 +176,7 @@ def build_e01_mock_provider(
     at_time: Optional[datetime] = None,
     response_sequence: Optional[Sequence[MockResponseStep]] = None,
     include_claim_ids: bool = True,
+    min_chunks_per_topic: int = 1,
 ) -> MockLLMProvider:
     """Khởi tạo `MockLLMProvider` tất định từ `StoryPlan` và kho bằng chứng đã duyệt P05.
 
@@ -194,6 +198,10 @@ def build_e01_mock_provider(
     Returns:
         MockLLMProvider: Provider tầng 1 (`UNIT_TEST`) sẵn sàng chạy ngoại tuyến.
     """
+    if isinstance(min_chunks_per_topic, bool) or min_chunks_per_topic < 1:
+        raise ValueError(
+            f"min_chunks_per_topic phải là số nguyên >= 1, nhận được {min_chunks_per_topic!r}."
+        )
     if response_sequence is not None:
         # Khi test truyền chuỗi bước tuần tự tường minh, không nạp keyed_responses để giữ đúng thứ tự tiêu thụ.
         return MockLLMProvider(
@@ -214,6 +222,7 @@ def build_e01_mock_provider(
     chunk_schema_variants: list[MockResponseStep] = []
     upfront_schema_variants: list[MockResponseStep] = []
 
+    topic_counter = 0
     for arc in sorted(story_plan.arcs, key=lambda item: item.position):
         for topic in arc.topics:
             sku_id = _resolve_topic_sku_id(story_plan, arc, topic)
@@ -228,27 +237,45 @@ def build_e01_mock_provider(
 
             cited_ids = _resolve_valid_evidence_ids(topic, evidence)
             claim_ids = list(topic.allowed_claim_ids)
+            approved_ids = [chunk["evidence_id"] for chunk in evidence.approved_chunks]
+            chunks_by_id = {
+                chunk["evidence_id"]: chunk["content"] for chunk in evidence.approved_chunks
+            }
+            alt_pool = [eid for eid in approved_ids if eid not in set(cited_ids)] or approved_ids
 
             primary_texts = _build_variant_texts(
                 topic,
                 evidence,
                 cited_ids,
-                count=_PRIMARY_QUEUE_DEPTH,
+                count=max(_PRIMARY_QUEUE_DEPTH, min_chunks_per_topic + 2),
             )
-            keyed_responses[topic.topic_id] = [
-                MockResponseStep(
-                    behavior=MockBehavior.VALID_JSON,
-                    payload=_build_step_payload(
-                        text=text,
-                        cited_evidence_ids=cited_ids,
-                        evidence=evidence,
-                        covered_claim_ids=claim_ids,
-                        include_claim_ids=include_claim_ids,
-                        rationale=f"Mock E01 cho chủ đề {topic.topic_id} biến thể {idx}.",
-                    ),
+            primary_steps: list[MockResponseStep] = []
+            for idx, text in enumerate(primary_texts):
+                if min_chunks_per_topic > 1 and idx > 0 and len(approved_ids) > 1:
+                    alt_eid = alt_pool[(topic_counter + idx - 1) % len(alt_pool)]
+                    step_cited = [alt_eid]
+                    step_claims: list[str] = []
+                    alt_sentence = chunks_by_id[alt_eid].split(".")[0].strip()
+                    step_text = _clamp_word_window(f"Khía cạnh bổ sung {idx}: {alt_sentence}")
+                else:
+                    step_cited = cited_ids
+                    step_claims = claim_ids
+                    step_text = text
+                primary_steps.append(
+                    MockResponseStep(
+                        behavior=MockBehavior.VALID_JSON,
+                        payload=_build_step_payload(
+                            text=step_text,
+                            cited_evidence_ids=step_cited,
+                            evidence=evidence,
+                            covered_claim_ids=step_claims,
+                            include_claim_ids=include_claim_ids,
+                            rationale=f"Mock E01 cho chủ đề {topic.topic_id} biến thể {idx}.",
+                        ),
+                    )
                 )
-                for idx, text in enumerate(primary_texts)
-            ]
+            keyed_responses[topic.topic_id] = primary_steps
+            topic_counter += 1
 
             for retry_idx in (1, 2):
                 retry_key = f"{topic.topic_id}:r{retry_idx}"
@@ -256,22 +283,35 @@ def build_e01_mock_provider(
                     topic,
                     evidence,
                     cited_ids,
-                    count=_REWRITE_QUEUE_DEPTH,
+                    count=max(_REWRITE_QUEUE_DEPTH, min_chunks_per_topic + 2),
                     variant_prefix=f"Diễn đạt mới vòng {retry_idx}: ",
                 )
                 keyed_responses[retry_key] = [
                     MockResponseStep(
                         behavior=MockBehavior.VALID_JSON,
                         payload=_build_step_payload(
-                            text=text,
-                            cited_evidence_ids=cited_ids,
+                            text=(
+                                _clamp_word_window(
+                                    f"Góc nhìn bổ sung {retry_idx}.{step_i}: "
+                                    f"{chunks_by_id[alt_pool[(topic_counter + retry_idx + step_i) % len(alt_pool)]].split('.')[0].strip()}"
+                                )
+                                if min_chunks_per_topic > 1 and len(approved_ids) > 1
+                                else text
+                            ),
+                            cited_evidence_ids=(
+                                [alt_pool[(topic_counter + retry_idx + step_i) % len(alt_pool)]]
+                                if min_chunks_per_topic > 1 and len(approved_ids) > 1
+                                else cited_ids
+                            ),
                             evidence=evidence,
-                            covered_claim_ids=claim_ids,
+                            covered_claim_ids=(
+                                [] if min_chunks_per_topic > 1 and step_i > 0 else claim_ids
+                            ),
                             include_claim_ids=include_claim_ids,
                             rationale=f"Mock rewrite vòng {retry_idx} cho {topic.topic_id}.",
                         ),
                     )
-                    for text in retry_texts
+                    for step_i, text in enumerate(retry_texts)
                 ]
 
             if not chunk_schema_variants:

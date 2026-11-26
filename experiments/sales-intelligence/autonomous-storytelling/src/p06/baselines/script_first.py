@@ -353,21 +353,25 @@ def _compose_deterministic_chunk(
     evidence_view: SkuEvidenceView,
     *,
     max_words: int = _DETERMINISTIC_MAX_WORDS,
+    chunk_part: int = 0,
 ) -> tuple[str, list[str], int, bool]:
     """Ghép lời thoại tiếng Việt tất định từ `talking_points` và `SkuEvidenceView` đã duyệt.
 
     Lý do thiết kế: Không sao chép hay hardcode bất kỳ transcript mẫu nào trong `data/story_plans/`;
     chỉ dùng trực tiếp `sku_name`, `origin`, `price_vnd`, `topic.talking_points` và `fact_refs`
-    khớp với `evidence_view.approved_chunks`.
+    khớp với `evidence_view.approved_chunks`. Khi `chunk_part > 0` (`min_chunks_per_topic > 1`),
+    xoay vòng `talking_points` và `matching_chunks` để sinh lời thoại tiếp nối tự nhiên.
     """
     chunks_by_id = {chunk["evidence_id"]: chunk for chunk in evidence_view.approved_chunks}
     matching_chunks = [chunks_by_id[eid] for eid in topic.fact_refs if eid in chunks_by_id]
 
     if matching_chunks:
         cited_evidence_ids = [chunk["evidence_id"] for chunk in matching_chunks]
-        first_matching_chunk = matching_chunks[0]
+        first_matching_chunk = matching_chunks[chunk_part % len(matching_chunks)]
     elif not topic.fact_refs and evidence_view.approved_chunks:
-        first_matching_chunk = evidence_view.approved_chunks[0]
+        first_matching_chunk = evidence_view.approved_chunks[
+            chunk_part % len(evidence_view.approved_chunks)
+        ]
         cited_evidence_ids = [first_matching_chunk["evidence_id"]]
     else:
         # Giữ nguyên fact_refs gốc nếu không khớp approved_chunks để cổng P05 tự chặn fail-closed.
@@ -375,11 +379,19 @@ def _compose_deterministic_chunk(
         first_matching_chunk = None
 
     price_text = _format_vnd_price(evidence_view.price_vnd)
-    clauses: list[str] = [
-        f"{evidence_view.sku_name}, xuất xứ {evidence_view.origin}, giá niêm yết {price_text}"
-    ]
+    if chunk_part == 0:
+        clauses: list[str] = [
+            f"{evidence_view.sku_name}, xuất xứ {evidence_view.origin}, giá niêm yết {price_text}"
+        ]
+    else:
+        clauses = [
+            f"Phần {chunk_part + 1} - {evidence_view.sku_name} ({price_text})"
+        ]
+
     if topic.talking_points:
-        clauses.extend(topic.talking_points)
+        shift = chunk_part % len(topic.talking_points)
+        rotated_points = list(topic.talking_points[shift:]) + list(topic.talking_points[:shift])
+        clauses.extend(rotated_points)
     else:
         clauses.append(topic.title)
 
@@ -464,6 +476,7 @@ class ScriptFirstBaseline:
         data_classification: str = "SYNTHETIC",
         seed: Optional[int] = None,
         max_chunk_duration_sec: float = MAX_CHUNK_DURATION_SEC,
+        min_chunks_per_topic: int = 1,
     ) -> None:
         """Khởi tạo `ScriptFirstBaseline` với các cổng phụ thuộc tiêm từ ngoài.
 
@@ -508,6 +521,10 @@ class ScriptFirstBaseline:
                 f"max_chunk_duration_sec phải nằm trong (0.0, {MAX_CHUNK_DURATION_SEC}], "
                 f"nhận được {numeric_duration}."
             )
+        if isinstance(min_chunks_per_topic, bool) or not isinstance(min_chunks_per_topic, int) or min_chunks_per_topic < 1:
+            raise ValueError(
+                f"min_chunks_per_topic phải là số nguyên >= 1, nhận được {min_chunks_per_topic!r}."
+            )
 
         self._knowledge_verifier = knowledge_verifier
         self._playback_bus = playback_bus
@@ -520,6 +537,7 @@ class ScriptFirstBaseline:
         self._data_classification = data_classification.strip()
         self._seed = seed
         self._max_chunk_duration_sec: float = numeric_duration
+        self._min_chunks_per_topic: int = min_chunks_per_topic
         margin_words = 6 if numeric_duration >= 20.0 else 3
         self._max_words: int = max(
             6,
@@ -553,9 +571,14 @@ class ScriptFirstBaseline:
         self._validate_plan_and_active_sku(story_plan=story_plan, active_sku_id=active_sku_id)
 
         eligible_pairs = self._select_eligible_topics(story_plan=story_plan, active_sku_id=active_sku_id)
-        last_topic_by_arc: dict[str, str] = {}
-        for arc, topic in eligible_pairs:
-            last_topic_by_arc[arc.arc_id] = topic.topic_id
+        expanded_pairs: list[tuple[StoryArc, StoryTopic, int]] = [
+            (arc, topic, part_idx)
+            for arc, topic in eligible_pairs
+            for part_idx in range(self._min_chunks_per_topic)
+        ]
+        last_index_by_arc: dict[str, int] = {}
+        for seq_idx, (arc, _topic, _part_idx) in enumerate(expanded_pairs):
+            last_index_by_arc[arc.arc_id] = seq_idx
 
         evidence_view: Optional[SkuEvidenceView] = None
         evidence_error: Optional[str] = None
@@ -571,7 +594,7 @@ class ScriptFirstBaseline:
         telemetry_acc = _TelemetryAccumulator()
         items: list[UpfrontPlannedItem] = []
 
-        for seq_idx, (arc, topic) in enumerate(eligible_pairs):
+        for seq_idx, (arc, topic, chunk_part) in enumerate(expanded_pairs):
             planned_chunk_id = (
                 f"chunk-baseline-{story_plan.plan_id}-r{story_plan.plan_revision}-"
                 f"{active_sku_id}-{seq_idx:03d}"
@@ -594,9 +617,10 @@ class ScriptFirstBaseline:
                 topic=topic,
                 sequence_index=seq_idx,
                 planned_chunk_id=planned_chunk_id,
-                is_last_in_arc=(last_topic_by_arc.get(arc.arc_id) == topic.topic_id),
+                is_last_in_arc=(last_index_by_arc.get(arc.arc_id) == seq_idx),
                 evidence_view=evidence_view,
                 telemetry_acc=telemetry_acc,
+                chunk_part=chunk_part,
             )
             items.append(item)
 
@@ -921,6 +945,7 @@ class ScriptFirstBaseline:
         is_last_in_arc: bool,
         evidence_view: SkuEvidenceView,
         telemetry_acc: _TelemetryAccumulator,
+        chunk_part: int = 0,
     ) -> UpfrontPlannedItem:
         """Tạo một `UpfrontPlannedItem` từ LLM đầu phiên hoặc trình ghép tất định."""
         if self._script_source == BaselineScriptSource.UPFRONT_LLM:
@@ -931,6 +956,7 @@ class ScriptFirstBaseline:
                 arc=arc,
                 topic=topic,
                 evidence_view=evidence_view,
+                chunk_part=chunk_part,
             )
             try:
                 gen_result = self._llm_provider.generate_structured(
@@ -960,6 +986,7 @@ class ScriptFirstBaseline:
                 topic=topic,
                 evidence_view=evidence_view,
                 max_words=self._max_words,
+                chunk_part=chunk_part,
             )
             role = StoryChunkRole.OPENING if sequence_index == 0 else StoryChunkRole.PRODUCT_STORY
             semantic_breakpoint = True
@@ -1057,6 +1084,7 @@ class ScriptFirstBaseline:
         arc: StoryArc,
         topic: StoryTopic,
         evidence_view: SkuEvidenceView,
+        chunk_part: int = 0,
     ) -> GenerationRequest:
         """Tạo `GenerationRequest` có cấu trúc cho lượt gọi LLM chuẩn bị đầu phiên."""
         system_prompt = _UPFRONT_SYSTEM_PROMPT_TEMPLATE.format(
@@ -1065,6 +1093,8 @@ class ScriptFirstBaseline:
         )
         user_payload: dict[str, Any] = {
             "session_goal": story_plan.session_goal,
+            "chunk_part_index": chunk_part,
+            "min_chunks_per_topic": self._min_chunks_per_topic,
             "arc": {
                 "arc_id": arc.arc_id,
                 "position": arc.position,
@@ -1089,10 +1119,11 @@ class ScriptFirstBaseline:
                 "prohibited_claims": list(evidence_view.prohibited_claims),
             },
         }
+        part_suffix = f"-p{chunk_part}" if chunk_part > 0 else ""
         return GenerationRequest(
             request_id=(
                 f"upfront-{story_plan.plan_id}-r{story_plan.plan_revision}-"
-                f"{arc.arc_id}-{topic.topic_id}"
+                f"{arc.arc_id}-{topic.topic_id}{part_suffix}"
             ),
             system_prompt=system_prompt,
             user_prompt=json.dumps(user_payload, ensure_ascii=False),
@@ -1104,6 +1135,8 @@ class ScriptFirstBaseline:
                 "topic_id": topic.topic_id,
                 "arc_id": arc.arc_id,
                 "sku_id": active_sku_id,
+                "chunk_part": chunk_part,
+                "min_chunks_per_topic": self._min_chunks_per_topic,
             },
         )
 

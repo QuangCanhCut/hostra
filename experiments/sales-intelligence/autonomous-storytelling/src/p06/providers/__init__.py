@@ -26,6 +26,7 @@ from p06.providers.base import (
     ProviderAuthError,
     ProviderConfigError,
     ProviderError,
+    ProviderRateLimitError,
     ProviderTelemetry,
     ProviderTier,
     ProviderTimeoutError,
@@ -41,6 +42,7 @@ from p06.providers.gemini_provider import (
     GeminiClientProtocol,
     GeminiProviderConfig,
     GeminiRawResponse,
+    GeminiRestClient,
 )
 from p06.providers.mock_provider import (
     MockBehavior,
@@ -75,6 +77,7 @@ __all__ = [
     "ProviderTelemetry",
     # Providers & Factory
     "GeminiAPIProvider",
+    "GeminiRestClient",
     "LLMProvider",
     "MockLLMProvider",
     "OllamaLocalProvider",
@@ -84,6 +87,7 @@ __all__ = [
     "ProviderAuthError",
     "ProviderConfigError",
     "ProviderError",
+    "ProviderRateLimitError",
     "ProviderTimeoutError",
     "ProviderTransportError",
     "SchemaValidationOutputError",

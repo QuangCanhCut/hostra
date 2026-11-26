@@ -37,27 +37,48 @@ if str(_SRC_DIR) not in sys.path:
 
 from p06.providers.base import ProviderConfigError  # noqa: E402
 from p06.runner.config import (  # noqa: E402
+    ALL_SCENARIO_DURATIONS_SEC,
+    DATASET_PROFILES,
+    DEFAULT_DATASET_PROFILE,
+    DEFAULT_MAX_TURNS,
     DEFAULT_MOCK_MODEL_CONFIG_PATH,
     DEFAULT_RUNS_OUTPUT_DIR,
     LIVE_PROVIDERS,
-    SUPPORTED_SCENARIOS,
+    SUPPORTED_PROVIDERS,
     ExperimentMethod,
     load_experiment_run_config,
     load_yaml_mapping,
 )
 from p06.runner.session_runner import run_experiment  # noqa: E402
-from p06.runner.sweep import DEFAULT_E01_SCENARIOS, HISTORY_WINDOW_SWEEP, run_e01_sweep  # noqa: E402
+from p06.runner.sweep import (  # noqa: E402
+    DEFAULT_E01_EXT_V1_SCENARIOS,
+    DEFAULT_E01_SCENARIOS,
+    HISTORY_WINDOW_SWEEP,
+    run_e01_sweep,
+)
 
 
 def build_arg_parser() -> argparse.ArgumentParser:
     """Tạo bộ phân tích đối số dòng lệnh chuẩn cho thí nghiệm P06-E01."""
     parser = argparse.ArgumentParser(
-        description="HOSTRA AI P06-E01 Offline Experiment Runner (Mock-only in T08)."
+        description="HOSTRA AI P06-E01 Experiment Runner (Offline by default; use --allow-live-provider only after explicit approval)."
     )
     parser.add_argument(
         "--provider",
         default="mock",
-        help="LLM provider (T08 chỉ cho phép 'mock'; 'ollama'/'gemini' bị chặn cứng).",
+        choices=sorted(SUPPORTED_PROVIDERS),
+        help="LLM provider ('mock' mặc định ngoại tuyến; 'ollama'/'gemini' cần --allow-live-provider).",
+    )
+    parser.add_argument(
+        "--allow-live-provider",
+        action="store_true",
+        help="Cờ tường minh mở khóa provider trực tuyến/cục bộ ('ollama' hoặc 'gemini').",
+    )
+    parser.add_argument(
+        "--dataset-profile",
+        default=DEFAULT_DATASET_PROFILE,
+        choices=sorted(DATASET_PROFILES.keys()),
+        help="Hồ sơ dữ liệu ('e01' đóng băng hoặc 'e01_ext_v1' mở rộng cho E01-T09).",
     )
     parser.add_argument(
         "--method",
@@ -68,17 +89,38 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--scenario",
         default=None,
-        choices=sorted(SUPPORTED_SCENARIOS),
-        help=(
-            "Tên kịch bản E01 trong data/story_plans/e01_story_plans.json "
-            "(mặc định product_education_10m khi chạy đơn, hoặc toàn bộ 3 kịch bản khi --sweep)."
-        ),
+        choices=sorted(ALL_SCENARIO_DURATIONS_SEC.keys()),
+        help="Tên kịch bản thuộc dataset_profile đã chọn.",
     )
     parser.add_argument(
         "--history-window",
         type=int,
         default=None,
         help="Kích thước cửa sổ W (chỉ dùng cho langgraph_structured_story, vd: 5, 10, 20).",
+    )
+    parser.add_argument(
+        "--min-chunks-per-topic",
+        type=int,
+        default=None,
+        help="Số chunk xác nhận tối thiểu để hoàn tất 1 topic (mặc định 1).",
+    )
+    parser.add_argument(
+        "--max-turns",
+        type=int,
+        default=DEFAULT_MAX_TURNS,
+        help="Giới hạn số lượt tối đa mỗi phiên chạy.",
+    )
+    parser.add_argument(
+        "--max-llm-calls",
+        type=int,
+        default=None,
+        help="Giới hạn an toàn tổng số lượt gọi LLM tối đa trong 1 phiên.",
+    )
+    parser.add_argument(
+        "--max-cost-usd",
+        type=float,
+        default=None,
+        help="Giới hạn ngân sách chi phí ước tính tối đa (USD) cho 1 phiên.",
     )
     parser.add_argument(
         "--seed",
@@ -90,7 +132,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "--config",
         type=Path,
         default=None,
-        help="Đường dẫn tệp YAML cấu hình model (mặc định configs/models/mock.yaml).",
+        help="Đường dẫn tệp YAML cấu hình model (mặc định suy theo --provider).",
     )
     parser.add_argument(
         "--output-dir",
@@ -111,25 +153,35 @@ def build_arg_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _enforce_t08_offline_safeguard(provider: str, config_path: Optional[Path]) -> None:
-    """Rào chắn cứng tầng CLI của T08: từ chối tuyệt đối mọi provider trực tuyến."""
+def _enforce_live_provider_safeguard(
+    provider: str,
+    config_path: Optional[Path],
+    *,
+    allow_live_provider: bool,
+) -> None:
+    """Rào chắn ngoại tuyến mặc định ở tầng CLI: chặn Ollama/Gemini nếu thiếu `--allow-live-provider`."""
     normalized = provider.strip().lower()
-    if normalized in LIVE_PROVIDERS or normalized != "mock":
+    if normalized in LIVE_PROVIDERS and not allow_live_provider:
         raise SystemExit(
-            f"[T08 BLOCKED] Live provider '{provider}' bị chặn cứng trong E01-T08. "
-            f"Chỉ được phép chạy ngoại tuyến với --provider mock."
+            f"[T08 BLOCKED] Live provider '{provider}' bị chặn mặc định. "
+            f"Chỉ chạy ngoại tuyến với --provider mock, hoặc truyền --allow-live-provider khi đã có phê duyệt thực thi."
         )
-    resolved_cfg = (config_path or DEFAULT_MOCK_MODEL_CONFIG_PATH).resolve()
-    try:
-        model_yaml = load_yaml_mapping(resolved_cfg)
-    except ProviderConfigError as exc:
-        raise SystemExit(f"[CONFIG ERROR] {exc}") from exc
-    yaml_provider = str(model_yaml.get("provider", "")).strip().lower()
-    if yaml_provider in LIVE_PROVIDERS or yaml_provider != "mock":
-        raise SystemExit(
-            f"[T08 BLOCKED] Tệp cấu hình '{resolved_cfg}' khai báo provider '{yaml_provider}'. "
-            f"E01-T08 chặn hoàn toàn Ollama và Gemini."
-        )
+    if config_path is not None or normalized == "mock":
+        resolved_cfg = (config_path or DEFAULT_MOCK_MODEL_CONFIG_PATH).resolve()
+        try:
+            model_yaml = load_yaml_mapping(resolved_cfg)
+        except ProviderConfigError as exc:
+            raise SystemExit(f"[CONFIG ERROR] {exc}") from exc
+        yaml_provider = str(model_yaml.get("provider", "")).strip().lower()
+        if yaml_provider in LIVE_PROVIDERS and not allow_live_provider:
+            raise SystemExit(
+                f"[T08 BLOCKED] Tệp cấu hình '{resolved_cfg}' khai báo provider '{yaml_provider}' "
+                f"nhưng thiếu --allow-live-provider."
+            )
+        if yaml_provider != normalized:
+            raise SystemExit(
+                f"[CONFIG ERROR] Xung đột --provider '{normalized}' với YAML '{yaml_provider}'."
+            )
 
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
@@ -137,23 +189,41 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     parser = build_arg_parser()
     args = parser.parse_args(argv)
 
-    _enforce_t08_offline_safeguard(args.provider, args.config)
+    _enforce_live_provider_safeguard(
+        args.provider,
+        args.config,
+        allow_live_provider=args.allow_live_provider,
+    )
 
     if args.sweep:
-        sweep_scenarios = (args.scenario,) if args.scenario is not None else DEFAULT_E01_SCENARIOS
-        sweep_res = run_e01_sweep(
-            scenarios=sweep_scenarios,
-            history_windows=HISTORY_WINDOW_SWEEP,
-            provider="mock",
-            model_config_path=args.config,
-            seed=args.seed,
-            output_dir=args.output_dir,
-            allow_live_provider=False,
-            export_human_eval=args.export_human_eval,
-        )
+        if args.scenario is not None:
+            sweep_scenarios: tuple[str, ...] = (args.scenario,)
+        elif args.dataset_profile == "e01_ext_v1":
+            sweep_scenarios = DEFAULT_E01_EXT_V1_SCENARIOS
+        else:
+            sweep_scenarios = DEFAULT_E01_SCENARIOS
+        try:
+            sweep_res = run_e01_sweep(
+                scenarios=sweep_scenarios,
+                history_windows=HISTORY_WINDOW_SWEEP,
+                dataset_profile=args.dataset_profile,
+                provider=args.provider,
+                model_config_path=args.config,
+                min_chunks_per_topic=args.min_chunks_per_topic,
+                seed=args.seed,
+                max_turns=args.max_turns,
+                max_llm_calls=args.max_llm_calls,
+                max_estimated_cost_usd=args.max_cost_usd,
+                output_dir=args.output_dir,
+                allow_live_provider=args.allow_live_provider,
+                export_human_eval=args.export_human_eval,
+            )
+        except (ProviderConfigError, ValueError) as exc:
+            raise SystemExit(f"[CONFIG ERROR] {exc}") from exc
         summary = {
             "mode": "sweep",
             "sweep_id": sweep_res.sweep_id,
+            "dataset_profile": args.dataset_profile,
             "scenarios": list(sweep_scenarios),
             "total_runs": len(sweep_res.run_results),
             "output_dir": str(sweep_res.output_dir),
@@ -165,18 +235,25 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         print(json.dumps(summary, ensure_ascii=False, indent=2))
         return 0
 
-    selected_scenario = args.scenario or "product_education_10m"
+    selected_scenario = args.scenario or (
+        "product_education_10m_ext" if args.dataset_profile == "e01_ext_v1" else "product_education_10m"
+    )
     method = ExperimentMethod(args.method)
     try:
         run_cfg = load_experiment_run_config(
             scenario=selected_scenario,
             method=method,
-            provider="mock",
+            dataset_profile=args.dataset_profile,
+            provider=args.provider,
             model_config_path=args.config,
             history_window=args.history_window,
+            min_chunks_per_topic=args.min_chunks_per_topic,
             seed=args.seed,
+            max_turns=args.max_turns,
+            max_llm_calls=args.max_llm_calls,
+            max_estimated_cost_usd=args.max_cost_usd,
             output_dir=args.output_dir,
-            allow_live_provider=False,
+            allow_live_provider=args.allow_live_provider,
         )
     except (ProviderConfigError, ValueError) as exc:
         raise SystemExit(f"[CONFIG ERROR] {exc}") from exc
@@ -186,9 +263,11 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         "mode": "single",
         "run_id": result.run_id,
         "run_dir": str(result.run_dir),
+        "dataset_profile": result.manifest.get("dataset_profile"),
         "method": result.manifest["method"],
         "scenario": result.manifest["scenario"],
         "history_window": result.manifest["history_window"],
+        "min_chunks_per_topic": result.manifest.get("min_chunks_per_topic"),
         "termination_reason": result.termination_reason.value,
         "transcript_turns": len(result.evidence.transcript),
     }

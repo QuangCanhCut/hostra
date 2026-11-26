@@ -37,6 +37,7 @@ from p06.memory.repetition_detector import RepetitionConfig
 from p06.providers.base import (
     SENSITIVE_SAMPLING_KEYS,
     ProviderConfigError,
+    StrictNonNegFloat,
     StrictPositiveFloat,
 )
 from p06.schemas.state import (
@@ -66,6 +67,12 @@ DEFAULT_E01_STORY_PLANS_PATH: Final[Path] = (
 DEFAULT_E01_VERIFIED_SKUS_PATH: Final[Path] = (
     DEFAULT_MODULE_ROOT / "data" / "products" / "e01_verified_skus.json"
 )
+DEFAULT_E01_EXT_V1_STORY_PLANS_PATH: Final[Path] = (
+    DEFAULT_MODULE_ROOT / "data" / "story_plans" / "e01_ext_v1_story_plans.json"
+)
+DEFAULT_E01_EXT_V1_VERIFIED_SKUS_PATH: Final[Path] = (
+    DEFAULT_MODULE_ROOT / "data" / "products" / "e01_ext_v1_verified_skus.json"
+)
 DEFAULT_PROMPTS_DIR: Final[Path] = DEFAULT_MODULE_ROOT / "prompts"
 DEFAULT_RUNS_OUTPUT_DIR: Final[Path] = DEFAULT_MODULE_ROOT / "runs" / "P06-E01"
 
@@ -73,15 +80,52 @@ DEFAULT_MAX_CHUNK_DURATION_SEC: Final[float] = 8.0
 DEFAULT_EXPERIMENT_SEED: Final[int] = 42
 DEFAULT_MAX_TURNS: Final[int] = 500
 DEFAULT_MAX_CONSECUTIVE_ABORTS: Final[int] = 3
+DEFAULT_DATASET_PROFILE: Final[str] = "e01"
 
 SCENARIO_DURATIONS_SEC: Final[dict[str, float]] = {
     "product_education_10m": 600.0,
     "brand_storytelling_10m": 600.0,
     "sales_presentation_30m": 1800.0,
 }
+EXT_V1_SCENARIO_DURATIONS_SEC: Final[dict[str, float]] = {
+    "product_education_10m_ext": 600.0,
+    "brand_storytelling_10m_ext": 600.0,
+    "sales_presentation_30m_ext": 1800.0,
+    "pilot_short_3sku_ext": 300.0,
+    "window_sensitivity_stress_24t": 600.0,
+}
+ALL_SCENARIO_DURATIONS_SEC: Final[dict[str, float]] = {
+    **SCENARIO_DURATIONS_SEC,
+    **EXT_V1_SCENARIO_DURATIONS_SEC,
+}
 SUPPORTED_SCENARIOS: Final[frozenset[str]] = frozenset(SCENARIO_DURATIONS_SEC.keys())
+SUPPORTED_EXT_V1_SCENARIOS: Final[frozenset[str]] = frozenset(EXT_V1_SCENARIO_DURATIONS_SEC.keys())
+DATASET_PROFILES: Final[dict[str, dict[str, Any]]] = {
+    "e01": {
+        "story_plans_path": DEFAULT_E01_STORY_PLANS_PATH,
+        "evidence_seed_path": DEFAULT_E01_VERIFIED_SKUS_PATH,
+        "scenario_durations": SCENARIO_DURATIONS_SEC,
+        "default_min_chunks_per_topic": 1,
+    },
+    "e01_ext_v1": {
+        "story_plans_path": DEFAULT_E01_EXT_V1_STORY_PLANS_PATH,
+        "evidence_seed_path": DEFAULT_E01_EXT_V1_VERIFIED_SKUS_PATH,
+        "scenario_durations": EXT_V1_SCENARIO_DURATIONS_SEC,
+        "default_min_chunks_per_topic": 1,
+    },
+}
 LIVE_PROVIDERS: Final[frozenset[str]] = frozenset({"ollama", "gemini"})
 SUPPORTED_PROVIDERS: Final[frozenset[str]] = frozenset({"mock", "ollama", "gemini"})
+
+
+def resolve_dataset_profile(dataset_profile: str) -> dict[str, Any]:
+    """Trả về cấu hình đường dẫn và kịch bản chuẩn cho một `dataset_profile` đã đăng ký."""
+    key = dataset_profile.strip()
+    if key not in DATASET_PROFILES:
+        raise ValueError(
+            f"dataset_profile '{dataset_profile}' không hợp lệ. Chỉ hỗ trợ: {sorted(DATASET_PROFILES)}."
+        )
+    return dict(DATASET_PROFILES[key])
 
 _SAFE_TOKEN_CONFIG_KEYS: Final[frozenset[str]] = frozenset(
     {
@@ -97,6 +141,7 @@ _SAFE_TOKEN_CONFIG_KEYS: Final[frozenset[str]] = frozenset(
         "wasted_tokens",
         "wasted_input_tokens",
         "wasted_output_tokens",
+        "thinking_tokens",
     }
 )
 
@@ -117,6 +162,7 @@ class RunTerminationReason(str, Enum):
     TIME_BUDGET_EXHAUSTED = "TIME_BUDGET_EXHAUSTED"
     MAX_TURNS_REACHED = "MAX_TURNS_REACHED"
     MAX_CONSECUTIVE_ABORTS = "MAX_CONSECUTIVE_ABORTS"
+    BUDGET_LIMIT_REACHED = "BUDGET_LIMIT_REACHED"
     FATAL_ERROR = "FATAL_ERROR"
 
 
@@ -206,17 +252,23 @@ class ExperimentRunConfig(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True, revalidate_instances="always")
 
     experiment_id: NonBlankStr = "P06-E01"
+    dataset_profile: NonBlankStr = DEFAULT_DATASET_PROFILE
     scenario: NonBlankStr
     method: ExperimentMethod
     provider: NonBlankStr = "mock"
     model_config_path: Path
+    story_plans_path: Optional[Path] = None
+    evidence_seed_path: Optional[Path] = None
     history_window: Optional[int] = None
+    min_chunks_per_topic: StrictPositiveInt = 1
     seed: StrictInt = DEFAULT_EXPERIMENT_SEED
     max_chunk_duration_sec: StrictPositiveFloat = DEFAULT_MAX_CHUNK_DURATION_SEC
     max_rewrite_retries: StrictNonNegInt = DEFAULT_MAX_REWRITE_RETRIES
     target_duration_sec: StrictPositiveFloat = 600.0
     max_turns: StrictPositiveInt = DEFAULT_MAX_TURNS
     max_consecutive_aborts: StrictPositiveInt = DEFAULT_MAX_CONSECUTIVE_ABORTS
+    max_llm_calls: Optional[StrictPositiveInt] = None
+    max_estimated_cost_usd: Optional[StrictNonNegFloat] = None
     output_dir: Path
     allow_live_provider: StrictBool = False
     repetition_config: RepetitionConfig = Field(default_factory=RepetitionConfig)
@@ -224,24 +276,28 @@ class ExperimentRunConfig(BaseModel):
     @model_validator(mode="before")
     @classmethod
     def _derive_defaults_before_validation(cls, data: Any) -> Any:
-        """Tự suy diễn `target_duration_sec` từ `scenario` nếu caller không truyền tường minh."""
+        """Tự suy diễn `dataset_profile` và `target_duration_sec` từ `scenario` nếu caller không truyền tường minh."""
         if not isinstance(data, Mapping):
             return data
         copied = dict(data)
         if isinstance(copied.get("provider"), str):
             copied["provider"] = copied["provider"].strip().lower()
-        if copied.get("target_duration_sec") is None and isinstance(copied.get("scenario"), str):
-            scenario_key = copied["scenario"].strip()
-            if scenario_key in SCENARIO_DURATIONS_SEC:
-                copied["target_duration_sec"] = SCENARIO_DURATIONS_SEC[scenario_key]
+        scenario_key = copied["scenario"].strip() if isinstance(copied.get("scenario"), str) else ""
+        if copied.get("dataset_profile") is None and scenario_key in EXT_V1_SCENARIO_DURATIONS_SEC:
+            copied["dataset_profile"] = "e01_ext_v1"
+        if copied.get("target_duration_sec") is None and scenario_key in ALL_SCENARIO_DURATIONS_SEC:
+            copied["target_duration_sec"] = ALL_SCENARIO_DURATIONS_SEC[scenario_key]
         return copied
 
     @model_validator(mode="after")
     def validate_config_invariants(self) -> ExperimentRunConfig:
-        """Kiểm định tính hợp lệ của scenario, provider, cửa sổ W và rào chắn ngoại tuyến."""
-        if self.scenario not in SUPPORTED_SCENARIOS:
+        """Kiểm định tính hợp lệ của profile, scenario, provider, cửa sổ W và rào chắn ngoại tuyến."""
+        profile_cfg = resolve_dataset_profile(self.dataset_profile)
+        allowed_scenarios = profile_cfg["scenario_durations"]
+        if self.scenario not in allowed_scenarios:
             raise ValueError(
-                f"Kịch bản '{self.scenario}' không hợp lệ. Chỉ hỗ trợ: {sorted(SUPPORTED_SCENARIOS)}."
+                f"Kịch bản '{self.scenario}' không hợp lệ cho dataset_profile='{self.dataset_profile}'. "
+                f"Chỉ hỗ trợ: {sorted(allowed_scenarios.keys())}."
             )
         if self.provider not in SUPPORTED_PROVIDERS:
             raise ValueError(
@@ -289,17 +345,23 @@ def load_experiment_run_config(
     *,
     scenario: str,
     method: ExperimentMethod | str,
+    dataset_profile: str = DEFAULT_DATASET_PROFILE,
     provider: str = "mock",
     model_config_path: Optional[Path] = None,
     default_config_path: Optional[Path] = None,
     experiment_config_path: Optional[Path] = None,
+    story_plans_path: Optional[Path] = None,
+    evidence_seed_path: Optional[Path] = None,
     history_window: Optional[int] = None,
+    min_chunks_per_topic: Optional[int] = None,
     seed: Optional[int] = None,
     max_chunk_duration_sec: Optional[float] = None,
     max_rewrite_retries: Optional[int] = None,
     target_duration_sec: Optional[float] = None,
     max_turns: int = DEFAULT_MAX_TURNS,
     max_consecutive_aborts: int = DEFAULT_MAX_CONSECUTIVE_ABORTS,
+    max_llm_calls: Optional[int] = None,
+    max_estimated_cost_usd: Optional[float] = None,
     output_dir: Optional[Path] = None,
     allow_live_provider: bool = False,
     repetition_config: Optional[RepetitionConfig] = None,
@@ -422,15 +484,33 @@ def load_experiment_run_config(
             )
         resolved_window = None
 
+    profile_cfg = resolve_dataset_profile(dataset_profile)
+    allowed_durations: dict[str, float] = profile_cfg["scenario_durations"]
     resolved_scenario = scenario.strip()
-    if resolved_scenario not in SUPPORTED_SCENARIOS:
+    if resolved_scenario not in allowed_durations:
         raise ValueError(
-            f"Kịch bản '{resolved_scenario}' không hợp lệ. Chỉ hỗ trợ: {sorted(SUPPORTED_SCENARIOS)}."
+            f"Kịch bản '{resolved_scenario}' không hợp lệ cho dataset_profile='{dataset_profile}'. "
+            f"Chỉ hỗ trợ: {sorted(allowed_durations.keys())}."
         )
     resolved_target_duration = (
         float(target_duration_sec)
         if target_duration_sec is not None
-        else SCENARIO_DURATIONS_SEC[resolved_scenario]
+        else allowed_durations[resolved_scenario]
+    )
+    resolved_story_plans_path = (
+        Path(story_plans_path).resolve()
+        if story_plans_path is not None
+        else Path(profile_cfg["story_plans_path"]).resolve()
+    )
+    resolved_evidence_seed_path = (
+        Path(evidence_seed_path).resolve()
+        if evidence_seed_path is not None
+        else Path(profile_cfg["evidence_seed_path"]).resolve()
+    )
+    resolved_min_chunks = (
+        min_chunks_per_topic
+        if min_chunks_per_topic is not None
+        else int(profile_cfg.get("default_min_chunks_per_topic", 1))
     )
 
     experiment_id = str(exp_yaml.get("experiment_id", "P06-E01")).strip() or "P06-E01"
@@ -442,17 +522,23 @@ def load_experiment_run_config(
 
     return ExperimentRunConfig(
         experiment_id=experiment_id,
+        dataset_profile=dataset_profile.strip(),
         scenario=resolved_scenario,
         method=resolved_method,
         provider=normalized_provider,
         model_config_path=resolved_model_path,
+        story_plans_path=resolved_story_plans_path,
+        evidence_seed_path=resolved_evidence_seed_path,
         history_window=resolved_window,
+        min_chunks_per_topic=resolved_min_chunks,
         seed=resolved_seed,
         max_chunk_duration_sec=resolved_max_chunk_sec,
         max_rewrite_retries=resolved_max_retries,
         target_duration_sec=resolved_target_duration,
         max_turns=max_turns,
         max_consecutive_aborts=max_consecutive_aborts,
+        max_llm_calls=max_llm_calls,
+        max_estimated_cost_usd=max_estimated_cost_usd,
         output_dir=resolved_output_dir,
         allow_live_provider=allow_live_provider,
         repetition_config=repetition_config or RepetitionConfig(),
@@ -507,18 +593,24 @@ def build_sanitized_config_snapshot(
     """
     raw_snapshot = {
         "experiment_id": config.experiment_id,
+        "dataset_profile": config.dataset_profile,
         "scenario": config.scenario,
         "method": config.method.value,
         "provider": config.provider,
         "model_config_path": str(config.model_config_path),
+        "story_plans_path": str(config.story_plans_path) if config.story_plans_path else None,
+        "evidence_seed_path": str(config.evidence_seed_path) if config.evidence_seed_path else None,
         "model_config": sanitize_mapping_for_artifact(model_yaml),
         "history_window": config.history_window,
+        "min_chunks_per_topic": config.min_chunks_per_topic,
         "seed": config.seed,
         "max_chunk_duration_sec": config.max_chunk_duration_sec,
         "max_rewrite_retries": config.max_rewrite_retries,
         "target_duration_sec": config.target_duration_sec,
         "max_turns": config.max_turns,
         "max_consecutive_aborts": config.max_consecutive_aborts,
+        "max_llm_calls": config.max_llm_calls,
+        "max_estimated_cost_usd": config.max_estimated_cost_usd,
         "output_dir": str(config.output_dir),
         "allow_live_provider": config.allow_live_provider,
         "repetition_config": config.repetition_config.model_dump(mode="json"),
