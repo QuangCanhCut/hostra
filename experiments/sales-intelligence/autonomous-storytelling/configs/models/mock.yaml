@@ -1,0 +1,6 @@
+# Cấu hình Model Tầng 1: Mock Provider (Deterministic Unit & Contract Testing)
+provider: "mock"
+run_tier: "unit_test"
+model_id: "deterministic-mock-v0.1"
+deterministic: true
+notes: "For unit/contract/LangGraph state, retry & fallback tests ONLY; never valid as storytelling quality evidence."

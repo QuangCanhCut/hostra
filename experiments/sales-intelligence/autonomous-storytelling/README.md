@@ -113,3 +113,25 @@ Các liên kết ngoài sau được lấy từ hồ sơ Stage 03; đây là đi
 - [ ] Chạy P06-E04, lưu output/metrics/evidence và ghi cả trường hợp thất bại.
 - [ ] Kiểm tra hard gates và đối chiếu dependency/contract với nhóm liên quan.
 - [ ] Chạy lại được kết quả, review giới hạn và ghi quyết định có bằng chứng.
+
+## 12. Cấu trúc thư mục nghiên cứu & Điều hướng tài liệu
+
+**Trạng thái hiện tại:** Đã khởi tạo khung nghiên cứu (`IN RESEARCH` preparation); toàn bộ các lượt chạy thực nghiệm `P06-E01`..`P06-E04` vẫn đang ở trạng thái `NOT STARTED`.
+
+- **Quy tắc chung repository:** [AGENTS.md](../../../AGENTS.md) · **Quy tắc module P06:** [P06 AGENTS.md](AGENTS.md)
+- **Tài liệu báo cáo & Hướng dẫn dự án (`docs/`):**
+  - [Mục lục tài liệu P06](docs/README.md) (`docs/README.md`)
+  - [Báo cáo bối cảnh & khởi tạo khung (Session 01)](docs/00-context-and-scaffolding-report.md) (`00-context-and-scaffolding-report.md`)
+  - [Hướng dẫn nhiệm vụ & cấu trúc thư mục P06](docs/01-p06-structure-and-mission-guide.md) (`01-p06-structure-and-mission-guide.md`)
+  - [Đồng bộ `P06-OPEN-1..6`, Kiến trúc 3 tầng LLM & Kế hoạch `P06-E01` (Session 02)](docs/02-open-decisions-alignment-and-e01-plan.md) (`02-open-decisions-alignment-and-e01-plan.md`)
+- **Tài liệu nghiên cứu (`research/`):**
+  - [Định nghĩa bài toán](research/problem_definition.md) (`problem_definition.md`)
+  - [Câu hỏi nghiên cứu](research/research_questions.md) (`research_questions.md`)
+  - [Phương pháp luận](research/methodology.md) (`methodology.md`)
+  - [Ngữ cảnh & Phụ thuộc](research/context_and_dependencies.md) (`context_and_dependencies.md`)
+  - [Nhật ký quyết định](research/decision_log.md) (`decision_log.md`)
+  - [Tổng quan tài liệu](research/literature_review.md) (`literature_review.md`)
+- **Cấu hình (`configs/`):** [configs/default.yaml](configs/default.yaml) · [configs/experiments/p06_e01.yaml](configs/experiments/p06_e01.yaml) · [configs/models/](configs/models/) (`mock.yaml`, `ollama_qwen3_1.7b.yaml`, `ollama_qwen3_4b.yaml`, `gemini_flash.yaml`)
+- **Dữ liệu, Prompt & Notebook:** [data/README.md](data/README.md) · [prompts/README.md](prompts/README.md) · [notebooks/README.md](notebooks/README.md)
+- **Kịch bản thí nghiệm & Đánh giá:** [experiments/p06_e01_no_comments/README.md](experiments/p06_e01_no_comments/README.md) · [evaluation/README.md](evaluation/README.md) · [evaluation/rubrics/human_eval_rubric_v0.1.md](evaluation/rubrics/human_eval_rubric_v0.1.md)
+- **Nhật ký chạy & Báo cáo:** [runs/README.md](runs/README.md) · [reports/README.md](reports/README.md)
