@@ -1,0 +1,18 @@
+# Cấu hình Model Tầng 2: Local Ollama CPU Smoke Test (Qwen3 4B)
+# Trạng thái: PROPOSED / TO VALIDATE
+provider: "ollama"
+run_tier: "local_smoke_test"
+model_id: "qwen3:4b"
+status: "PROPOSED / TO VALIDATE"
+base_url_env: "OLLAMA_BASE_URL"
+hardware_profile: "cpu_only_no_dgpu"
+quantization: "TBD_RECORD_ACTUAL_TAG"
+context_window: 8192
+sampling:
+  temperature: 0.3
+  top_p: 0.9
+  max_tokens: 1024
+  seed: 42
+timeout_sec: 180
+resource_note: "CPU-only execution without dGPU requires sufficient host RAM (~4-8 GB free depending on quantization tag) and incurs high per-chunk latency; record actual cpu_model, ram_gb, and quantization in run telemetry."
+notes: "Local CPU exploration, prompt iteration & LangGraph smoke testing only; never assume production latency or pool with Gemini benchmarks."

@@ -1,0 +1,37 @@
+# Cấu hình package PoC độc lập cho P06 (Stage 03).
+# Theo `docs/05-implementation/development-guides/ENVIRONMENT_SETUP_AUDIT.md` §2.2:
+# root `pyproject.toml` chỉ cấu hình search-path cho Pyrefly/Pyright, không quản lý
+# dependencies chung toàn repo để tránh xung đột với GPU workers và backend API.
+
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hostra-p06-storytelling"
+version = "0.1.0"
+description = "HOSTRA AI Stage 03 PoC research for P06 Sales Intelligence & Autonomous Storytelling"
+requires-python = ">=3.11,<3.14"
+dependencies = [
+    "pydantic>=2.7",
+    "pyyaml>=6.0",
+    "python-dotenv>=1.0",
+    "langgraph>=0.2",
+    "langchain-core>=0.3",
+]
+
+[project.optional-dependencies]
+# 3-tier LLM provider extras; production/formal model IDs remain `TO VALIDATE`.
+ollama = ["httpx>=0.27"]          # Local CPU HTTP API smoke-test tier
+gemini = ["google-genai>=1.0"]    # Formal experiment tier (`model_id` TO VALIDATE)
+analysis = ["numpy>=1.26", "pandas>=2.2", "matplotlib>=3.8"]
+# `TO VALIDATE` comparator only if rule-based anti-repetition proves insufficient (no pgvector in standalone PoC).
+embeddings = ["sentence-transformers>=3.0"]
+dev = ["pytest>=8.0"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

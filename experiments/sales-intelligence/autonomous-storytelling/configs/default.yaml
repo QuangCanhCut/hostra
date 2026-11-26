@@ -1,0 +1,79 @@
+# Cấu hình mặc định cho chuỗi thí nghiệm P06 (`NOT_STARTED`).
+# Mọi tham số đều gắn nhãn trạng thái theo quy tắc Stage 03:
+# `CONFIRMED REQUIREMENT` | `SELECTED FOR PoC` | `PROPOSED` | `TO VALIDATE`
+
+experiment:
+  # PROPOSED: seed cố định cho phần mô phỏng có tính ngẫu nhiên
+  seed: 42
+  # CONFIRMED REQUIREMENT: ngôn ngữ tiếng Việt cho lời dẫn merchant/viewer
+  language: "vi"
+  # Trạng thái tiến độ hiện tại
+  status: "NOT_STARTED"
+
+provider:
+  # SELECTED FOR PoC (Directional): kiến trúc provider 3 tầng (mock -> ollama CPU -> gemini)
+  policy_status: "SELECTED FOR PoC (Directional)"
+  # Mặc định trỏ tới cấu hình Mock để đảm bảo mọi test quyết định chạy không tốn chi phí API
+  model_config: "configs/models/mock.yaml"
+  tiers:
+    unit_test: "configs/models/mock.yaml"
+    local_smoke_test: "configs/models/ollama_qwen3_1.7b.yaml"
+    formal_experiment: "configs/models/gemini_flash.yaml"
+  prohibit_cross_tier_pooling: true
+  temperature: 0.3
+
+# PROPOSED per Architecture Baseline v1.2 §3.4 `P-INT`
+chunking_policy:
+  target_duration_sec: [3, 5]
+  max_duration_sec: 8
+  require_semantic_breakpoint: true
+
+# PROPOSED per Architecture Baseline v1.2 §3.4 `P-QUEUE`
+answer_policy:
+  target_duration_sec: [4, 8]
+  max_duration_sec: 12
+  min_story_chunks_between_comment_batches: 1
+
+# Kiến trúc bộ nhớ 4 thành phần cho P06
+memory_policy:
+  short_term_played_history:
+    # PROPOSED: kích thước cửa sổ mặc định (10 chunk đã phát)
+    window_chunks: 10
+    # RESEARCH_VARIABLE (`P06 OPEN-2`): quét W in {5, 10, 20}
+    candidate_windows: [5, 10, 20]
+    # CONFIRMED REQUIREMENT (Invariant I-06): chỉ tiến trạng thái khi có ACK `PlaybackCompleted`
+    advance_only_on_playback_completed: true
+  global_topic_coverage:
+    track_mandatory_topics: true
+    update_only_on_playback_completed: true
+  session_viewer_context:
+    # CONFIRMED (`D11/D23`): phạm vi cô lập trong từng phiên live
+    scoped_to_session: true
+    cross_session_personalization: false
+  optional_semantic_memory:
+    enabled: false
+    method: "embedding_cosine"
+    use_pgvector: false
+    status: "TO_VALIDATE_IF_RULES_INSUFFICIENT"
+
+repetition_policy:
+  # SELECTED FOR PoC: ưu tiên phương pháp rule-based trước khi cân nhắc embedding comparator
+  primary_method: "rule_based"
+  # TO VALIDATE: không khóa ngưỡng trước khi có dữ liệu đối chiếu thực nghiệm
+  similarity_threshold: null
+
+recap_policy:
+  enabled: false
+  strategy: "periodic_plus_context_qa"
+  # CONFIRMED constraint: không tự ngắt mạch để recap mỗi khi có người xem mới vào phòng
+  recap_on_viewer_join: false
+  align_with_semantic_breakpoint: true
+  status: "RESEARCH_VARIABLE_DEFERRED_PAST_E01"
+
+guardrails:
+  # PROPOSED: giới hạn số lần rewrite để tránh vòng lặp vô hạn
+  max_rewrite_retries: 2
+  # CONFIRMED REQUIREMENT (Invariant I-02): fail-closed khi claim thiếu kiểm chứng P05
+  fail_closed_on_unverified_claim: true
+  # CONFIRMED REQUIREMENT (Invariant I-04): P06 không được tự ý đổi Active SKU
+  allow_active_sku_mutation: false

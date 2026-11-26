@@ -113,3 +113,32 @@ Các liên kết ngoài sau được lấy từ hồ sơ Stage 03; đây là đi
 - [ ] Chạy P06-E04, lưu output/metrics/evidence và ghi cả trường hợp thất bại.
 - [ ] Kiểm tra hard gates và đối chiếu dependency/contract với nhóm liên quan.
 - [ ] Chạy lại được kết quả, review giới hạn và ghi quyết định có bằng chứng.
+
+## 12. Cấu trúc thư mục nghiên cứu & Điều hướng tài liệu
+
+**Trạng thái hiện tại:** `E01-T01..T08: COMPLETED` (`249/249` offline Mock pytest tests pass: Core Schemas, 3-Tier Providers, Datasets/P05/Harness, 4-Part Memory + `ScriptFirstBaseline` + 8-Node LangGraph Core, và **Phase 4 Evaluation Metrics + Reproducible Experiment Runner**); `E01-T09` (Ollama CPU smoke, Gemini formal benchmark, Human Blind Pilot Calibration) và các lượt chạy thực nghiệm live `P06-E01`..`P06-E04` vẫn ở trạng thái `NOT STARTED` (`TO VALIDATE`).
+
+> **Chạy thử ngoại tuyến (`E01-T08`, Mock only):**  
+> `python experiments/p06_e01_no_comments/run_e01.py --provider mock --sweep --scenario product_education_10m --export-human-eval`
+
+- **Quy tắc chung repository:** [AGENTS.md](../../../AGENTS.md) · **Quy tắc module P06:** [P06 AGENTS.md](AGENTS.md)
+- **Tài liệu báo cáo & Hướng dẫn dự án (`docs/`):**
+  - [Mục lục tài liệu P06](docs/README.md) (`docs/README.md`)
+  - [Báo cáo bối cảnh & khởi tạo khung (Session 01)](docs/00-context-and-scaffolding-report.md) (`00-context-and-scaffolding-report.md`)
+  - [Hướng dẫn nhiệm vụ & cấu trúc thư mục P06](docs/01-p06-structure-and-mission-guide.md) (`01-p06-structure-and-mission-guide.md`)
+  - [Đồng bộ `P06-OPEN-1..6`, Kiến trúc 3 tầng LLM & Kế hoạch `P06-E01` (Session 02)](docs/02-open-decisions-alignment-and-e01-plan.md) (`02-open-decisions-alignment-and-e01-plan.md`)
+  - [Báo cáo Phase 1 — Môi trường (`E01-T01`) & Core Schemas `p06-mock-v0.1` (`E01-T02`)](docs/03-phase1-foundation-e01-t01-t02-report.md) (`03-phase1-foundation-e01-t01-t02-report.md`)
+  - [Báo cáo Kiểm toán Phase 1 & Hạ tầng Phase 2 (`E01-T03..E01-T05`)](docs/04-phase2-research-infrastructure-e01-t03-t05-report.md) (`04-phase2-research-infrastructure-e01-t03-t05-report.md`)
+  - [Báo cáo Phase 3 — AI Agent Core, Memory System & 8-Node LangGraph (`E01-T06..E01-T07`)](docs/05-phase3-agent-core-e01-t06-t07-report.md) (`05-phase3-agent-core-e01-t06-t07-report.md`)
+  - [Báo cáo Phase 4 — Hệ thống Đánh giá & Experiment Runner (`E01-T08`)](docs/06-phase4-evaluation-runner-e01-t08-report.md) (`06-phase4-evaluation-runner-e01-t08-report.md`)
+- **Tài liệu nghiên cứu (`research/`):**
+  - [Định nghĩa bài toán](research/problem_definition.md) (`problem_definition.md`)
+  - [Câu hỏi nghiên cứu](research/research_questions.md) (`research_questions.md`)
+  - [Phương pháp luận](research/methodology.md) (`methodology.md`)
+  - [Ngữ cảnh & Phụ thuộc](research/context_and_dependencies.md) (`context_and_dependencies.md`)
+  - [Nhật ký quyết định](research/decision_log.md) (`decision_log.md`)
+  - [Tổng quan tài liệu](research/literature_review.md) (`literature_review.md`)
+- **Cấu hình (`configs/`):** [configs/default.yaml](configs/default.yaml) · [configs/experiments/p06_e01.yaml](configs/experiments/p06_e01.yaml) · [configs/models/](configs/models/) (`mock.yaml`, `ollama_qwen3_1.7b.yaml`, `ollama_qwen3_4b.yaml`, `gemini_flash.yaml`)
+- **Dữ liệu, Prompt & Notebook:** [data/README.md](data/README.md) · [prompts/README.md](prompts/README.md) · [notebooks/README.md](notebooks/README.md)
+- **Kịch bản thí nghiệm & Đánh giá:** [experiments/p06_e01_no_comments/README.md](experiments/p06_e01_no_comments/README.md) · [evaluation/README.md](evaluation/README.md) · [evaluation/rubrics/human_eval_rubric_v0.1.md](evaluation/rubrics/human_eval_rubric_v0.1.md)
+- **Nhật ký chạy & Báo cáo:** [runs/README.md](runs/README.md) · [reports/README.md](reports/README.md)

@@ -1,0 +1,19 @@
+# Cấu hình Model Tầng 3: Formal Experiment (Gemini Flash / Flash-Lite)
+# Trạng thái: TO VALIDATE — Phải xác minh exact model ID, quota, pricing, Vietnamese structured output và DPA trước khi chạy.
+provider: "gemini"
+run_tier: "formal_experiment"
+model_family: "gemini-flash-or-flash-lite"
+model_id: "TBD_VERIFY_BEFORE_USE"
+status: "TO VALIDATE"
+api_key_env: "GEMINI_API_KEY"
+data_classification_allowed:
+  - "SYNTHETIC"
+  - "PUBLIC_APPROVED"
+merchant_dpa_status: "TO_VALIDATE"
+sampling:
+  temperature: 0.3
+  top_p: 0.9
+  max_tokens: 1024
+  seed: 42
+timeout_sec: 30
+notes: "Verify exact model_id, quota, pricing, Vietnamese structured output reliability, and merchant privacy/DPA before formal execution. Never mix results with Ollama CPU smoke runs."
