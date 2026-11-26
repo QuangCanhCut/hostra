@@ -230,6 +230,7 @@ class ProviderTelemetry(BaseModel):
     is_simulated_metric: StrictBool
     input_tokens: Optional[StrictNonNegInt] = None
     output_tokens: Optional[StrictNonNegInt] = None
+    thinking_tokens: Optional[StrictNonNegInt] = None
     token_usage_source: TokenUsageSource
     finish_reason: NonBlankStr
     raw_response_valid: StrictBool
@@ -319,6 +320,10 @@ class ProviderTimeoutError(ProviderError):
 
 class ProviderTransportError(ProviderError):
     """Lỗi giao vận HTTP/SDK hoặc phản hồi tầng transport không đúng định dạng."""
+
+
+class ProviderRateLimitError(ProviderTransportError):
+    """Lỗi vượt ngưỡng tốc độ hoặc hạn mức (HTTP 429 / Quota Exhausted) từ provider."""
 
 
 class StructuredOutputError(ProviderError):

@@ -45,6 +45,7 @@ def tmp_path() -> Iterator[Path]:
 
 from p06.evaluation import (
     ErrorRecord,
+    GateStatus,
     GoldFactualLabel,
     GraphTraceRecord,
     MetricProvenance,
@@ -1242,3 +1243,235 @@ class TestEvaluatorComparisonAndBlindExport:
             "secret-run-script-first",
             "secret-run-lg-w10",
         }
+
+
+class TestT09EvaluationReadinessFixes:
+    """Kiểm thử ranh giới W, GateStatus 3 giá trị, compare_runs nghiêm ngặt và thinking_tokens."""
+
+    def test_repetition_outside_window_exact_boundaries(self) -> None:
+        """Kiểm tra chính xác W-1 (trong cửa sổ), W (trong cửa sổ), W+1 (ngoài cửa sổ) và chuỗi nhiễu."""
+        plan = _make_story_plan()
+        base_texts = [f"Câu độc nhất số {idx} với nội dung hoàn toàn khác biệt" for idx in range(10)]
+        # W=5: đặt lặp lại tại chỉ số 5 so với chỉ số 0 -> khoảng cách = 5 (vẫn trong _all_turns[-5:] của turn 5!)
+        # Khoảng cách W-1 = 4 (turn 4 so với 0), W = 5 (turn 5 so với 0), W+1 = 6 (turn 6 so với 0)
+        texts_w = [
+            "Câu neo kiểm thử ranh giới cửa sổ một hai ba",
+            "Bổ sung thông tin thứ nhất hoàn toàn tách biệt",
+            "Bổ sung thông tin thứ hai hoàn toàn tách biệt",
+            "Bổ sung thông tin thứ ba hoàn toàn tách biệt",
+            "Bổ sung thông tin thứ tư hoàn toàn tách biệt",
+            "Câu neo kiểm thử ranh giới cửa sổ một hai ba",  # idx=5, prev=0 -> dist=5 == W (INSIDE)
+        ]
+        ev_inside = RunEvidence(
+            manifest=_base_manifest(history_window=5),
+            story_plan=plan,
+            transcript=tuple(
+                TranscriptEntry(
+                    turn_index=i,
+                    turn_id=f"ti-{i}",
+                    sku_id="SKU-HONEY-01",
+                    candidate_id=f"ci-{i}",
+                    origin="PROACTIVE_STORY",
+                    intent="origin",
+                    text=t,
+                    actual_duration_ms=4000,
+                    playback_event_id=f"ai-{i}",
+                    occurred_at_utc="2026-11-26T10:00:00Z",
+                )
+                for i, t in enumerate(texts_w)
+            ),
+        )
+        res_inside = compute_repetition_metrics(ev_inside)
+        assert res_inside["outside_window_exact_text_replay_count"].value == 0
+
+        # Thêm 1 lượt khác biệt nữa rồi lặp lại ở idx=7 so với idx=0 (không tính idx=5 để cô lập dist=6 -> W+1)
+        texts_w_plus_1 = [
+            "Câu neo ngoài cửa sổ sáu lượt trước",
+            *base_texts[:6],
+            "Câu neo ngoài cửa sổ sáu lượt trước",  # idx=7, prev=0 -> dist=7 > 5 -> outside window!
+        ]
+        ev_outside = RunEvidence(
+            manifest=_base_manifest(history_window=5),
+            story_plan=plan,
+            transcript=tuple(
+                TranscriptEntry(
+                    turn_index=i,
+                    turn_id=f"to-{i}",
+                    sku_id="SKU-HONEY-01",
+                    candidate_id=f"co-{i}",
+                    origin="PROACTIVE_STORY",
+                    intent="origin",
+                    text=t,
+                    actual_duration_ms=4000,
+                    playback_event_id=f"ao-{i}",
+                    occurred_at_utc="2026-11-26T10:00:00Z",
+                )
+                for i, t in enumerate(texts_w_plus_1)
+            ),
+        )
+        res_outside = compute_repetition_metrics(ev_outside)
+        assert res_outside["outside_window_exact_text_replay_count"].value == 1
+
+    def test_evaluator_three_valued_gate_status_without_and_with_gold_labels(self) -> None:
+        """Không bao giờ biến NOT_EVALUATED thành PASS ở overall_gate_status khi thiếu GoldFactualLabel."""
+        plan = _make_story_plan(mandatory_topics=(("top-1", True, ("clm-1",)),))
+        ev = RunEvidence(
+            manifest=_base_manifest(history_window=5),
+            story_plan=plan,
+            transcript=(
+                TranscriptEntry(
+                    turn_index=0,
+                    turn_id="t0",
+                    sku_id="SKU-HONEY-01",
+                    candidate_id="cand-0",
+                    origin="PROACTIVE_STORY",
+                    intent="origin",
+                    text="Mật ong Đắk Lắk chuẩn vị.",
+                    actual_duration_ms=4000,
+                    playback_event_id="a0",
+                    occurred_at_utc="2026-11-26T10:00:04Z",
+                ),
+            ),
+            playback_events=(
+                PlaybackEventRecord(
+                    sequence_index=0,
+                    turn_id="t0",
+                    candidate_id="cand-0",
+                    sku_id="SKU-HONEY-01",
+                    outcome="COMPLETED",
+                    apply_status="APPLIED",
+                    applied=True,
+                    confirmed_topic_ids=("top-1",),
+                    covered_claim_ids=("clm-1",),
+                    actual_duration_ms=4000,
+                ),
+            ),
+        )
+        rep_no_gold = evaluate_run(ev, gold_labels=None)
+        assert rep_no_gold.hard_gates_passed is True
+        assert rep_no_gold.structural_hard_gates_status == GateStatus.PASS
+        assert rep_no_gold.factual_safety_gate_status == GateStatus.NOT_EVALUATED
+        assert rep_no_gold.overall_gate_status == GateStatus.NOT_EVALUATED
+        assert "verifier_false_accept_count" in rep_no_gold.not_evaluated_gates
+
+        rep_good_gold = evaluate_run(
+            ev,
+            gold_labels=(
+                GoldFactualLabel(
+                    candidate_id="cand-0",
+                    text="Mật ong Đắk Lắk chuẩn vị.",
+                    verifier_decision="ALLOW",
+                    expected_factual_valid=True,
+                ),
+            ),
+        )
+        assert rep_good_gold.structural_hard_gates_status == GateStatus.PASS
+        assert rep_good_gold.factual_safety_gate_status == GateStatus.PASS
+        assert rep_good_gold.overall_gate_status == GateStatus.PASS
+
+    def test_compare_runs_enforces_controlled_variable_compatibility(self, tmp_path: Path) -> None:
+        """Kiểm tra compare_runs đánh dấu ERROR khi lệch target_duration_sec, min_chunks_per_topic, model_id."""
+        plan = _make_story_plan()
+        base_m = _base_manifest(
+            run_id="r-lg-1",
+            method="langgraph_structured_story",
+            history_window=5,
+            target_duration_sec=600.0,
+        )
+        base_m["min_chunks_per_topic"] = 1
+        d1 = _write_run_dir(tmp_path / "r1", RunEvidence(manifest=base_m, story_plan=plan, target_duration_sec=600.0))
+
+        m_dur = _base_manifest(
+            run_id="r-lg-dur",
+            method="langgraph_structured_story",
+            history_window=10,
+            target_duration_sec=1800.0,
+        )
+        m_dur["min_chunks_per_topic"] = 1
+        d_dur = _write_run_dir(tmp_path / "r2", RunEvidence(manifest=m_dur, story_plan=plan, target_duration_sec=1800.0))
+
+        comp_dur = compare_runs([d1, d_dur])
+        assert comp_dur.compatible is False
+        assert any(c.code == "TARGET_DURATION_MISMATCH" and c.severity == "ERROR" for c in comp_dur.compatibility_issues)
+
+        m_chunks = _base_manifest(run_id="r-lg-chk", method="langgraph_structured_story", history_window=10)
+        m_chunks["min_chunks_per_topic"] = 2
+        d_chunks = _write_run_dir(tmp_path / "r3", RunEvidence(manifest=m_chunks, story_plan=plan, target_duration_sec=600.0))
+        comp_chk = compare_runs([d1, d_chunks])
+        assert comp_chk.compatible is False
+        assert any(c.code == "MIN_CHUNKS_PER_TOPIC_MISMATCH" and c.severity == "ERROR" for c in comp_chk.compatibility_issues)
+
+        m_model = _base_manifest(
+            run_id="r-lg-mod",
+            method="langgraph_structured_story",
+            history_window=10,
+            model_id="gemini-other-model",
+        )
+        m_model["min_chunks_per_topic"] = 1
+        d_model = _write_run_dir(tmp_path / "r4", RunEvidence(manifest=m_model, story_plan=plan, target_duration_sec=600.0))
+        comp_mod = compare_runs([d1, d_model])
+        assert comp_mod.compatible is False
+        assert any(c.code == "LLM_PROVIDER_OR_MODEL_MISMATCH" and c.severity == "ERROR" for c in comp_mod.compatibility_issues)
+
+    def test_thinking_tokens_included_in_gemini_cost_and_ollama_not_applicable(self) -> None:
+        """Tính thinking_tokens vào chi phí đầu ra Gemini và gắn NOT_APPLICABLE cho Ollama."""
+        plan = _make_story_plan()
+        calls = (
+            ProviderCallRecord(
+                call_index=0,
+                turn_id="t0",
+                provider_name="gemini",
+                model_id="gemini-2.5-flash-lite",
+                tier="formal_experiment",
+                latency_ms=120.0,
+                is_simulated_metric=False,
+                input_tokens=1_000_000,
+                output_tokens=500_000,
+                thinking_tokens=500_000,
+                token_usage_source="MEASURED",
+                finish_reason="STOP",
+                raw_response_valid=True,
+                is_wasted=False,
+            ),
+        )
+        gemini_manifest = _base_manifest(
+            provider_name="gemini",
+            provider_tier="formal_experiment",
+            model_id="gemini-2.5-flash-lite",
+        )
+        gemini_manifest["pricing"] = {"input_per_1m_usd": 0.10, "output_per_1m_usd": 0.40}
+        ev_gemini = RunEvidence(manifest=gemini_manifest, story_plan=plan, provider_calls=calls)
+        perf_gemini = compute_performance_metrics(ev_gemini)
+        # 1M * 0.10 + (0.5M + 0.5M) * 0.40 = 0.50 USD
+        assert perf_gemini["estimated_llm_cost_usd"].status == MetricStatus.COMPUTED
+        assert perf_gemini["estimated_llm_cost_usd"].value == pytest.approx(0.50)
+
+        ollama_manifest = _base_manifest(
+            provider_name="ollama",
+            provider_tier="local_smoke_test",
+            model_id="qwen2.5:3b",
+        )
+        ev_ollama = RunEvidence(
+            manifest=ollama_manifest,
+            story_plan=plan,
+            provider_calls=(
+                ProviderCallRecord(
+                    call_index=0,
+                    turn_id="t0",
+                    provider_name="ollama",
+                    model_id="qwen2.5:3b",
+                    tier="local_smoke_test",
+                    latency_ms=120.0,
+                    is_simulated_metric=False,
+                    input_tokens=100,
+                    output_tokens=50,
+                    thinking_tokens=None,
+                    token_usage_source="MEASURED",
+                    finish_reason="stop",
+                    raw_response_valid=True,
+                    is_wasted=False,
+                ),
+            ),
+        )
+        perf_ollama = compute_performance_metrics(ev_ollama)
+        assert perf_ollama["estimated_llm_cost_usd"].status == MetricStatus.NOT_APPLICABLE

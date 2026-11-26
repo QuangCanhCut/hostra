@@ -31,13 +31,14 @@ import time
 from typing import Any, Final, Optional, TypeVar
 
 import httpx
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, StrictBool
 
 from p06.providers.base import (
     GenerationRequest,
     GenerationResult,
     LLMProvider,
     ProviderConfigError,
+    ProviderRateLimitError,
     ProviderTelemetry,
     ProviderTier,
     ProviderTimeoutError,
@@ -81,6 +82,7 @@ class OllamaProviderConfig(BaseModel):
     quantization: OptionalNonBlankStr = None
     context_window: Optional[StrictPositiveInt] = None
     sampling: dict[str, Any] = Field(default_factory=dict)
+    think: Optional[StrictBool] = None
     timeout_sec: StrictPositiveFloat = DEFAULT_OLLAMA_TIMEOUT_SEC
     hardware_profile: NonBlankStr = DEFAULT_OLLAMA_HARDWARE_PROFILE
 
@@ -273,6 +275,8 @@ class OllamaLocalProvider(LLMProvider):
             "format": output_schema.model_json_schema(),
             "options": options,
         }
+        if self._config.think is not None:
+            payload["think"] = self._config.think
 
         start_ts = time.perf_counter()
         try:
@@ -312,18 +316,24 @@ class OllamaLocalProvider(LLMProvider):
 
         if response.status_code != _HTTP_OK:
             snippet = response.text[:_MAX_ERROR_BODY_CHARS].strip()
+            err_telemetry = self._build_telemetry(
+                latency_ms=latency_ms,
+                input_tokens=None,
+                output_tokens=None,
+                token_usage_source=TokenUsageSource.UNAVAILABLE,
+                finish_reason=f"http_{response.status_code}",
+                raw_response_valid=False,
+                sampling_params=telemetry_sampling,
+                prompt_version=request.prompt_version,
+            )
+            if response.status_code == 429:
+                raise ProviderRateLimitError(
+                    f"Ollama trả về HTTP 429 cho model '{self._config.model_id}': {snippet}",
+                    telemetry=err_telemetry,
+                )
             raise ProviderTransportError(
                 f"Ollama trả về HTTP {response.status_code} cho model '{self._config.model_id}': {snippet}",
-                telemetry=self._build_telemetry(
-                    latency_ms=latency_ms,
-                    input_tokens=None,
-                    output_tokens=None,
-                    token_usage_source=TokenUsageSource.UNAVAILABLE,
-                    finish_reason=f"http_{response.status_code}",
-                    raw_response_valid=False,
-                    sampling_params=telemetry_sampling,
-                    prompt_version=request.prompt_version,
-                ),
+                telemetry=err_telemetry,
             )
 
         try:

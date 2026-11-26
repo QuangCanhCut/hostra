@@ -33,6 +33,7 @@ from p06.providers import (
     GeminiAPIProvider,
     GeminiProviderConfig,
     GeminiRawResponse,
+    GeminiRestClient,
     GenerationRequest,
     LLMProvider,
     MalformedJsonOutputError,
@@ -45,6 +46,7 @@ from p06.providers import (
     ProviderConfigError,
     ProviderError,
     ProviderFactory,
+    ProviderRateLimitError,
     ProviderTelemetry,
     ProviderTier,
     ProviderTimeoutError,
@@ -773,3 +775,297 @@ def test_factory_rejects_unknown_provider_and_mismatched_tier() -> None:
 
     with pytest.raises(ProviderConfigError):
         ProviderFactory.from_yaml(MODELS_DIR / "does_not_exist.yaml")
+
+
+def test_ollama_think_false_and_rate_limit_429() -> None:
+    """Kiểm tra payload `think=False` và ánh xạ HTTP 429 -> ProviderRateLimitError."""
+    captured_payloads: list[dict[str, Any]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        body = json.loads(request.content.decode("utf-8"))
+        captured_payloads.append(body)
+        if len(captured_payloads) == 1:
+            return httpx.Response(
+                200,
+                json={
+                    "model": "qwen3:1.7b",
+                    "message": {
+                        "role": "assistant",
+                        "content": '{"sku_id": "SKU-1", "pitch_text": "Chào mừng bạn"}',
+                    },
+                    "done": True,
+                    "done_reason": "stop",
+                    "prompt_eval_count": 30,
+                    "eval_count": 12,
+                },
+            )
+        return httpx.Response(429, text="too many requests")
+
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+    cfg = OllamaProviderConfig(model_id="qwen3:1.7b", think=False)
+    provider = OllamaLocalProvider(config=cfg, http_client=client)
+
+    res = provider.generate_structured(_make_request(), _DemoOutput)
+    assert res.parsed_output.sku_id == "SKU-1"
+    assert captured_payloads[0]["think"] is False
+
+    with pytest.raises(ProviderRateLimitError) as exc_info:
+        provider.generate_structured(_make_request(), _DemoOutput)
+    assert exc_info.value.telemetry is not None
+    assert exc_info.value.telemetry.finish_reason == "http_429"
+
+    # Kiểm tra load 3 file YAML Ollama hiện hành kèm trường think.
+    p_17 = ProviderFactory.from_yaml(MODELS_DIR / "ollama_qwen3_1.7b.yaml")
+    p_4b = ProviderFactory.from_yaml(MODELS_DIR / "ollama_qwen3_4b.yaml")
+    p_25 = ProviderFactory.from_yaml(MODELS_DIR / "ollama_qwen2.5_3b.yaml")
+    assert isinstance(p_17, OllamaLocalProvider) and p_17._config.think is False  # noqa: SLF001
+    assert isinstance(p_4b, OllamaLocalProvider) and p_4b._config.think is False  # noqa: SLF001
+    assert isinstance(p_25, OllamaLocalProvider) and p_25.model_id == "qwen2.5:3b"
+
+
+def test_gemini_rest_client_schema_sanitization_telemetry_and_errors(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Kiểm định GeminiRestClient ngoại tuyến hoàn toàn qua httpx.MockTransport."""
+    fake_secret = "AIza-fake-secret-should-never-leak-999"
+
+    class _NestedItem(BaseModel):
+        model_config = ConfigDict(extra="forbid")
+        code: str = "x"
+
+    class _NestedOutput(BaseModel):
+        model_config = ConfigDict(extra="forbid")
+        sku_id: str
+        note: str | None = None
+        items: list[_NestedItem]
+
+    captured_requests: list[tuple[httpx.Request, dict[str, Any]]] = []
+    mode = {"status": 200}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if mode["status"] == "timeout":
+            raise httpx.ReadTimeout("simulated timeout", request=request)
+        payload = json.loads(request.content.decode("utf-8"))
+        captured_requests.append((request, payload))
+        if mode["status"] == 429:
+            return httpx.Response(429, text="quota exceeded")
+        if mode["status"] == 401:
+            return httpx.Response(401, text="unauthorized")
+        return httpx.Response(
+            200,
+            json={
+                "candidates": [
+                    {
+                        "content": {
+                            "parts": [
+                                {"text": "hidden thinking", "thought": True},
+                                {"text": '{"sku_id": "SKU-1", "note": null, "items": [{"code": "A"}]}'},
+                            ]
+                        },
+                        "finishReason": "STOP",
+                    }
+                ],
+                "usageMetadata": {
+                    "promptTokenCount": 50,
+                    "candidatesTokenCount": 18,
+                    "thoughtsTokenCount": 7,
+                },
+            },
+        )
+
+    mock_http = httpx.Client(transport=httpx.MockTransport(handler))
+    monkeypatch.setenv("GEMINI_API_KEY", fake_secret)
+
+    provider = ProviderFactory.from_yaml(
+        MODELS_DIR / "gemini_flash.yaml",
+        model_id="gemini-2.5-flash-lite",
+        thinking_budget=0,
+        allow_live_client=True,
+        live_http_client=mock_http,
+    )
+    res = provider.generate_structured(_make_request(), _NestedOutput)
+    assert res.parsed_output.sku_id == "SKU-1"
+    assert res.parsed_output.items[0].code == "A"
+    assert res.telemetry.input_tokens == 50
+    assert res.telemetry.output_tokens == 18
+    assert res.telemetry.thinking_tokens == 7
+    assert res.telemetry.token_usage_source == TokenUsageSource.MEASURED
+
+    req, sent_payload = captured_requests[0]
+    assert req.headers.get("x-goog-api-key") == fake_secret
+    assert fake_secret not in str(req.url)
+    gen_cfg = sent_payload["generationConfig"]
+    assert gen_cfg["thinkingConfig"] == {"thinkingBudget": 0}
+    dumped_schema = json.dumps(gen_cfg["responseSchema"])
+    for forbidden_key in ("$defs", "$ref", "additionalProperties", '"title"', '"default"'):
+        assert forbidden_key not in dumped_schema
+
+    mode["status"] = 401
+    with pytest.raises(ProviderAuthError) as err_401:
+        provider.generate_structured(_make_request(), _NestedOutput)
+    assert fake_secret not in str(err_401.value)
+
+    mode["status"] = "timeout"
+    with pytest.raises(ProviderTimeoutError) as err_to:
+        provider.generate_structured(_make_request(), _NestedOutput)
+    assert fake_secret not in str(err_to.value)
+
+    mode["status"] = 429
+    with pytest.raises(ProviderRateLimitError) as err_429:
+        provider.generate_structured(_make_request(), _NestedOutput)
+    assert fake_secret not in str(err_429.value)
+
+    # Missing API key after init raises ProviderAuthError cleanly
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    rest_only = GeminiRestClient(http_client=mock_http)
+    with pytest.raises(ProviderAuthError):
+        rest_only.generate_json(
+            model_id="gemini-2.5-flash-lite",
+            system_prompt="sys",
+            user_prompt="usr",
+            json_schema={"type": "object", "properties": {}},
+            sampling={},
+            timeout_sec=5.0,
+        )
+
+
+def test_gemini_35_thinking_level_budget_rate_limit_and_metadata(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Kiểm định thinkingLevel (Gemini 3.x), xung đột thinking_budget, max_requests, stop_on_429 và metadata."""
+    fake_secret = "AQ.fake-secret-token-should-never-leak"
+    monkeypatch.setenv("GEMINI_API_KEY", fake_secret)
+
+    # 1. Config YAML gemini_3.5_flash_lite_free.yaml nạp hợp lệ và reject đặt đồng thời thinking_budget + thinking_level.
+    p35 = ProviderFactory.from_yaml(
+        MODELS_DIR / "gemini_3.5_flash_lite_free.yaml",
+        allow_live_client=True,
+    )
+    assert isinstance(p35, GeminiAPIProvider)
+    assert p35.model_id == "gemini-3.5-flash-lite"
+    assert p35._config.thinking_level == "MINIMAL"  # noqa: SLF001
+    assert p35._config.min_request_interval_sec == 6.0  # noqa: SLF001
+
+    with pytest.raises(ValidationError):
+        GeminiProviderConfig(
+            model_id="gemini-3.5-flash-lite",
+            thinking_budget=0,
+            thinking_level="MINIMAL",
+        )
+    with pytest.raises(ValidationError):
+        GeminiProviderConfig(
+            model_id="gemini-3.5-flash-lite",
+            thinking_level="EXTREME",
+        )
+
+    # 2. Kiểm tra thinkingLevel trong payload, check_model_metadata và trần cứng max_requests=2.
+    calls: list[tuple[str, str, dict[str, Any] | None]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        body = json.loads(request.content.decode("utf-8")) if request.content else None
+        calls.append((request.method, str(request.url), body))
+        if request.method == "GET":
+            return httpx.Response(
+                200,
+                json={
+                    "name": "models/gemini-3.5-flash-lite",
+                    "displayName": "Gemini 3.5 Flash-Lite",
+                    "inputTokenLimit": 1048576,
+                    "outputTokenLimit": 65536,
+                    "supportedGenerationMethods": ["generateContent"],
+                },
+                headers={"x-ratelimit-remaining-requests": "14"},
+            )
+        return httpx.Response(
+            200,
+            json={
+                "candidates": [
+                    {
+                        "content": {"parts": [{"text": '{"sku_id": "SKU-1", "pitch_text": "Xin chào."}'}]},
+                        "finishReason": "STOP",
+                    }
+                ],
+                "usageMetadata": {
+                    "promptTokenCount": 20,
+                    "candidatesTokenCount": 10,
+                    "thoughtsTokenCount": 3,
+                },
+            },
+        )
+
+    mock_http = httpx.Client(transport=httpx.MockTransport(handler))
+    rest_client = GeminiRestClient(
+        thinking_level="MINIMAL",
+        min_request_interval_sec=0.0,
+        max_requests=2,
+        http_client=mock_http,
+    )
+    meta = rest_client.check_model_metadata("gemini-3.5-flash-lite")
+    assert meta["displayName"] == "Gemini 3.5 Flash-Lite"
+    assert meta["response_headers"]["x-ratelimit-remaining-requests"] == "14"
+    assert rest_client.requests_attempted == 1
+
+    provider = ProviderFactory.from_yaml(
+        MODELS_DIR / "gemini_3.5_flash_lite_free.yaml",
+        client=rest_client,
+    )
+    res = provider.generate_structured(_make_request(), _DemoOutput)
+    assert res.parsed_output.sku_id == "SKU-1"
+    assert res.telemetry.thinking_tokens == 3
+    assert calls[1][2] is not None
+    assert calls[1][2]["generationConfig"]["thinkingConfig"] == {"thinkingLevel": "MINIMAL"}
+    assert rest_client.requests_attempted == 2
+
+    # Lần thứ 3 phải bị chặn ngay ở GLOBAL_REQUEST_BUDGET_EXCEEDED trước khi chạm transport.
+    with pytest.raises(ProviderConfigError, match="GLOBAL_REQUEST_BUDGET_EXCEEDED"):
+        provider.generate_structured(_make_request(), _DemoOutput)
+    assert len(calls) == 2
+
+    # 3. Kiểm tra stop_on_rate_limit chặn mọi request tiếp theo sau HTTP 429 và không lộ key.
+    rl_calls = {"count": 0}
+
+    def rl_handler(request: httpx.Request) -> httpx.Response:
+        rl_calls["count"] += 1
+        return httpx.Response(429, text="RESOURCE_EXHAUSTED")
+
+    rl_client = GeminiRestClient(
+        thinking_level="MINIMAL",
+        stop_on_rate_limit=True,
+        http_client=httpx.Client(transport=httpx.MockTransport(rl_handler)),
+    )
+    with pytest.raises(ProviderRateLimitError) as err1:
+        rl_client.check_model_metadata("gemini-3.5-flash-lite")
+    assert rl_client.rate_limited is True
+    assert fake_secret not in str(err1.value)
+
+    with pytest.raises(ProviderRateLimitError):
+        rl_client.generate_json("gemini-3.5-flash-lite", "s", "u", {"type": "object", "properties": {}}, {}, 5.0)
+    assert rl_calls["count"] == 1
+
+
+def test_gemini_schema_sanitizer_strips_exclusive_bounds_and_min_length_for_p06_dtos() -> None:
+    """Đảm bảo sanitizer loại bỏ hoàn toàn exclusiveMinimum/minLength gây HTTP 400 trên Gemini REST."""
+    from p06.baselines.script_first import UpfrontChunkDraftLLMOutput
+    from p06.planning.draft_dtos import ChunkDraftLLMOutput
+    from p06.providers.gemini_provider import _sanitize_gemini_response_schema
+
+    for dto_cls in (ChunkDraftLLMOutput, UpfrontChunkDraftLLMOutput):
+        cleaned = _sanitize_gemini_response_schema(dto_cls.model_json_schema())
+        dumped = json.dumps(cleaned)
+        for unsupported in (
+            "exclusiveMinimum",
+            "exclusiveMaximum",
+            "minLength",
+            "maxLength",
+            "$defs",
+            "$ref",
+            "additionalProperties",
+            '"title"',
+            '"default"',
+        ):
+            assert unsupported not in dumped, f"{unsupported} còn sót trong {dto_cls.__name__}"
+        assert cleaned["properties"]["stated_price_vnd"] == {
+            "type": "integer",
+            "nullable": True,
+            "minimum": 1,
+        }

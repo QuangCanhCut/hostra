@@ -1,0 +1,25 @@
+# Cấu hình Model Tầng 3: Gemini 3.5 Flash-Lite Free Tier Pilot (E01-T09)
+# Trạng thái: FREE_TIER_PILOT_APPROVED — chỉ dùng dữ liệu SYNTHETIC, 0 USD, pacing 6s/call (~10 RPM < 15 RPM limit).
+provider: "gemini"
+run_tier: "formal_experiment"
+model_family: "gemini-flash-lite"
+model_id: "gemini-3.5-flash-lite"
+status: "FREE_TIER_PILOT_APPROVED"
+api_key_env: "GEMINI_API_KEY"
+data_classification_allowed:
+  - "SYNTHETIC"
+merchant_dpa_status: "FREE_TIER_SYNTHETIC_ONLY"
+thinking_level: "MINIMAL"
+min_request_interval_sec: 6.0
+pricing:
+  input_per_1m_usd: 0.0
+  output_per_1m_usd: 0.0
+  tier: "free_tier"
+  note: "Google AI Studio Default Gemini Project Free Tier (15 RPM, 250,000 TPM). Data may be used by Google to improve products — strictly SYNTHETIC only."
+sampling:
+  temperature: 0.3
+  top_p: 0.9
+  max_tokens: 1024
+  seed: 42
+timeout_sec: 30
+notes: "Stage A (max 3 requests) + Stage B Pilot (max 25 requests). Sequential execution only; stop safely on HTTP 429."

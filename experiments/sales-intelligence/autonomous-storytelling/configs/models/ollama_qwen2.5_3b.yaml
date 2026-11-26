@@ -1,0 +1,18 @@
+# Cấu hình Model Tầng 2: Local Ollama CPU Smoke Test (Qwen2.5 3B — Đã cài sẵn trên máy cục bộ)
+# Trạng thái: INSTALLED_LOCAL_SMOKE_CANDIDATE (chỉ dùng CPU smoke test, KHÔNG gộp với Gemini benchmarks)
+provider: "ollama"
+run_tier: "local_smoke_test"
+model_id: "qwen2.5:3b"
+status: "INSTALLED_LOCAL_SMOKE_CANDIDATE"
+base_url_env: "OLLAMA_BASE_URL"
+hardware_profile: "cpu_only_no_dgpu"
+quantization: "Q4_K_M_DEFAULT"
+context_window: 8192
+sampling:
+  temperature: 0.3
+  top_p: 0.9
+  max_tokens: 1024
+  seed: 42
+timeout_sec: 120
+resource_note: "qwen2.5:3b (1.9 GB) da co san trong `ollama list`; luu y giai phong RAM (hien may con ~1.0 GB trong / 15.5 GB tong) truoc khi chay smoke test."
+notes: "Installed local CPU smoke-test candidate for LangGraph structured-output flow validation; never pool metrics with Tier 3 Gemini."

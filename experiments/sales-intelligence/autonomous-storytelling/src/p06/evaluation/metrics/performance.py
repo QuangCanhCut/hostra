@@ -335,8 +335,9 @@ def compute_performance_metrics(evidence: RunEvidence) -> dict[str, MetricResult
     else:
         total_input = sum(int(c.input_tokens or 0) for c in calls)
         total_output = sum(int(c.output_tokens or 0) for c in calls)
+        total_thinking = sum(int(c.thinking_tokens or 0) for c in calls)
         total_wasted = sum(
-            int(c.input_tokens or 0) + int(c.output_tokens or 0)
+            int(c.input_tokens or 0) + int(c.output_tokens or 0) + int(c.thinking_tokens or 0)
             for c in calls
             if c.is_wasted
         )
@@ -369,6 +370,7 @@ def compute_performance_metrics(evidence: RunEvidence) -> dict[str, MetricResult
             provenance=token_prov,
             is_simulated=any_simulated_tokens,
             limitations=token_limits,
+            metadata={"thinking_tokens": total_thinking},
         )
         results["wasted_tokens"] = MetricResult(
             name="wasted_tokens",
@@ -394,6 +396,17 @@ def compute_performance_metrics(evidence: RunEvidence) -> dict[str, MetricResult
             provenance=MetricProvenance.UNAVAILABLE,
             is_simulated=True,
             missing_reason="Mock tokens are simulated and incur no real LLM API cost.",
+        )
+    elif tier == "local_smoke_test" or provider_name == "ollama":
+        results["estimated_llm_cost_usd"] = MetricResult(
+            name="estimated_llm_cost_usd",
+            status=MetricStatus.NOT_APPLICABLE,
+            value=None,
+            unit="usd",
+            data_source="manifest+provider_calls",
+            provenance=MetricProvenance.UNAVAILABLE,
+            is_simulated=False,
+            missing_reason="Local Ollama CPU inference runs locally and incurs no per-token API cost.",
         )
     elif total_calls == 0:
         results["estimated_llm_cost_usd"] = MetricResult(
@@ -432,8 +445,9 @@ def compute_performance_metrics(evidence: RunEvidence) -> dict[str, MetricResult
         ):
             rate_in = float(pricing["input_per_1m_usd"])
             rate_out = float(pricing["output_per_1m_usd"])
+            billable_output_tokens = total_output + sum(int(c.thinking_tokens or 0) for c in calls)
             est_cost = (total_input / 1_000_000.0) * rate_in + (
-                total_output / 1_000_000.0
+                billable_output_tokens / 1_000_000.0
             ) * rate_out
             results["estimated_llm_cost_usd"] = MetricResult(
                 name="estimated_llm_cost_usd",
@@ -443,7 +457,11 @@ def compute_performance_metrics(evidence: RunEvidence) -> dict[str, MetricResult
                 data_source="manifest+provider_calls",
                 provenance=MetricProvenance.ESTIMATED,
                 is_simulated=False,
-                metadata={"pricing": dict(pricing)},
+                metadata={
+                    "pricing": dict(pricing),
+                    "billable_output_tokens": billable_output_tokens,
+                    "thinking_tokens_included_in_output": sum(int(c.thinking_tokens or 0) for c in calls),
+                },
             )
         else:
             results["estimated_llm_cost_usd"] = MetricResult(

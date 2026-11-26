@@ -40,6 +40,7 @@ from p06.evaluation.metrics import (
 from p06.evaluation.models import (
     ErrorRecord,
     EvaluationReport,
+    GateStatus,
     GoldFactualLabel,
     GraphTraceRecord,
     MetricProvenance,
@@ -258,13 +259,30 @@ def evaluate_run(
         else "UNSPECIFIED"
     )
 
-    hard_gate_failures: list[str] = []
-    _check_zero_hard_gate(repetition, "exact_chunk_replay_count", hard_gate_failures)
-    _check_zero_hard_gate(safety, "duplicate_completed_chunk_replay_count", hard_gate_failures)
-    _check_zero_hard_gate(safety, "invalid_candidate_playback_count", hard_gate_failures)
-    _check_zero_hard_gate(reliability, "retry_budget_violations", hard_gate_failures)
+    structural_failures: list[str] = []
+    _check_zero_hard_gate(repetition, "exact_chunk_replay_count", structural_failures)
+    _check_zero_hard_gate(safety, "duplicate_completed_chunk_replay_count", structural_failures)
+    _check_zero_hard_gate(safety, "invalid_candidate_playback_count", structural_failures)
+    _check_zero_hard_gate(reliability, "retry_budget_violations", structural_failures)
+
+    factual_failures: list[str] = []
+    not_evaluated_gates: list[str] = []
+    structural_status = GateStatus.PASS if not structural_failures else GateStatus.FAIL
     if gold_labels:
-        _check_zero_hard_gate(safety, "verifier_false_accept_count", hard_gate_failures)
+        _check_zero_hard_gate(safety, "verifier_false_accept_count", factual_failures)
+        factual_status = GateStatus.PASS if not factual_failures else GateStatus.FAIL
+    else:
+        factual_status = GateStatus.NOT_EVALUATED
+        not_evaluated_gates.append("verifier_false_accept_count")
+
+    hard_gate_failures = [*structural_failures, *factual_failures]
+    if structural_status == GateStatus.FAIL or factual_status == GateStatus.FAIL:
+        overall_gate_status = GateStatus.FAIL
+    elif structural_status == GateStatus.PASS and factual_status == GateStatus.PASS:
+        overall_gate_status = GateStatus.PASS
+    else:
+        # Không bao giờ gán PASS tổng thể khi cổng kiểm chứng thực tế độc lập chưa được chấm.
+        overall_gate_status = GateStatus.NOT_EVALUATED
 
     all_groups = (
         coverage,
@@ -310,6 +328,10 @@ def evaluate_run(
         performance=performance,
         human_eval_placeholders=human_eval_placeholders,
         hard_gates_passed=(len(hard_gate_failures) == 0),
+        structural_hard_gates_status=structural_status,
+        factual_safety_gate_status=factual_status,
+        overall_gate_status=overall_gate_status,
+        not_evaluated_gates=tuple(not_evaluated_gates),
         hard_gate_failures=tuple(hard_gate_failures),
         limitations=tuple(limitations_ordered),
         metric_provenance=provenance_map,

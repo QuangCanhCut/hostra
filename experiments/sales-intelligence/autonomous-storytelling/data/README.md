@@ -1,6 +1,6 @@
 # Dữ liệu thí nghiệm P06 (`data/`)
 
-**Trạng thái:** `E01-T04 READY (Synthetic Fixtures)` — Đã khởi tạo bộ dữ liệu mô phỏng cho `P06-E01` (và negative fixtures cho cổng P05 / `P06-E04`). Chưa có dữ liệu chạy thực tế trên khách hàng thật.
+**Trạng thái:** `E01-T04 & E01-T09 EXTENDED READY (Synthetic Fixtures)` — Đã giữ nguyên vẹn bộ fixture `e01_*.json` và bổ sung hồ sơ mở rộng `e01_ext_v1_*.json` cho `E01-T09` (chưa có dữ liệu chạy thực tế trên khách hàng thật).
 
 ## 1. Nguồn gốc & Phân tách dữ liệu (`synthetic` vs `real`)
 
@@ -21,7 +21,10 @@
 | [`products/e01_verified_skus.json`](./products/e01_verified_skus.json) | Bộ 3 SKU thực phẩm đóng gói dương tính (`positive`) cho `P06-E01` | 3 SKU (`SKU-HONEY-01`, `SKU-TEA-02`, `SKU-MACADAMIA-03`), 15 `EvidenceChunk` (5/SKU), `ALLOWED` + `REQUIRES_OFFICIAL_VERIFICATION` + `PROHIBITED` claims | Tất cả 3 SKU đều `OCOP: VERIFIED` mô phỏng, `food_safety_verified: true`, `rights_status: "ACTIVE"`, `approval_status: "APPROVED"`, `tenant_id: "tenant-p06-poc-01"` |
 | [`products/e01_negative_skus.json`](./products/e01_negative_skus.json) | Bộ 4 SKU âm tính (`negative`) kiểm thử cơ chế chặn fail-closed của P05 & `P06-E04` | 4 SKU (`SKU-CASHEW-03`, `SKU-COFFEE-EXPIRED-04`, `SKU-GINGER-UNSAFE-05`, `SKU-LOTUS-DRAFT-06`) | Kiểm chứng 4 mã chặn: `OCOP_NOT_VERIFIED`, `RIGHTS_INVALID`, `FOOD_SAFETY_UNVERIFIED`, `UNAPPROVED_FACT` |
 | [`merchant_goals/e01_goals.json`](./merchant_goals/e01_goals.json) | 3 kịch bản mục tiêu merchant cho phiên 10 phút & 30 phút | `goal_e01_product_education` (10m), `goal_e01_brand_storytelling` (10m), `goal_e01_sales_presentation` (30m) | Mọi mục tiêu và `expected_mandatory_topic_ids` bám chặt `e01_verified_skus.json` |
-| [`story_plans/e01_story_plans.json`](./story_plans/e01_story_plans.json) | 3 `StoryPlan` chuẩn `p06-mock-v0.1` dùng làm fixture tham chiếu đánh giá | `product_education_10m`, `brand_storytelling_10m`, `sales_presentation_30m` | Gắn `fixture_role: "reference_evaluation_fixture_not_llm_output"` và `simulated_approval: true`; đạt `is_mvp_live_eligible() is True` |
+| [`story_plans/e01_story_plans.json`](./story_plans/e01_story_plans.json) | 3 `StoryPlan` chuẩn `p06-mock-v0.1` dùng làm fixture tham chiếu đánh giá (đóng băng từ T04) | `product_education_10m`, `brand_storytelling_10m`, `sales_presentation_30m` | Gắn `fixture_role: "reference_evaluation_fixture_not_llm_output"` và `simulated_approval: true`; đạt `is_mvp_live_eligible() is True` |
+| [`products/e01_ext_v1_verified_skus.json`](./products/e01_ext_v1_verified_skus.json) | Bộ 3 SKU dương tính mở rộng (`e01_ext_v1`) cho `E01-T09` | 3 SKU tương ứng kèm **30** `EvidenceChunk` (`10`/SKU), `ALLOWED` / `REQUIRES_OFFICIAL_VERIFICATION` / `PROHIBITED` claims | Giữ nguyên `e01_verified_skus.json`; loại bỏ từ khóa dễ nhầm cross-SKU trong single-SKU verification |
+| [`merchant_goals/e01_ext_v1_goals.json`](./merchant_goals/e01_ext_v1_goals.json) | 5 mục tiêu phiên mở rộng (`e01_ext_v1`) | `goal_e01_ext_product_education`, `goal_e01_ext_brand_storytelling`, `goal_e01_ext_sales_presentation`, `goal_e01_ext_pilot_short`, `goal_e01_ext_window_stress` | Tách biệt mục tiêu pilot khỏi tập đánh giá chính thức và kịch bản stress `W=5/10/20` |
+| [`story_plans/e01_ext_v1_story_plans.json`](./story_plans/e01_ext_v1_story_plans.json) | 5 `StoryPlan` `APPROVED` (`e01_ext_v1`) đạt `is_mvp_live_eligible() == True` | 18t (`product_education_10m_ext`, `brand_storytelling_10m_ext`), 24t (`sales_presentation_30m_ext`, `window_sensitivity_stress_24t`), 6t (`pilot_short_3sku_ext`) | Kết hợp `--min-chunks-per-topic 2` cho phiên dài 36–48 lượt để kiểm tra độ nhạy `W in {5, 10, 20}` |
 
 ## 3. Quy tắc đối chiếu với hạt giống P05 (`catalog_seed.json`)
 
