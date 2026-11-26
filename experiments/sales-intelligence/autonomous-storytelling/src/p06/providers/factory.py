@@ -120,6 +120,7 @@ class ProviderFactory:
             "response_sequence",
             "keyed_responses",
             "seeded_variants",
+            "seeded_variants_by_schema",
             "http_client",
             "client",
         }
@@ -191,6 +192,7 @@ class ProviderFactory:
             keyed_responses=runtime_args.get("keyed_responses"),
             seed=seed,
             seeded_variants=runtime_args.get("seeded_variants"),
+            seeded_variants_by_schema=runtime_args.get("seeded_variants_by_schema"),
         )
 
     @staticmethod
@@ -201,7 +203,13 @@ class ProviderFactory:
         """Khởi tạo `OllamaLocalProvider` từ cấu hình đã xác thực."""
         disallowed = [
             key
-            for key in ("client", "response_sequence", "keyed_responses", "seeded_variants")
+            for key in (
+                "client",
+                "response_sequence",
+                "keyed_responses",
+                "seeded_variants",
+                "seeded_variants_by_schema",
+            )
             if runtime_args.get(key) is not None
         ]
         if disallowed:
@@ -240,7 +248,13 @@ class ProviderFactory:
         """Khởi tạo `GeminiAPIProvider` kèm các rào kiểm định bảo mật bắt buộc."""
         disallowed = [
             key
-            for key in ("http_client", "response_sequence", "keyed_responses", "seeded_variants")
+            for key in (
+                "http_client",
+                "response_sequence",
+                "keyed_responses",
+                "seeded_variants",
+                "seeded_variants_by_schema",
+            )
             if runtime_args.get(key) is not None
         ]
         if disallowed:

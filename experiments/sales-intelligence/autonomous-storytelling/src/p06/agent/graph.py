@@ -183,4 +183,9 @@ def run_storytelling_turn(
         covered_claim_ids=tuple(ctx.covered_claim_ids),
         next_topic_id_hint=ctx.next_topic_id_hint,
         next_arc_id_hint=ctx.next_arc_id_hint,
+        draft_attempts=tuple(ctx.draft_attempts),
+        repetition_checks=tuple(ctx.repetition_checks),
+        p05_decisions=tuple(ctx.p05_decisions),
+        non_retryable_failure=ctx.non_retryable_failure,
+        excluded_topic_ids=tuple(sorted(ctx.excluded_topic_ids)),
     )

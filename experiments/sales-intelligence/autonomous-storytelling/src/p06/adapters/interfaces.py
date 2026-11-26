@@ -340,6 +340,7 @@ class PlaybackApplyResult(BaseModel):
     played_history_count: StrictNonNegInt
     auto_replay_permitted: StrictFalse = False
     reason: OptionalNonBlankStr = None
+    semantic_index_error: OptionalNonBlankStr = None
 
     @model_validator(mode="after")
     def validate_apply_consistency(self) -> PlaybackApplyResult:

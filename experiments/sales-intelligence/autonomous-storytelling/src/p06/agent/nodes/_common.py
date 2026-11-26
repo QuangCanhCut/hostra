@@ -27,7 +27,7 @@ from collections.abc import Mapping, Sequence
 from typing import Any, Optional
 
 from p06.adapters.interfaces import SkuEvidenceView
-from p06.agent.deps import GraphRuntimeDeps, TurnExecutionContext
+from p06.agent.deps import DraftAttemptTrace, GraphRuntimeDeps, TurnExecutionContext
 from p06.planning.draft_dtos import ChunkDraftLLMOutput
 from p06.planning.prompt_loader import load_prompt_template, render_prompt_template
 from p06.providers.base import (
@@ -225,6 +225,16 @@ def execute_chunk_generation(
             ctx.telemetry_records.append(exc.telemetry)
         ctx.non_retryable_failure = f"{type(exc).__name__}: {exc}"
         ctx.covered_claim_ids = ()
+        reason_msg = f"NON_RETRYABLE_PROVIDER_ERROR: {type(exc).__name__}: {exc}"
+        ctx.draft_attempts.append(
+            DraftAttemptTrace(
+                attempt=rewrite_attempt,
+                topic_id=topic.topic_id,
+                succeeded=False,
+                is_retryable=False,
+                failure_reasons=(reason_msg,),
+            )
+        )
         return validate_node_updates(
             state,
             node_name,
@@ -241,6 +251,16 @@ def execute_chunk_generation(
         if exc.telemetry is not None:
             ctx.telemetry_records.append(exc.telemetry)
         ctx.covered_claim_ids = ()
+        reason_msg = f"RETRYABLE_STRUCTURED_OUTPUT_ERROR: {type(exc).__name__}: {exc}"
+        ctx.draft_attempts.append(
+            DraftAttemptTrace(
+                attempt=rewrite_attempt,
+                topic_id=topic.topic_id,
+                succeeded=False,
+                is_retryable=True,
+                failure_reasons=(reason_msg,),
+            )
+        )
         return validate_node_updates(
             state,
             node_name,
@@ -249,7 +269,7 @@ def execute_chunk_generation(
             rewrite_budget=_build_retry_budget_update(
                 state.rewrite_budget,
                 retries_used=rewrite_attempt,
-                reasons=[f"RETRYABLE_STRUCTURED_OUTPUT_ERROR: {type(exc).__name__}: {exc}"],
+                reasons=[reason_msg],
             ),
             **resolved_extra,
         )
@@ -258,6 +278,16 @@ def execute_chunk_generation(
             ctx.telemetry_records.append(exc.telemetry)
         ctx.non_retryable_failure = f"{type(exc).__name__}: {exc}"
         ctx.covered_claim_ids = ()
+        reason_msg = f"NON_RETRYABLE_PROVIDER_ERROR: {type(exc).__name__}: {exc}"
+        ctx.draft_attempts.append(
+            DraftAttemptTrace(
+                attempt=rewrite_attempt,
+                topic_id=topic.topic_id,
+                succeeded=False,
+                is_retryable=False,
+                failure_reasons=(reason_msg,),
+            )
+        )
         return validate_node_updates(
             state,
             node_name,
@@ -286,6 +316,18 @@ def execute_chunk_generation(
         over_reason = (
             f"OVER_MAX_DURATION_SEC: Thời lượng ước lượng {duration_eval.raw_ms / MS_PER_SECOND_FLOAT:.2f}s "
             f"vượt quá giới hạn {deps.max_chunk_duration_sec:.2f}s."
+        )
+        ctx.draft_attempts.append(
+            DraftAttemptTrace(
+                attempt=rewrite_attempt,
+                topic_id=topic.topic_id,
+                text=draft.text,
+                cited_evidence_ids=tuple(draft.cited_evidence_ids),
+                estimated_duration_sec=duration_eval.raw_ms / MS_PER_SECOND_FLOAT,
+                succeeded=False,
+                is_retryable=True,
+                failure_reasons=(over_reason,),
+            )
         )
         return validate_node_updates(
             state,
@@ -359,6 +401,20 @@ def execute_chunk_generation(
 
     ctx.covered_claim_ids = tuple(draft.covered_claim_ids)
     ctx.last_failed_draft_text = draft.text
+    ctx.draft_attempts.append(
+        DraftAttemptTrace(
+            attempt=rewrite_attempt,
+            candidate_id=candidate_id,
+            chunk_id=chunk_id,
+            topic_id=topic.topic_id,
+            text=draft.text,
+            cited_evidence_ids=tuple(draft.cited_evidence_ids),
+            estimated_duration_sec=estimated_duration_sec,
+            succeeded=True,
+            is_retryable=True,
+            failure_reasons=(),
+        )
+    )
     return validate_node_updates(
         state,
         node_name,

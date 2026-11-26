@@ -270,3 +270,42 @@ class StoryCheckpoint(BaseModel):
             payload["last_playback_event_id"] = event.playback_event_id
         payload["updated_at"] = event.occurred_at
         return type(self).model_validate(payload)
+
+    def with_active_sku(
+        self,
+        new_active_sku_id: str,
+        *,
+        current_arc_id: str,
+        next_topic_id: Optional[str] = None,
+        updated_at: Optional[datetime] = None,
+    ) -> StoryCheckpoint:
+        """Tạo checkpoint mới khi P08 thực thi chuyển đổi `active_sku_id` ở biên điều phối (I-04).
+
+        Lý do kỹ thuật: P06 không tự đổi `active_sku_id`; phương thức này chỉ dành cho ranh giới
+        điều phối mô phỏng (`SimulatedPlaybackHarness.switch_active_sku`), luôn bảo toàn bằng chứng
+        `last_completed_chunk_id` / `last_playback_event_id` (I-06) và kiểm định qua `model_validate()`.
+
+        Args:
+            new_active_sku_id: Mã SKU mới được P08 chỉ định.
+            current_arc_id: Mã `StoryArc` mở đầu cho SKU mới.
+            next_topic_id: Mã `StoryTopic` kế tiếp thuộc SKU mới (hoặc `None` nếu đã phủ hết).
+            updated_at: Dấu thời gian chuyển SKU (mặc định giữ nguyên `self.updated_at`).
+
+        Returns:
+            StoryCheckpoint: Checkpoint mới bất biến đã kiểm định toàn vẹn.
+
+        Raises:
+            ValueError: Nếu `new_active_sku_id` hoặc `current_arc_id` rỗng.
+        """
+        if not isinstance(new_active_sku_id, str) or not new_active_sku_id.strip():
+            raise ValueError("new_active_sku_id không được rỗng.")
+        if not isinstance(current_arc_id, str) or not current_arc_id.strip():
+            raise ValueError("current_arc_id không được rỗng.")
+
+        payload = copy.deepcopy(self.model_dump())
+        payload["active_sku_id"] = new_active_sku_id.strip()
+        payload["current_arc_id"] = current_arc_id.strip()
+        payload["next_topic_id"] = next_topic_id
+        if updated_at is not None:
+            payload["updated_at"] = updated_at
+        return type(self).model_validate(payload)

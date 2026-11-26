@@ -55,7 +55,7 @@ DEFAULT_TIMEOUT_SEC: Final[float] = 30.0
 
 # Danh sách từ khóa nhạy cảm tuyệt đối không được xuất hiện trong sampling_params/log.
 SENSITIVE_SAMPLING_KEYS: Final[frozenset[str]] = frozenset(
-    {"api_key", "key", "secret", "token", "authorization", "password"}
+    {"api_key", "key", "secret", "token", "authorization", "password", "bearer"}
 )
 
 # Các tên tham số đếm token chuẩn của LLM không phải bí mật xác thực; ngoại lệ duy nhất cho từ khóa "token".

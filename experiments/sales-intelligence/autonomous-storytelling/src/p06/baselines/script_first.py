@@ -29,7 +29,9 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
+import math
 from collections.abc import Mapping, Sequence
 from enum import Enum
 from typing import Any, Final, Optional
@@ -40,6 +42,7 @@ from p06.adapters.interfaces import (
     AckApplyStatus,
     KnowledgeVerifierPort,
     PlaybackAckBusPort,
+    PlaybackAckResult,
     SkuEvidenceView,
 )
 from p06.guardrails.fallback_selector import SafeFallbackSelector
@@ -81,6 +84,15 @@ from p06.simulation.virtual_clock import DEFAULT_SPEECH_WORDS_PER_SEC, VirtualCl
 # Giới hạn số từ mục tiêu khi ghép kịch bản tất định để thời lượng đọc luôn nằm gọn dưới ngưỡng 30s.
 _DETERMINISTIC_MAX_WORDS: Final[int] = int(MAX_CHUNK_DURATION_SEC * DEFAULT_SPEECH_WORDS_PER_SEC) - 6
 _UPFRONT_PROMPT_VERSION: Final[str] = "baseline-script-first-v0.1"
+_UPFRONT_SYSTEM_PROMPT_TEMPLATE: Final[str] = (
+    "Bạn là trợ lý viết kịch bản livestream tiếng Việt trung thực với dữ liệu. "
+    "Chỉ sử dụng thông tin trong `sku_evidence` và `topic`, giữ độ dài dưới {max_words} từ "
+    "(<= {max_duration_sec} giây đọc), trích dẫn đúng `evidence_id` từ `approved_chunks`, không bịa giá "
+    "hoặc công dụng chữa bệnh, và tuyệt đối không nhắc tên SKU khác."
+)
+_UPFRONT_PROMPT_SHA256: Final[str] = hashlib.sha256(
+    _UPFRONT_SYSTEM_PROMPT_TEMPLATE.encode("utf-8")
+).hexdigest()
 
 
 class BaselineScriptSource(str, Enum):
@@ -195,6 +207,14 @@ class BaselineTurnRecord(BaseModel):
     verified_candidate_id: OptionalNonBlankStr = None
     ack_status: Optional[AckApplyStatus] = None
     failure_reason: OptionalNonBlankStr = None
+    spoken_text: OptionalNonBlankStr = None
+    cited_evidence_ids: tuple[NonBlankStr, ...] = ()
+    actual_duration_ms: Optional[StrictNonNegInt] = None
+    p05_rejected: StrictBool = False
+    p05_rejection_reasons: tuple[NonBlankStr, ...] = ()
+    p05_gate_decision_id: OptionalNonBlankStr = None
+    candidate_text_before_fallback: OptionalNonBlankStr = None
+    covered_claim_ids: tuple[NonBlankStr, ...] = ()
 
     @model_validator(mode="after")
     def validate_turn_record_invariants(self) -> BaselineTurnRecord:
@@ -234,6 +254,12 @@ class BaselineSessionResult(BaseModel):
     final_checkpoint: StoryCheckpoint
     completed_topic_ids: frozenset[str]
     played_history_count: StrictNonNegInt
+    telemetry_records: tuple[ProviderTelemetry, ...] = ()
+    prompt_version: OptionalNonBlankStr = None
+    prompt_sha256: OptionalNonBlankStr = None
+    playback_events: tuple[PlaybackAckResult, ...] = ()
+    discarded_candidates: tuple[dict[str, Any], ...] = ()
+    errors: tuple[dict[str, Any], ...] = ()
 
 
 class UpfrontPlannedItem(BaseModel):
@@ -287,6 +313,9 @@ class UpfrontScriptPlan(BaseModel):
     output_tokens: Optional[StrictNonNegInt] = None
     token_usage_source: TokenUsageSource = TokenUsageSource.UNAVAILABLE
     planning_latency_ms: StrictNonNegFloat = 0.0
+    telemetry_records: tuple[ProviderTelemetry, ...] = ()
+    prompt_version: OptionalNonBlankStr = None
+    prompt_sha256: OptionalNonBlankStr = None
 
 
 def _format_vnd_price(price_vnd: int) -> str:
@@ -322,6 +351,8 @@ def _join_bounded_clauses(clauses: Sequence[str], max_words: int) -> str:
 def _compose_deterministic_chunk(
     topic: StoryTopic,
     evidence_view: SkuEvidenceView,
+    *,
+    max_words: int = _DETERMINISTIC_MAX_WORDS,
 ) -> tuple[str, list[str], int, bool]:
     """Ghép lời thoại tiếng Việt tất định từ `talking_points` và `SkuEvidenceView` đã duyệt.
 
@@ -352,10 +383,10 @@ def _compose_deterministic_chunk(
     else:
         clauses.append(topic.title)
 
-    if first_matching_chunk is not None and len(" ".join(clauses).split()) < (_DETERMINISTIC_MAX_WORDS - 12):
+    if first_matching_chunk is not None and len(" ".join(clauses).split()) < max(0, max_words - 12):
         clauses.append(first_matching_chunk["content"])
 
-    composed_text = _join_bounded_clauses(clauses, max_words=_DETERMINISTIC_MAX_WORDS)
+    composed_text = _join_bounded_clauses(clauses, max_words=max_words)
     mentions_ocop = "ocop" in composed_text.lower()
     return composed_text, cited_evidence_ids, evidence_view.price_vnd, mentions_ocop
 
@@ -366,6 +397,7 @@ class _TelemetryAccumulator:
     def __init__(self) -> None:
         self.llm_calls: int = 0
         self.planning_latency_ms: float = 0.0
+        self.records: list[ProviderTelemetry] = []
         self._input_tokens: int = 0
         self._output_tokens: int = 0
         self._has_unavailable: bool = False
@@ -379,6 +411,7 @@ class _TelemetryAccumulator:
             self._has_unavailable = True
             return
 
+        self.records.append(telemetry)
         self.planning_latency_ms += telemetry.latency_ms
         if (
             telemetry.token_usage_source == TokenUsageSource.UNAVAILABLE
@@ -430,6 +463,7 @@ class ScriptFirstBaseline:
         session_rights_version: int = 1,
         data_classification: str = "SYNTHETIC",
         seed: Optional[int] = None,
+        max_chunk_duration_sec: float = MAX_CHUNK_DURATION_SEC,
     ) -> None:
         """Khởi tạo `ScriptFirstBaseline` với các cổng phụ thuộc tiêm từ ngoài.
 
@@ -460,6 +494,20 @@ class ScriptFirstBaseline:
             raise ValueError("data_classification không được rỗng.")
         if seed is not None and (isinstance(seed, bool) or not isinstance(seed, int)):
             raise ValueError("seed phải là số nguyên hoặc None.")
+        if (
+            isinstance(max_chunk_duration_sec, bool)
+            or not isinstance(max_chunk_duration_sec, (int, float))
+            or not math.isfinite(float(max_chunk_duration_sec))
+        ):
+            raise ValueError(
+                f"max_chunk_duration_sec phải là số thực hữu hạn, nhận được {max_chunk_duration_sec!r}."
+            )
+        numeric_duration = float(max_chunk_duration_sec)
+        if not (0.0 < numeric_duration <= MAX_CHUNK_DURATION_SEC):
+            raise ValueError(
+                f"max_chunk_duration_sec phải nằm trong (0.0, {MAX_CHUNK_DURATION_SEC}], "
+                f"nhận được {numeric_duration}."
+            )
 
         self._knowledge_verifier = knowledge_verifier
         self._playback_bus = playback_bus
@@ -471,6 +519,12 @@ class ScriptFirstBaseline:
         self._session_rights_version = session_rights_version
         self._data_classification = data_classification.strip()
         self._seed = seed
+        self._max_chunk_duration_sec: float = numeric_duration
+        margin_words = 6 if numeric_duration >= 20.0 else 3
+        self._max_words: int = max(
+            6,
+            int(numeric_duration * DEFAULT_SPEECH_WORDS_PER_SEC) - margin_words,
+        )
 
     def prepare_upfront_script(
         self,
@@ -519,7 +573,8 @@ class ScriptFirstBaseline:
 
         for seq_idx, (arc, topic) in enumerate(eligible_pairs):
             planned_chunk_id = (
-                f"chunk-baseline-{story_plan.plan_id}-r{story_plan.plan_revision}-{seq_idx:03d}"
+                f"chunk-baseline-{story_plan.plan_id}-r{story_plan.plan_revision}-"
+                f"{active_sku_id}-{seq_idx:03d}"
             )
             if evidence_view is None:
                 items.append(
@@ -557,6 +612,17 @@ class ScriptFirstBaseline:
             output_tokens=out_tokens,
             token_usage_source=token_source,
             planning_latency_ms=telemetry_acc.planning_latency_ms,
+            telemetry_records=tuple(telemetry_acc.records),
+            prompt_version=(
+                _UPFRONT_PROMPT_VERSION
+                if self._script_source == BaselineScriptSource.UPFRONT_LLM
+                else "deterministic-talking-points-v0.1"
+            ),
+            prompt_sha256=(
+                _UPFRONT_PROMPT_SHA256
+                if self._script_source == BaselineScriptSource.UPFRONT_LLM
+                else None
+            ),
         )
 
     def run_session(
@@ -565,14 +631,22 @@ class ScriptFirstBaseline:
         active_sku_id: Optional[str] = None,
         *,
         outcome_overrides_by_turn: Optional[Mapping[int, PlaybackOutcomeStatus]] = None,
+        max_turns: Optional[int] = None,
+        target_duration_sec: Optional[float] = None,
+        max_consecutive_aborts: Optional[int] = None,
+        initial_consecutive_aborts: int = 0,
     ) -> BaselineSessionResult:
-        """Chạy tuần tự toàn bộ kịch bản đã dựng sẵn đầu phiên qua P05 -> P04 bus -> Harness.
+        """Chạy tuần tự kịch bản đã dựng sẵn đầu phiên qua P05 -> P04 bus -> Harness.
 
         Args:
             story_plan: Kế hoạch kể chuyện đã được `APPROVED`.
             active_sku_id: Mã SKU active (mặc định đọc từ `harness.checkpoint.active_sku_id`).
             outcome_overrides_by_turn: Bản đồ `turn_index -> PlaybackOutcomeStatus` để mô phỏng
                 lỗi `FAILED` hoặc `UNKNOWN` trên từng lượt cụ thể.
+            max_turns: Giới hạn số lượt tối đa trong lần chạy SKU này (tùy chọn).
+            target_duration_sec: Ngưỡng thời lượng ảo phiên để dừng ngay trước khi phát lượt tiếp.
+            max_consecutive_aborts: Số lượt `SAFE_ABORT_NO_CANDIDATE` liên tiếp tối đa cho phép.
+            initial_consecutive_aborts: Số lượt abort liên tiếp tích lũy từ các SKU trước đó.
 
         Returns:
             BaselineSessionResult: Kết quả từng lượt, `BaselineMetrics`, `StoryCheckpoint` cuối,
@@ -584,25 +658,82 @@ class ScriptFirstBaseline:
         prepared = self.prepare_upfront_script(story_plan=story_plan, active_sku_id=resolved_sku_id)
 
         turns: list[BaselineTurnRecord] = []
+        playback_events: list[PlaybackAckResult] = []
+        discarded_candidates: list[dict[str, Any]] = []
+        errors: list[dict[str, Any]] = []
         verified_ready_count = 0
         fallback_count = 0
         safe_abort_count = 0
         playback_applied_count = 0
+        consecutive_aborts = initial_consecutive_aborts
 
         total_items = len(prepared.items)
         for turn_index, item in enumerate(prepared.items):
+            # Kiểm tra các rào dừng TRƯỚC khi tạo/phát lượt mới để VirtualClock không bị trượt lố.
+            if max_consecutive_aborts is not None and consecutive_aborts >= max_consecutive_aborts:
+                break
+            if max_turns is not None and len(turns) >= max_turns:
+                break
+            if target_duration_sec is not None and self._clock.elapsed_sec() >= target_duration_sec:
+                break
+
             turn_id = self._allocate_turn_id(story_plan=story_plan, turn_index=turn_index)
-            selected_candidate, outcome, rejection_note = self._resolve_turn_candidate(
+            (
+                selected_candidate,
+                outcome,
+                rejection_note,
+                p05_rejected,
+                p05_reasons,
+                p05_gate_decision_id,
+                candidate_text_before_fallback,
+            ) = self._resolve_turn_candidate(
                 item=item,
                 story_plan=story_plan,
             )
 
+            if p05_rejected or item.generation_error is not None:
+                discarded_candidates.append(
+                    {
+                        "turn_id": turn_id,
+                        "topic_id": item.topic.topic_id,
+                        "arc_id": item.arc.arc_id,
+                        "chunk_id": item.planned_chunk_id,
+                        "text": candidate_text_before_fallback,
+                        "generation_error": item.generation_error,
+                        "p05_rejected": p05_rejected,
+                        "p05_reasons": list(p05_reasons),
+                    }
+                )
+                errors.append(
+                    {
+                        "turn_id": turn_id,
+                        "stage": "verify_p05" if p05_rejected else "upfront_generation",
+                        "error_type": "P05_REJECTED" if p05_rejected else "GENERATION_ERROR",
+                        "message": rejection_note or item.generation_error or "Unknown baseline failure",
+                        "topic_id": item.topic.topic_id,
+                        "sku_id": resolved_sku_id,
+                    }
+                )
+
             if outcome == AgentTurnOutcome.VERIFIED_READY:
                 verified_ready_count += 1
+                consecutive_aborts = 0
             elif outcome == AgentTurnOutcome.FALLBACK_PREAPPROVED:
                 fallback_count += 1
+                consecutive_aborts = 0
             else:
                 safe_abort_count += 1
+                consecutive_aborts += 1
+                errors.append(
+                    {
+                        "turn_id": turn_id,
+                        "stage": "safe_fallback",
+                        "error_type": "SAFE_ABORT_NO_CANDIDATE",
+                        "message": rejection_note or "No valid candidate or fallback.",
+                        "topic_id": item.topic.topic_id,
+                        "sku_id": resolved_sku_id,
+                    }
+                )
                 turns.append(
                     BaselineTurnRecord(
                         turn_index=turn_index,
@@ -614,6 +745,10 @@ class ScriptFirstBaseline:
                         verified_candidate_id=None,
                         ack_status=None,
                         failure_reason=rejection_note,
+                        p05_rejected=p05_rejected,
+                        p05_rejection_reasons=p05_reasons,
+                        p05_gate_decision_id=p05_gate_decision_id,
+                        candidate_text_before_fallback=candidate_text_before_fallback,
                     )
                 )
                 continue
@@ -627,6 +762,11 @@ class ScriptFirstBaseline:
                 next_topic_id = None
                 next_arc_id = item.arc.arc_id
 
+            turn_claim_ids = (
+                tuple(item.topic.allowed_claim_ids)
+                if outcome == AgentTurnOutcome.VERIFIED_READY
+                else ()
+            )
             # Truyền đúng source_chunk_id của ứng viên đã chọn (PROACTIVE_STORY hoặc PREAPPROVED_FALLBACK)
             # để khớp với PlaybackCompleted.chunk_id do MockPlaybackAckBus phát hành.
             self._harness.register_pending_turn(
@@ -636,9 +776,7 @@ class ScriptFirstBaseline:
                 chunk_id=selected_candidate.source_chunk_id,
                 next_topic_id=next_topic_id,
                 current_arc_id=next_arc_id,
-                covered_claim_ids=item.topic.allowed_claim_ids
-                if outcome == AgentTurnOutcome.VERIFIED_READY
-                else (),
+                covered_claim_ids=turn_claim_ids,
             )
 
             override_status = (
@@ -652,24 +790,49 @@ class ScriptFirstBaseline:
                 plan_revision=story_plan.plan_revision,
                 outcome_override=override_status,
             )
+            playback_events.append(ack_result)
             apply_result = self._harness.apply_ack(ack_result)
             if apply_result.applied:
                 playback_applied_count += 1
                 turn_failure_reason: Optional[str] = None
             else:
                 turn_failure_reason = apply_result.reason or ack_result.failure_reason
+                errors.append(
+                    {
+                        "turn_id": turn_id,
+                        "stage": "playback_ack",
+                        "error_type": f"PLAYBACK_{apply_result.status.value}",
+                        "message": turn_failure_reason or "Playback ACK rejected/ignored",
+                        "topic_id": item.topic.topic_id,
+                        "sku_id": resolved_sku_id,
+                    }
+                )
 
+            cited_ids: tuple[str, ...] = ()
+            if selected_candidate.sku_bindings:
+                cited_ids = tuple(selected_candidate.sku_bindings[0].cited_evidence_ids)
+            actual_duration_ms = (
+                ack_result.event.actual_duration_ms if ack_result.event is not None else None
+            )
             turns.append(
                 BaselineTurnRecord(
                     turn_index=turn_index,
                     turn_id=turn_id,
                     topic_id=item.topic.topic_id,
                     arc_id=item.arc.arc_id,
-                    chunk_id=item.planned_chunk_id,
+                    chunk_id=selected_candidate.source_chunk_id or item.planned_chunk_id,
                     outcome=outcome,
                     verified_candidate_id=selected_candidate.candidate_id,
                     ack_status=apply_result.status,
                     failure_reason=turn_failure_reason,
+                    spoken_text=selected_candidate.text,
+                    cited_evidence_ids=cited_ids,
+                    actual_duration_ms=actual_duration_ms,
+                    p05_rejected=p05_rejected,
+                    p05_rejection_reasons=p05_reasons,
+                    p05_gate_decision_id=p05_gate_decision_id,
+                    candidate_text_before_fallback=candidate_text_before_fallback,
+                    covered_claim_ids=turn_claim_ids,
                 )
             )
 
@@ -694,6 +857,12 @@ class ScriptFirstBaseline:
             final_checkpoint=self._harness.checkpoint,
             completed_topic_ids=self._harness.completed_topic_ids,
             played_history_count=len(self._harness.played_history),
+            telemetry_records=prepared.telemetry_records,
+            prompt_version=prepared.prompt_version,
+            prompt_sha256=prepared.prompt_sha256,
+            playback_events=tuple(playback_events),
+            discarded_candidates=tuple(discarded_candidates),
+            errors=tuple(errors),
         )
 
     def _validate_plan_and_active_sku(self, story_plan: StoryPlan, active_sku_id: str) -> None:
@@ -790,6 +959,7 @@ class ScriptFirstBaseline:
             text, cited_evidence_ids, stated_price_vnd, mentions_ocop = _compose_deterministic_chunk(
                 topic=topic,
                 evidence_view=evidence_view,
+                max_words=self._max_words,
             )
             role = StoryChunkRole.OPENING if sequence_index == 0 else StoryChunkRole.PRODUCT_STORY
             semantic_breakpoint = True
@@ -799,9 +969,23 @@ class ScriptFirstBaseline:
             rationale = f"Ghép tất định từ talking_points của chủ đề '{topic.topic_id}'."
 
         estimated_duration_sec = VirtualClock.estimate_raw_speech_duration_ms(text) / 1000.0
+        if (
+            self._script_source == BaselineScriptSource.UPFRONT_LLM
+            and estimated_duration_sec > self._max_chunk_duration_sec
+        ):
+            return UpfrontPlannedItem(
+                arc=arc,
+                topic=topic,
+                planned_chunk_id=planned_chunk_id,
+                generation_error=(
+                    f"OVER_MAX_DURATION_SEC: Thời lượng ước lượng {estimated_duration_sec:.2f}s "
+                    f"vượt quá giới hạn {self._max_chunk_duration_sec:.2f}s."
+                ),
+            )
         intent = f"story_topic:{topic.topic_id}"
         candidate_id = (
-            f"cand-baseline-{story_plan.plan_id}-r{story_plan.plan_revision}-{sequence_index:03d}"
+            f"cand-baseline-{story_plan.plan_id}-r{story_plan.plan_revision}-"
+            f"{active_sku_id}-{sequence_index:03d}"
         )
 
         try:
@@ -875,11 +1059,9 @@ class ScriptFirstBaseline:
         evidence_view: SkuEvidenceView,
     ) -> GenerationRequest:
         """Tạo `GenerationRequest` có cấu trúc cho lượt gọi LLM chuẩn bị đầu phiên."""
-        system_prompt = (
-            "Bạn là trợ lý viết kịch bản livestream tiếng Việt trung thực với dữ liệu. "
-            "Chỉ sử dụng thông tin trong `sku_evidence` và `topic`, giữ độ dài dưới 70 từ "
-            "(<= 30 giây đọc), trích dẫn đúng `evidence_id` từ `approved_chunks`, không bịa giá "
-            "hoặc công dụng chữa bệnh, và tuyệt đối không nhắc tên SKU khác."
+        system_prompt = _UPFRONT_SYSTEM_PROMPT_TEMPLATE.format(
+            max_words=self._max_words,
+            max_duration_sec=f"{self._max_chunk_duration_sec:g}",
         )
         user_payload: dict[str, Any] = {
             "session_goal": story_plan.session_goal,
@@ -930,9 +1112,24 @@ class ScriptFirstBaseline:
         *,
         item: UpfrontPlannedItem,
         story_plan: StoryPlan,
-    ) -> tuple[Optional[SpeechCandidate], AgentTurnOutcome, Optional[str]]:
+    ) -> tuple[
+        Optional[SpeechCandidate],
+        AgentTurnOutcome,
+        Optional[str],
+        bool,
+        tuple[str, ...],
+        Optional[str],
+        Optional[str],
+    ]:
         """Kiểm định ứng viên đầu phiên qua P05 hoặc rơi về `SafeFallbackSelector` / safe abort."""
         primary_failure_reason: Optional[str] = item.generation_error
+        p05_rejected = False
+        p05_reasons: tuple[str, ...] = ()
+        p05_gate_decision_id: Optional[str] = None
+        candidate_text_before_fallback: Optional[str] = (
+            item.candidate.text if item.candidate is not None else None
+        )
+
         if item.candidate is not None:
             ver_result = self._knowledge_verifier.verify_candidate(
                 item.candidate,
@@ -942,8 +1139,18 @@ class ScriptFirstBaseline:
                 ver_result.status == CandidateVerificationStatus.VERIFIED
                 and ver_result.candidate.is_ready_for_tts()
             ):
-                return ver_result.candidate, AgentTurnOutcome.VERIFIED_READY, None
-            primary_failure_reason = f"P05 REJECTED: {', '.join(ver_result.reasons)}"
+                return (
+                    ver_result.candidate,
+                    AgentTurnOutcome.VERIFIED_READY,
+                    None,
+                    False,
+                    (),
+                    ver_result.gate_decision_id,
+                    candidate_text_before_fallback,
+                )
+            p05_rejected = True
+            p05_reasons = tuple(ver_result.reasons) or ("P05_REJECTED_UNSPECIFIED",)
+            primary_failure_reason = f"P05 REJECTED: {', '.join(p05_reasons)}"
 
         fallback = SafeFallbackSelector.select_safe_fallback(
             self._knowledge_verifier,
@@ -955,14 +1162,30 @@ class ScriptFirstBaseline:
             require_empty_covered_topics=True,
         )
         if fallback is not None:
-            return fallback, AgentTurnOutcome.FALLBACK_PREAPPROVED, primary_failure_reason
+            return (
+                fallback,
+                AgentTurnOutcome.FALLBACK_PREAPPROVED,
+                primary_failure_reason,
+                p05_rejected,
+                p05_reasons,
+                p05_gate_decision_id,
+                candidate_text_before_fallback,
+            )
 
         abort_reason = (
             f"{primary_failure_reason}; không có câu dự phòng hợp lệ."
             if primary_failure_reason
             else "Không có ứng viên hoặc câu dự phòng hợp lệ."
         )
-        return None, AgentTurnOutcome.SAFE_ABORT_NO_CANDIDATE, abort_reason
+        return (
+            None,
+            AgentTurnOutcome.SAFE_ABORT_NO_CANDIDATE,
+            abort_reason,
+            p05_rejected,
+            p05_reasons,
+            p05_gate_decision_id,
+            candidate_text_before_fallback,
+        )
 
     def _allocate_turn_id(self, *, story_plan: StoryPlan, turn_index: int) -> str:
         """Sinh `turn_id` tất định và bảo đảm không trùng với các lượt đã đăng ký/kết thúc."""

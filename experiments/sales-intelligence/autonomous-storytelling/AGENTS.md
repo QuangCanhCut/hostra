@@ -59,14 +59,14 @@ Theo cơ chế phát hiện tùy biến của Antigravity (`agy-customizations`)
 
 ## 6. Directory Structure & Responsibilities
 
-Khung tài liệu/cấu hình và Phase 1–3 (`E01-T01..T07`, kiểm toán Phase 1–2, Agent Core & Memory/Baseline) đã hoàn tất (`189/189` tests pass); `E01-T08..T09` (CLI runner, evaluation metrics) đang chờ triển khai:
+Khung tài liệu/cấu hình và Phase 1–4 (`E01-T01..T08`, Agent Core, Evaluation 5 trục & Reproducible Runner) đã hoàn tất ngoại tuyến với `MockLLMProvider` (`249/249` tests pass); `E01-T09` (Ollama CPU smoke, Gemini formal benchmark, Human Blind Pilot) đang chờ triển khai:
 
 ```text
 autonomous-storytelling/
 ├── AGENTS.md                 # Quy tắc tác nghiệp P06 (thuần Markdown, không frontmatter, <24KB)
 ├── README.md                 # Tổng quan module, giả thuyết, checklist & điều hướng
 ├── pyproject.toml / .env.example
-├── docs/                     # README.md + báo cáo 00..05 (05 = Phase 3 Agent Core E01-T06..T07)
+├── docs/                     # README.md + báo cáo 00..06 (06 = Phase 4 Evaluation & Runner E01-T08)
 ├── research/                 # problem_definition.md, research_questions.md, methodology.md, context_and_dependencies.md, decision_log.md, literature_review.md
 ├── configs/
 │   ├── default.yaml
@@ -79,18 +79,20 @@ autonomous-storytelling/
 │   ├── schemas/              # [DONE E01-T02+Audit] story, candidate, events, state (p06-mock-v0.1, frozen=True)
 │   ├── providers/            # [DONE E01-T03] base, mock_provider, ollama_provider, gemini_provider, factory
 │   ├── planning/             # [DONE E01-T07] draft_dtos, prompt_loader, story_planner, arc_sequencer
-│   ├── agent/                # [DONE E01-T07] deps, routing, graph + nodes/ (8 nodes LangGraph StateGraph)
+│   ├── agent/                # [DONE E01-T07+Audit] deps, routing, graph + nodes/ (8 nodes LangGraph StateGraph)
 │   ├── memory/               # [DONE E01-T06] played_history (W∈{5,10,20}), topic_coverage, viewer_context, semantic_memory, repetition_detector
 │   ├── guardrails/           # [DONE E01-T05+Audit] prohibited_echo_guard.py, fallback_selector.py
 │   ├── adapters/             # [DONE E01-T05+Audit] interfaces, p05_knowledge_adapter + mocks/playback_bus (cô lập)
-│   ├── baselines/            # [DONE E01-T06] script_first.py (UPFRONT_LLM & DETERMINISTIC_TALKING_POINTS)
-│   └── simulation/           # [DONE E01-T05+T06] virtual_clock.py, playback_harness.py (atomic ACK progress)
-├── experiments/              # Runner độc lập cho p06_e01..p06_e04 (`E01-T08`)
+│   ├── baselines/            # [DONE E01-T06+T08] script_first.py (UPFRONT_LLM & DETERMINISTIC_TALKING_POINTS)
+│   ├── simulation/           # [DONE E01-T05+T06+T08] virtual_clock.py, playback_harness.py (atomic ACK + SKU switch)
+│   ├── evaluation/           # [DONE E01-T08] models, evaluator, comparison, human_eval, metrics/{coverage,repetition,safety,reliability,performance}
+│   └── runner/               # [DONE E01-T08] config (Offline Guard), mock_fixtures, evidence_collector, manifest, session_runner, sweep
+├── experiments/              # p06_e01_no_comments/run_e01.py ([DONE E01-T08] CLI ngoại tuyến Mock-first)
 ├── evaluation/
-│   ├── metrics/              # Automatic metrics (`E01-T08`)
+│   ├── metrics/              # Automatic metrics specification (`src/p06/evaluation/metrics/`)
 │   └── rubrics/              # human_eval_rubric_v0.1.md (6 tiêu chí 1–5 + pilot calibration)
-├── tests/                    # unit/, contract/, integration/ (Phase 3: 189/189 offline Mock passed)
-├── runs/                     # runs/<exp_id>/<run_id>/ (manifest.json + logs + failures/)
+├── tests/                    # unit/, contract/, integration/ (Phase 4: 249/249 offline Mock passed)
+├── runs/                     # runs/<exp_id>/<run_id>/ (10 artifacts bất biến + comparison + human_eval)
 └── reports/                  # Báo cáo tổng hợp so baseline & đề xuất GO/CHANGE/NO-GO/INCONCLUSIVE
 ```
 
@@ -181,8 +183,9 @@ Mọi tác vụ triển khai từ `E01-T03..E01-T09` trở đi bắt buộc tuâ
 | `E01-T01..E01-T02` (Môi trường `.venv`, Schemas `p06-mock-v0.1` & Audit Hardening) | `COMPLETED` | Python `3.13.2`, `src/p06/schemas/` (`frozen=True`, `from_graph_result`), `33/33` pytest pass; [`03-...`](./docs/03-phase1-foundation-e01-t01-t02-report.md) |
 | `E01-T03..E01-T05` (3-Tier `LLMProvider`, Dataset Synthetic, `P05KnowledgeAdapter`, Guardrails & Playback Harness) | `COMPLETED` | `src/p06/{providers,adapters,guardrails,simulation}/` + `data/` + Phase 2 Audit Hardening (`106/106` pass); [`04-...`](./docs/04-phase2-research-infrastructure-e01-t03-t05-report.md) |
 | `E01-T06..E01-T07` (4-Part Memory, `RepetitionDetector`, `ScriptFirstBaseline`, `StoryPlanner`, Prompts & LangGraph 8-Node Core) | `COMPLETED` | `src/p06/{memory,baselines,planning,agent}/` + `prompts/` + 17 smoke tests (`189/189` Mock offline pass); [`05-...`](./docs/05-phase3-agent-core-e01-t06-t07-report.md) |
-| `E01-T08..E01-T09` (Automatic Metrics, CLI Experiment Runner & Pilot Calibration) | `NOT STARTED` | Bước kế tiếp trước khi chạy `P06-E01` trên Ollama/Gemini |
-| `P06-E01`, `P06-E04`, `P06-E03`, `P06-E02` & Phase 5 Handoff `M4` | `NOT STARTED` | Chưa có manifest trong `runs/`; Owner/Reviewer `PENDING ASSIGNMENT` |
+| `E01-T08` (Evaluation Metrics 5 Trục, Offline Reproducible Runner & CLI `run_e01.py`) | `COMPLETED (Mock)` | `src/p06/{evaluation,runner}/` + `run_e01.py` + `60` tests mới (`249/249` Mock offline pass, hậu Independent Review fix `8/8`); [`06-...`](./docs/06-phase4-evaluation-runner-e01-t08-report.md) |
+| `E01-T09` (Ollama Smoke, Gemini Benchmark, Pilot Calibration & Human Blind Eval) | `NOT STARTED` | Bước kế tiếp (tách bạch tier; chưa chạy live API / chưa chấm người thật) |
+| `P06-E01`, `P06-E04`, `P06-E03`, `P06-E02` & Phase 5 Handoff `M4` | `NOT STARTED` | Chỉ mới có dry-runs `Mock` trong `runs/P06-E01/`; Owner/Reviewer `PENDING ASSIGNMENT` |
 
 - **Done một thí nghiệm:** Runner tái lập, tests pass, đủ `manifest.json` + logs + `failures/` trong `runs/`, đối chiếu baseline & giới hạn mock/synthetic; kết luận `GO/CHANGE/NO-GO/INCONCLUSIVE` theo bằng chứng thật.
 - **Promote (`M4` -> Stage 06):** Reviewer duyệt `GO`, bỏ toàn bộ mock, đóng băng `packages/contracts/` thay `p06-mock-v0.1`, chuyển logic thuần sang `apps/api/src/hostra_api/modules/sales/` có consumer contract tests.

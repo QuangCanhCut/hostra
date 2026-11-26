@@ -2,7 +2,7 @@
 
 **Module:** P06 — Sales Intelligence & Autonomous Storytelling  
 **Quy chuẩn áp dụng:** `experiments/README.md` (§4, §5, §6, §7) & Stage 03 (`P06.7–P06.12`)  
-**Trạng thái:** `IN RESEARCH` *(Cập nhật theo rà soát Tech Lead `2026-11-26` cho `P06-OPEN-1..6`)*
+**Trạng thái:** `IN RESEARCH` *(Đã hiện thực hóa runner & evaluator E01-T08 trong `src/p06/{evaluation,runner}/` — chỉ chạy Mock Tier 1; benchmark `Ollama`/`Gemini` & Human Eval `E01-T09` vẫn `NOT STARTED`)*
 
 ---
 
@@ -143,9 +143,9 @@ Tất cả metric dưới đây phải được báo cáo **theo từng tầng p
 | :--- | :--- | :--- | :--- |
 | **Phase 1** | **Technical Exploration** | Khảo sát `GeminiAPIProvider` (`Flash`/`Flash-Lite`) & `OllamaLocalProvider` (`Qwen3 1.7B/4B`) cho structured output tiếng Việt; thiết kế Pydantic schemas (`StoryPlan`, `StoryChunk`, `SpeechCandidate`, `StoryCheckpoint`, `p06-mock-v0.1`); xây dựng mẫu LangGraph `StateGraph`, conditional edges, bounded retry cycle. | `NOT STARTED` |
 | **Phase 2** | **Research Preparation** | Hoàn thiện tài liệu nghiên cứu (`research/`), khóa rubric `human_eval_rubric_v0.1.md`, chuẩn bị bộ dữ liệu 3–5 SKU có nguồn/quyền, kịch bản 10 tình huống ngắt mạch, 10–20 câu hỏi paraphrase; xây dựng baseline `Script-first`, mock dependencies (`P05`/`P07`/`P08`/`P04`) theo `p06-mock-v0.1`. | `IN PROGRESS / PARTIAL` *(Tài liệu `research/` đã rà soát `2026-11-26`; mã nguồn dataset/baseline/mock `NOT STARTED`)* |
-| **Phase 3** | **Agent Core Development** | Phát triển `ProviderFactory` 3 tầng, `StoryPlanner`, luồng LangGraph đầy đủ, bộ nhớ 4 thành phần (`W ∈ {5, 10, 20}` + coverage tracker bám `PlaybackCompleted` ACK), `ClaimVerificationAdapter` hỗ trợ `TargetScopeMode`, cơ chế `bounded rewrite` + fail-closed fallback, và playback simulator. | `NOT STARTED` |
-| **Phase 4** | **Experiment Execution** | Thực thi tuần tự `P06-E01` → `P06-E04` → `P06-E03` → `P06-E02`, thu thập dữ liệu sweep `W ∈ {5, 10, 20}` và `K` (`RQ5`), pilot calibration cho rubric 6 tiêu chí, lưu toàn bộ runs và log lỗi. | `NOT STARTED` |
-| **Phase 5** | **Evaluation & Handoff** | Đối chiếu kết quả với baseline `Script-first`, tổ chức chấm mù (Human Blind QA 6 tiêu chí), phân tích lỗi & tỷ lệ candidate bị loại bỏ (waste), phân tích latency/chi phí, xuất `reports/final_report.md` và đánh giá mức độ sẵn sàng tích hợp vào `apps/api/src/hostra_api/modules/sales/`. | `NOT STARTED` |
+| **Phase 3** | **Agent Core Development** | Phát triển `ProviderFactory` 3 tầng, `StoryPlanner`, luồng LangGraph đầy đủ, bộ nhớ 4 thành phần (`W ∈ {5, 10, 20}` + coverage tracker bám `PlaybackCompleted` ACK), `ClaimVerificationAdapter` hỗ trợ `TargetScopeMode`, cơ chế `bounded rewrite` + fail-closed fallback, và playback simulator. | `COMPLETED (Mock Offline)` *(`189/189` tests Phase 3)* |
+| **Phase 4** | **Evaluation & Runner (`E01-T08`)** | Triển khai hệ thống đánh giá 5 trục (`src/p06/evaluation/`), Runner tái lập 10 artifacts + CLI `run_e01.py` (`src/p06/runner/`), tách bạch `VirtualClock` vs wall-clock, lọc lượt kết thúc biên SKU sạch (`is_clean_termination_boundary_trace`), xuất phiếu chấm mù và khô-chạy Mock. *(Lưu ý: `e01_story_plans.json` hiện có 6–9 topics nên dừng `EARLY_COMPLETION` sau ~37–56s; phép thử `W=5` vs `W=10` ngoài cửa sổ kiểm chứng bằng fixture 12-topic trong integration test).* | `COMPLETED (E01-T08 Mock)` *(`249/249` tests pass; live `E01-T09`: `NOT STARTED`)* |
+| **Phase 5** | **Formal Benchmark & Handoff (`E01-T09+`)** | Chạy `P06-E01`..`P06-E02` trên `Ollama` CPU smoke & `Gemini` formal benchmark, pilot calibration & Human Blind QA 6 tiêu chí, `GoldFactualLabel` độc lập, phân tích latency/chi phí, xuất `reports/final_report.md` và quyết định `GO/CHANGE/NO-GO`. | `NOT STARTED` |
 
 ---
 

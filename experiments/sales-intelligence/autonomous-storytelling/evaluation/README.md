@@ -1,16 +1,16 @@
 # Khung Đánh giá P06 (`evaluation/`)
 
-**Trạng thái:** `NOT STARTED` (khung rubric người thật `v0.1` đã khởi tạo ở mức `PROPOSED / TO VALIDATE`; chưa có dữ liệu chấm thực tế hoặc kết quả metrics chạy thật).
+**Trạng thái:** `IN RESEARCH` (`E01-T08` khung đánh giá tự động 5 trục + xuất phiếu chấm mù đã triển khai trong `src/p06/evaluation/` và xác minh trên `Mock`; `Human Blind Eval` & `GoldFactualLabel` thực tế với `Ollama`/`Gemini` vẫn `NOT STARTED / TO VALIDATE`).
 
 ## 1. Tách biệt Automatic Metrics và Human Blind Rubric
 
-### Automatic Metrics (`evaluation/metrics/`)
-- `topic_coverage`: Tỷ lệ chủ đề bắt buộc (`mandatory_topics`) trong `StoryPlan` được xác nhận hoàn tất qua `PlaybackCompleted`.
-- `semantic_repetition`: Mức độ lặp từ/n-gram (`rule_based` là phương pháp chính `SELECTED FOR PoC`) hoặc lặp ngữ nghĩa trên cửa sổ lịch sử phát `W ∈ {5, 10, 20}` (comparator `embedding_cosine` chỉ dùng đối chiếu nếu cần).
-- `completed_chunk_replay_count`: Số lần phát trùng chunk đã hoàn tất (kiểm tra tính đúng của checkpoint/resume).
-- `rewrite_rate` và `retry_count`: Tỷ lệ candidate phải rewrite và phân bố số lần retry (kiểm tra bounded rewrite).
-- `latency`: Độ trễ xử lý theo từng bước (P50/P95), **bắt buộc phân tách theo `run_tier` / `provider`** (`ollama` CPU smoke test vs `gemini` formal experiment).
-- `token_cost`: Số token đầu vào/đầu ra và số lần gọi model.
+### Automatic Metrics (`src/p06/evaluation/metrics/` & `evaluator.py`, `comparison.py`)
+- `coverage.py` (`mandatory_topic_coverage`, `declared_verified_claim_coverage`, `duration_fulfillment`, `time_to_complete_mandatory_topics_sec` trên trục `VirtualClock`, v.v.): Bám hoàn toàn `PlaybackCompleted` & `APPLIED` ACK (loại lượt fallback).
+- `repetition.py` (`exact_chunk_replay_count`, `exact_normalized_text_replay_count`, `outside_window_exact_text_replay_count`, `max_prior_{word,ngram3}_jaccard`, `windowed_ngram3_jaccard_mean_w{5,10,20}`, `distinct_{1,2,3}`): Đo trên **toàn bộ `transcript.jsonl`** độc lập với cửa sổ agent `W`.
+- `safety.py` (`p05_rejection_*`, Hard Gates `invalid_candidate_playback_count`, `duplicate_completed_chunk_replay_count`, và 5 chỉ số `GoldFactualLabel` độc lập gồm `verifier_false_accept_count`, `verifier_precision`, `verifier_recall`): Trả `NOT_EVALUATED` (`None`) nếu chưa có `gold_labels`, cấm dùng `P05 ALLOW` làm ground truth.
+- `reliability.py` (`generation_attempts`, `rewrite_rate`, `retry_budget_violations` = `0`, `fallback_rate`, `safe_abort_count/rate` đã lọc lượt kết thúc biên SKU sạch qua `is_clean_termination_boundary_trace()`).
+- `performance.py` (`provider_latency_{p50,p95}_ms`, `invocation_latency_{p50,p95}_ms`, token kể cả `wasted_tokens`, `estimated_llm_cost_usd`): Bảo toàn `None` (`NOT_EVALUATED`) khi thiếu telemetry, `NOT_APPLICABLE` cho Mock cost, tách rạch ròi `run_tier` (`comparison.py` chặn gộp chéo tầng `CROSS_TIER_POOLING_PROHIBITED`).
+- `human_eval.py` (`export_blind_human_eval_sheets()`): Xáo trộn tất định và ẩn danh `METHOD_A..E` không lộ danh tính phương pháp hay `W`.
 
 ### Human Blind Rubric (`evaluation/rubrics/human_eval_rubric_v0.1.md`)
 Sử dụng rubric thang `1–5` gồm **6 tiêu chí** với neo hành vi cụ thể:

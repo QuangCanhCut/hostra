@@ -21,7 +21,7 @@ from __future__ import annotations
 
 from typing import Any, Final
 
-from p06.agent.deps import GraphRuntimeDeps, TurnExecutionContext
+from p06.agent.deps import GraphRuntimeDeps, P05AttemptTrace, TurnExecutionContext
 from p06.agent.nodes._common import validate_node_updates
 from p06.agent.routing import NODE_VERIFY_P05
 from p06.schemas.candidate import CandidateVerificationStatus
@@ -84,6 +84,16 @@ def run_verify_p05(
         result.status == CandidateVerificationStatus.VERIFIED
         and result.candidate.is_ready_for_tts()
     ):
+        ctx.p05_decisions.append(
+            P05AttemptTrace(
+                attempt=state.rewrite_budget.retries_used,
+                candidate_id=candidate.candidate_id,
+                status=result.status.value,
+                gate_decision_id=result.gate_decision_id,
+                reasons=(),
+                is_non_retryable=False,
+            )
+        )
         return validate_node_updates(
             state,
             NODE_VERIFY_P05,
@@ -101,6 +111,16 @@ def run_verify_p05(
     non_retryable_matches = [r for r in reasons if _is_non_retryable_reason(r)]
     if non_retryable_matches:
         ctx.non_retryable_failure = f"P05_NON_RETRYABLE: {', '.join(non_retryable_matches)}"
+    ctx.p05_decisions.append(
+        P05AttemptTrace(
+            attempt=state.rewrite_budget.retries_used,
+            candidate_id=candidate.candidate_id,
+            status=result.status.value,
+            gate_decision_id=result.gate_decision_id,
+            reasons=tuple(reasons),
+            is_non_retryable=bool(non_retryable_matches),
+        )
+    )
 
     return validate_node_updates(
         state,

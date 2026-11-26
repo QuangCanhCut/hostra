@@ -21,7 +21,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from p06.agent.deps import GraphRuntimeDeps, TurnExecutionContext
+from p06.agent.deps import GraphRuntimeDeps, RepetitionAttemptTrace, TurnExecutionContext
 from p06.agent.nodes._common import validate_node_updates
 from p06.agent.routing import NODE_CHECK_REPETITION
 from p06.memory.repetition_detector import RepetitionAction
@@ -49,6 +49,18 @@ def run_check_repetition(
         candidate_claim_ids=ctx.covered_claim_ids,
     )
     ctx.last_repetition_result = rep_result
+    ctx.repetition_checks.append(
+        RepetitionAttemptTrace(
+            attempt=state.rewrite_budget.retries_used,
+            candidate_id=candidate.candidate_id,
+            category=rep_result.category.value,
+            recommended_action=rep_result.recommended_action.value,
+            word_jaccard=rep_result.word_jaccard,
+            ngram_jaccard=rep_result.ngram_jaccard,
+            fact_overlap_ratio=rep_result.fact_overlap_ratio,
+            reasons=rep_result.reasons,
+        )
+    )
 
     if rep_result.recommended_action == RepetitionAction.ALLOW:
         return validate_node_updates(state, NODE_CHECK_REPETITION)

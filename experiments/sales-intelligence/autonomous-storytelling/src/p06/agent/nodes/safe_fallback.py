@@ -42,6 +42,9 @@ def run_safe_fallback(
         session_epoch=state.session_epoch,
         require_empty_covered_topics=True,
     )
+    # Xóa gợi ý chuyển topic của lượt chính vì câu dự phòng an toàn không hoàn thành chủ đề đó.
+    ctx.next_topic_id_hint = None
+    ctx.next_arc_id_hint = None
     if selected is not None:
         ctx.used_fallback = True
         ctx.covered_claim_ids = ()

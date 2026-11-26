@@ -109,6 +109,7 @@ class SimulatedPlaybackHarness:
         topic_coverage: Optional[GlobalTopicCoverage] = None,
         viewer_context: Optional[SessionViewerContext] = None,
         semantic_memory: Optional[OptionalSemanticMemory] = None,
+        min_chunks_per_topic: int = 1,
     ) -> None:
         """Khởi tạo harness với `StoryCheckpoint`, mã lần chạy mô phỏng và hệ thống bộ nhớ 4 phần.
 
@@ -216,11 +217,20 @@ class SimulatedPlaybackHarness:
         initial_topics_list = list(initial_completed_topic_ids)
         self._initial_extra_completed_topic_ids: set[str] = set()
 
+        if (
+            isinstance(min_chunks_per_topic, bool)
+            or not isinstance(min_chunks_per_topic, int)
+            or min_chunks_per_topic < 1
+        ):
+            raise ValueError(
+                f"min_chunks_per_topic phải là số nguyên >= 1, nhận được {min_chunks_per_topic!r}."
+            )
         if topic_coverage is None:
             if story_plan is not None:
                 self._topic_coverage: Optional[GlobalTopicCoverage] = GlobalTopicCoverage(
                     story_plan=story_plan,
                     initial_completed_topic_ids=initial_topics_list,
+                    min_chunks_per_topic=min_chunks_per_topic,
                 )
                 self._completed_topic_ids: set[str] = set(self._topic_coverage.completed_topic_ids)
             else:
@@ -304,6 +314,7 @@ class SimulatedPlaybackHarness:
             ):
                 self._last_ack_occurred_at = item.occurred_at
         self._last_playout_generation: Optional[int] = None
+        self._semantic_index_errors: list[str] = []
 
     @property
     def checkpoint(self) -> StoryCheckpoint:
@@ -359,6 +370,116 @@ class SimulatedPlaybackHarness:
     def finalized_turn_ids(self) -> frozenset[str]:
         """Tập các `turn_id` đã kết thúc vòng đời (thành công hoặc lỗi/không rõ)."""
         return frozenset(self._finalized_turns)
+
+    @property
+    def semantic_index_errors(self) -> tuple[str, ...]:
+        """Danh sách lỗi không nghiêm trọng phát sinh từ `OptionalSemanticMemory.index_played_turn()`."""
+        return tuple(self._semantic_index_errors)
+
+    def switch_active_sku(
+        self,
+        new_active_sku_id: str,
+        *,
+        story_plan: StoryPlan,
+        current_arc_id: Optional[str] = None,
+        next_topic_id: Optional[str] = None,
+        updated_at: Optional[datetime] = None,
+    ) -> StoryCheckpoint:
+        """Chuyển `active_sku_id` tại ranh giới điều phối mô phỏng (P08 boundary) theo bất biến I-04.
+
+        Lý do thiết kế: Khi phiên chạy qua 3 SKU tuần tự trong `P06-E01`, bộ điều phối phiên bên ngoài
+        P06 cần chuyển `active_sku_id` mà KHÔNG làm mất lịch sử đã phát (`_played_history_store`),
+        tập chống lặp (`_seen_event_ids`, `_finalized_turns`), hay tiến độ phủ toàn cục (`_topic_coverage`).
+
+        Args:
+            new_active_sku_id: Mã SKU mục tiêu mới thuộc `story_plan.pinned_sku_ids`.
+            story_plan: Kế hoạch kể chuyện hiện hành khớp với checkpoint.
+            current_arc_id: Mã arc mục tiêu (nếu `None` sẽ tự tìm arc đầu tiên phù hợp với SKU mới).
+            next_topic_id: Mã topic mở đầu cho SKU mới (nếu `None` sẽ chọn topic chưa hoàn tất đầu tiên).
+            updated_at: Mốc thời gian chuyển SKU trên đồng hồ ảo.
+
+        Returns:
+            StoryCheckpoint: Điểm dừng mới mang `active_sku_id` mới.
+
+        Raises:
+            TypeError: Nếu `story_plan` không phải `StoryPlan`.
+            ValueError: Nếu còn lượt đang chờ ACK (`_pending_turns`), `story_plan` không khớp checkpoint,
+                `new_active_sku_id` không nằm trong `pinned_sku_ids`, hoặc `updated_at` lùi thời gian.
+        """
+        if not isinstance(story_plan, StoryPlan):
+            raise TypeError(
+                f"story_plan phải là StoryPlan, nhận được {type(story_plan).__name__}."
+            )
+        if self._pending_turns:
+            raise ValueError(
+                f"Không thể chuyển active_sku_id khi còn lượt đang chờ ACK: {sorted(self._pending_turns)}."
+            )
+        if (
+            story_plan.tenant_id != self._checkpoint.tenant_id
+            or story_plan.session_id != self._checkpoint.session_id
+            or story_plan.plan_id != self._checkpoint.plan_id
+            or story_plan.plan_revision != self._checkpoint.plan_revision
+        ):
+            raise ValueError(
+                "story_plan không khớp (tenant_id, session_id, plan_id, plan_revision) với checkpoint."
+            )
+        if not isinstance(new_active_sku_id, str) or not new_active_sku_id.strip():
+            raise ValueError("new_active_sku_id không được rỗng.")
+        clean_sku = new_active_sku_id.strip()
+        if clean_sku not in story_plan.pinned_sku_ids:
+            raise ValueError(
+                f"new_active_sku_id='{clean_sku}' không nằm trong story_plan.pinned_sku_ids "
+                f"{story_plan.pinned_sku_ids}."
+            )
+
+        if updated_at is not None and self._last_ack_occurred_at is not None:
+            if (updated_at.tzinfo is None) != (self._last_ack_occurred_at.tzinfo is None):
+                raise ValueError("Múi giờ của updated_at không đồng bộ với StoryCheckpoint.updated_at.")
+            if updated_at < self._last_ack_occurred_at:
+                raise ValueError(
+                    f"updated_at ({updated_at.isoformat()}) không được lùi trước mốc ACK cuối "
+                    f"({self._last_ack_occurred_at.isoformat()})."
+                )
+
+        sorted_arcs = sorted(story_plan.arcs, key=lambda item: item.position)
+        resolved_arc_id = current_arc_id
+        if resolved_arc_id is None:
+            for arc in sorted_arcs:
+                if arc.sku_id == clean_sku or any(
+                    topic.sku_id == clean_sku for topic in arc.topics
+                ):
+                    resolved_arc_id = arc.arc_id
+                    break
+            if resolved_arc_id is None:
+                for arc in sorted_arcs:
+                    if arc.sku_id is None:
+                        resolved_arc_id = arc.arc_id
+                        break
+            if resolved_arc_id is None:
+                resolved_arc_id = sorted_arcs[0].arc_id
+
+        resolved_next_topic_id = next_topic_id
+        if resolved_next_topic_id is None:
+            for arc in sorted_arcs:
+                for topic in arc.topics:
+                    is_eligible = topic.sku_id == clean_sku or (
+                        topic.sku_id is None and (arc.sku_id == clean_sku or arc.sku_id is None)
+                    )
+                    if is_eligible and topic.topic_id not in self._completed_topic_ids:
+                        resolved_next_topic_id = topic.topic_id
+                        break
+                if resolved_next_topic_id is not None:
+                    break
+
+        self._checkpoint = self._checkpoint.with_active_sku(
+            clean_sku,
+            current_arc_id=resolved_arc_id,
+            next_topic_id=resolved_next_topic_id,
+            updated_at=updated_at,
+        )
+        if updated_at is not None:
+            self._last_ack_occurred_at = updated_at
+        return self._checkpoint
 
     def build_agent_state(
         self,
@@ -727,12 +848,19 @@ class SimulatedPlaybackHarness:
             self._last_playout_generation = event.playout_generation
         self._checkpoint = new_checkpoint
         # Chỉ lập chỉ mục vào semantic memory tùy chọn SAU KHI checkpoint và các kho cốt lõi đã commit xong.
-        self._semantic_memory.index_played_turn(summary)
+        # Cô lập ngoại lệ tại đây để lỗi lập chỉ mục phụ không làm caller hiểu nhầm ACK thất bại hay replay.
+        semantic_error: Optional[str] = None
+        try:
+            self._semantic_memory.index_played_turn(summary)
+        except Exception as exc:
+            semantic_error = f"{type(exc).__name__}: {exc}"
+            self._semantic_index_errors.append(semantic_error)
 
         return self._build_apply_result(
             status=AckApplyStatus.APPLIED,
             applied=True,
             reason=None,
+            semantic_index_error=semantic_error,
         )
 
     def _find_context_mismatch_reason(
@@ -841,6 +969,7 @@ class SimulatedPlaybackHarness:
         status: AckApplyStatus,
         applied: bool,
         reason: Optional[str],
+        semantic_index_error: Optional[str] = None,
     ) -> PlaybackApplyResult:
         """Tạo `PlaybackApplyResult` phản ánh đúng trạng thái hiện hành của harness."""
         return PlaybackApplyResult(
@@ -851,4 +980,5 @@ class SimulatedPlaybackHarness:
             played_history_count=len(self._played_history_store),
             auto_replay_permitted=False,
             reason=reason,
+            semantic_index_error=semantic_index_error,
         )

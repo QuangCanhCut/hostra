@@ -34,8 +34,8 @@ from p06.adapters.interfaces import (
     KnowledgeVerifierPort,
     SkuEvidenceView,
 )
-from p06.memory.repetition_detector import RepetitionCheckResult, RepetitionDetector
-from p06.providers.base import LLMProvider, ProviderTelemetry
+from p06.memory.repetition_detector import RepetitionCheckResult, RepetitionDetector, StrictUnitScore
+from p06.providers.base import LLMProvider, ProviderTelemetry, StrictNonNegFloat
 from p06.schemas.candidate import SpeechCandidate
 from p06.schemas.state import AgentState
 from p06.schemas.story import (
@@ -43,8 +43,54 @@ from p06.schemas.story import (
     NonBlankStr,
     OptionalNonBlankStr,
     StoryTopic,
+    StrictNonNegInt,
 )
 from p06.simulation.virtual_clock import VirtualClock
+
+
+class DraftAttemptTrace(BaseModel):
+    """Dấu vết bất biến của một lần thử sinh/viết lại ứng viên trong nội bộ lượt LangGraph."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True, revalidate_instances="always")
+
+    attempt: StrictNonNegInt
+    candidate_id: OptionalNonBlankStr = None
+    chunk_id: OptionalNonBlankStr = None
+    topic_id: NonBlankStr
+    text: Optional[str] = None
+    cited_evidence_ids: tuple[NonBlankStr, ...] = ()
+    estimated_duration_sec: Optional[StrictNonNegFloat] = None
+    succeeded: StrictBool
+    is_retryable: StrictBool = True
+    failure_reasons: tuple[NonBlankStr, ...] = ()
+
+
+class RepetitionAttemptTrace(BaseModel):
+    """Dấu vết bất biến của một lần chạy `RepetitionDetector` trong lượt LangGraph."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True, revalidate_instances="always")
+
+    attempt: StrictNonNegInt
+    candidate_id: NonBlankStr
+    category: NonBlankStr
+    recommended_action: NonBlankStr
+    word_jaccard: StrictUnitScore
+    ngram_jaccard: StrictUnitScore
+    fact_overlap_ratio: StrictUnitScore
+    reasons: tuple[NonBlankStr, ...] = ()
+
+
+class P05AttemptTrace(BaseModel):
+    """Dấu vết bất biến của một lần gọi cổng kiểm chứng P05 trong lượt LangGraph."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True, revalidate_instances="always")
+
+    attempt: StrictNonNegInt
+    candidate_id: NonBlankStr
+    status: NonBlankStr
+    gate_decision_id: OptionalNonBlankStr = None
+    reasons: tuple[NonBlankStr, ...] = ()
+    is_non_retryable: StrictBool = False
 
 
 @dataclass(frozen=True)
@@ -115,6 +161,9 @@ class TurnExecutionContext:
     covered_claim_ids: tuple[str, ...] = ()
     next_topic_id_hint: Optional[str] = None
     next_arc_id_hint: Optional[str] = None
+    draft_attempts: list[DraftAttemptTrace] = field(default_factory=list)
+    repetition_checks: list[RepetitionAttemptTrace] = field(default_factory=list)
+    p05_decisions: list[P05AttemptTrace] = field(default_factory=list)
 
 
 class AgentTurnResult(BaseModel):
@@ -129,6 +178,11 @@ class AgentTurnResult(BaseModel):
         covered_claim_ids: Danh sách `claim_id` gắn với ứng viên thành công (nếu không fallback).
         next_topic_id_hint: Gợi ý `topic_id` cho lượt tiếp theo (chỉ dùng khi harness nhận ACK).
         next_arc_id_hint: Gợi ý `arc_id` tương ứng cho lượt tiếp theo.
+        draft_attempts: Lịch sử đầy đủ các lần thử sinh/viết lại trong lượt.
+        repetition_checks: Lịch sử đầy đủ các lần kiểm tra `RepetitionDetector` trong lượt.
+        p05_decisions: Lịch sử đầy đủ các quyết định P05 trong lượt.
+        non_retryable_failure: Lý do lỗi không thể retry (nếu xảy ra trong lượt).
+        excluded_topic_ids: Danh sách `topic_id` bị loại tạm trong lượt do `SWITCH_TOPIC`.
     """
 
     model_config = ConfigDict(extra="forbid", frozen=True, revalidate_instances="always")
@@ -141,3 +195,8 @@ class AgentTurnResult(BaseModel):
     covered_claim_ids: tuple[NonBlankStr, ...] = ()
     next_topic_id_hint: OptionalNonBlankStr = None
     next_arc_id_hint: OptionalNonBlankStr = None
+    draft_attempts: tuple[DraftAttemptTrace, ...] = ()
+    repetition_checks: tuple[RepetitionAttemptTrace, ...] = ()
+    p05_decisions: tuple[P05AttemptTrace, ...] = ()
+    non_retryable_failure: OptionalNonBlankStr = None
+    excluded_topic_ids: tuple[NonBlankStr, ...] = ()
