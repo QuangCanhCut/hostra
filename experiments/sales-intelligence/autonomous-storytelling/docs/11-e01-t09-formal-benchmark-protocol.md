@@ -292,3 +292,19 @@ Thí nghiệm `P06-E01` chỉ được đánh dấu **`COMPLETED`** và sẵn s�
 ---
 
 **Trạng thái hiện tại:** **Dừng hoàn toàn tại `AWAITING_FINAL_BENCHMARK_EXECUTION_APPROVAL`.** Không thực hiện cuộc gọi Gemini API nào trong phiên chuẩn bị này và không tự commit/push.
+
+---
+
+## 11. Phụ lục Sửa đổi Giao thức — Rút gọn Phạm vi Track 1 (Batch 1B, `2026-11-27`)
+
+Theo quyết định Tech Lead (`DR-P06-012`) sau khi review kết quả **Batch 1A** (`docs/12-e01-t09-formal-benchmark-batch1a-report.md`) và bộ đánh giá AI-assisted ChatGPT (`77` dòng, giữ `human_eval/` ở trạng thái `PENDING`):
+
+1. **Rút gọn ma trận Track 1 Natural Storytelling:**
+   - **Batch 1A** (`product_education_10m_ext`, `seed=42`, `script_first_upfront_llm` + `langgraph W=5/10/20`): **Đã hoàn thành** (`94/120` requests, `0 USD`).
+   - **Batch 1B** (`brand_storytelling_10m_ext`, `seed=42`, `min_chunks_per_topic=1`, `3` SKUs, `18` planned topics = `12` mandatory + `6` optional): **Phê duyệt rút gọn còn 2 cấu hình** (`script_first_upfront_llm` `max_retries=0` và `langgraph_structured_story W=5`) để kiểm tra khả năng tổng quát hóa sang kịch bản kể chuyện thương hiệu và an toàn thương mại/OCOP, đồng thời dành ngân sách cho Track 2 History Window Stress Test (`lag=12`).
+   - Các cấu hình không chạy trong Batch 1B (`W=10`, `W=20`, `product_education seed=43`) **không** được coi là đã thực hiện và **không** gộp `W=10/20` của Batch 1A vào so sánh ghép cặp cross-scenario.
+2. **Ngân sách & Khóa cấu hình Batch 1B:**
+   - Tệp cấu hình: [`configs/experiments/p06_e01_formal_batch1b.yaml`](file:///g:/PTIT%20TL/P_Inovation/hostra-ai/experiments/sales-intelligence/autonomous-storytelling/configs/experiments/p06_e01_formal_batch1b.yaml) (`SHA-256: f380892c137606f0277aafa809a4623a904a9f262c10797cf0cb897b42079fd2`).
+   - Ngân sách mới tách biệt hoàn toàn khỏi Batch 1A: **`global_max_requests = 60`**, **`max_requests_per_run = 30`**, **`max_cost_usd = 0.0`** (`Free Tier`), `min_request_interval_sec = 6.0`, `stop_on_rate_limit = true`.
+   - Thư mục xuất: [`runs/P06-E01/formal_benchmark_v1/track1_brand_storytelling_s42/`](file:///g:/PTIT%20TL/P_Inovation/hostra-ai/experiments/sales-intelligence/autonomous-storytelling/runs/P06-E01/formal_benchmark_v1/track1_brand_storytelling_s42/).
+3. **Bảo toàn Tiêu chí & Tài nguyên Khóa:** Toàn bộ `10/10` mã băm dữ liệu/prompt/model/baseline ở Mục 5B và toàn bộ Acceptance Criteria ở Mục 5 được giữ nguyên 100%, không hạ chuẩn ngưỡng chất lượng.
