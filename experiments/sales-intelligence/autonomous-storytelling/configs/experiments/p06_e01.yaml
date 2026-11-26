@@ -1,0 +1,25 @@
+# Cấu hình kịch bản P06-E01: Kể chuyện không bình luận
+experiment_id: "P06-E01"
+name: "Storytelling Without Comments"
+status: "NOT_STARTED"
+sku_count: 3
+simulated_durations_min: [10, 30]
+comment_events_enabled: false
+baselines:
+  - "script_first"
+methods:
+  - "langgraph_structured_story"
+history_window_sweep: [5, 10, 20]
+repetition_methods:
+  - "rule_based"
+  # Comparator tùy chọn (chỉ chạy thêm nếu cần đối chiếu): "embedding_cosine"
+optional_comparator_repetition_methods:
+  - "embedding_cosine"
+recap_enabled: false
+execution_tiers:
+  unit_test: "configs/models/mock.yaml"
+  local_smoke_test: "configs/models/ollama_qwen3_1.7b.yaml"
+  formal_experiment: "configs/models/gemini_flash.yaml"
+tier_isolation_note: "CẤM gộp kết quả giữa Ollama CPU (local_smoke_test) và Gemini (formal_experiment) vào cùng một bảng benchmark, và KHÔNG dùng Mock (unit_test) làm bằng chứng chất lượng kể chuyện."
+playback_ack_mode: "simulated_deterministic"
+require_all_skus_ocop_verified: true

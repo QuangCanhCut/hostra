@@ -1,0 +1,17 @@
+# Phạm vi riêng cho P06 PoC (`experiments/sales-intelligence/autonomous-storytelling/`).
+.env
+.env.*
+!.env.example
+.ipynb_checkpoints/
+
+# Loại trừ dữ liệu chạy thô trong `runs/*/*` để tránh phình repo và rò rỉ log tạm;
+# chỉ giữ tài liệu/thư mục khung, còn manifest và bảng tổng hợp đã review sẽ
+# được chọn lọc và theo dõi tường minh trong `reports/tables/`.
+runs/*/*
+!runs/README.md
+!runs/**/.gitkeep
+
+*.tmp
+*.bak
+__pycache__/
+.pytest_cache/

@@ -1,0 +1,17 @@
+# Cấu hình Model Tầng 2: Local Ollama CPU Smoke Test (Qwen3 1.7B)
+# Trạng thái: PROPOSED / TO VALIDATE
+provider: "ollama"
+run_tier: "local_smoke_test"
+model_id: "qwen3:1.7b"
+status: "PROPOSED / TO VALIDATE"
+base_url_env: "OLLAMA_BASE_URL"
+hardware_profile: "cpu_only_no_dgpu"
+quantization: "TBD_RECORD_ACTUAL_TAG"
+context_window: 8192
+sampling:
+  temperature: 0.3
+  top_p: 0.9
+  max_tokens: 1024
+  seed: 42
+timeout_sec: 120
+notes: "Local CPU exploration, prompt iteration & LangGraph smoke testing only; never assume production latency or pool with Gemini benchmarks."
