@@ -32,11 +32,15 @@ const TONE_CLASSES: Record<BadgeTone, string> = {
 }
 
 const SUBTLE_TONE_CLASSES: Record<BadgeTone, string> = {
-  success: 'bg-transparent text-[var(--status-success-fg)] border-[var(--border-default)]',
-  warning: 'bg-transparent text-[var(--status-warning-fg)] border-[var(--border-default)]',
-  danger: 'bg-transparent text-[var(--status-danger-fg)] border-[var(--border-default)]',
-  info: 'bg-transparent text-[var(--status-info-fg)] border-[var(--border-default)]',
-  neutral: 'bg-transparent text-[var(--text-secondary)] border-[var(--border-default)]',
+  success:
+    'bg-[var(--status-success-bg)]/70 text-[var(--status-success-fg)] border-[var(--status-success-border)]',
+  warning:
+    'bg-[var(--status-warning-bg)]/70 text-[var(--status-warning-fg)] border-[var(--status-warning-border)]',
+  danger:
+    'bg-[var(--status-danger-bg)]/70 text-[var(--status-danger-fg)] border-[var(--status-danger-border)]',
+  info: 'bg-[var(--status-info-bg)]/70 text-[var(--status-info-fg)] border-[var(--status-info-border)]',
+  neutral:
+    'bg-[var(--bg-subtle)] text-[var(--text-muted)] border-[var(--border-default)]',
 }
 
 function ToneIcon({ tone, pulse }: { tone: BadgeTone; pulse?: boolean }) {
@@ -69,7 +73,7 @@ export function StatusBadge({
     <span
       className={cn(
         /* Luôn giữ 1 dòng không bóp méo chữ trên thẻ hẹp */
-        'inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-0.5 text-xs font-medium leading-5',
+        'inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-0.5 text-[11px] font-semibold leading-5 tracking-[0.01em]',
         subtle ? SUBTLE_TONE_CLASSES[tone] : TONE_CLASSES[tone],
         className,
       )}

@@ -42,6 +42,7 @@ from p06.adapters.interfaces import (
     SkuEvidenceView,
 )
 from p06.guardrails.prohibited_echo_guard import ProhibitedEchoGuard
+from p06.guardrails.spoken_text_hygiene import check_spoken_text_hygiene
 from p06.schemas.candidate import (
     CandidateVerificationStatus,
     SkuVersionBinding,
@@ -762,6 +763,11 @@ class P05KnowledgeAdapter(KnowledgeVerifierPort):
                 f"Lời thoại SINGLE_SKU '{binding.sku_id}' nhắc tới tên/mã SKU khác trong tenant: {leaked_skus}."
             )
 
+        hygiene_res = check_spoken_text_hygiene(candidate.text)
+        if not hygiene_res.passed:
+            reasons.append("INTERNAL_METADATA_LEAK")
+            details.extend(hygiene_res.violations)
+
         unique_reasons = tuple(dict.fromkeys(reasons))
         per_sku_decisions = {
             binding.sku_id: {
@@ -885,6 +891,11 @@ class P05KnowledgeAdapter(KnowledgeVerifierPort):
             details.append(
                 f"ProhibitedEchoGuard chặn cụm từ bị cấm trong so sánh: {list(echo_result.matched_phrases)}."
             )
+
+        hygiene_res = check_spoken_text_hygiene(candidate.text)
+        if not hygiene_res.passed:
+            reasons.append("INTERNAL_METADATA_LEAK")
+            details.extend(hygiene_res.violations)
 
         unique_reasons = tuple(dict.fromkeys(reasons))
         if not unique_reasons:
@@ -1236,6 +1247,11 @@ class P05KnowledgeAdapter(KnowledgeVerifierPort):
                 details.append(
                     f"UNRESOLVED_SKU làm rò rỉ tên hoặc mã SKU '{sku_id}' khi chưa phân giải sản phẩm."
                 )
+
+        hygiene_res = check_spoken_text_hygiene(candidate.text)
+        if not hygiene_res.passed:
+            violation_found = True
+            details.extend(hygiene_res.violations)
 
         if not violation_found:
             decision_id = f"p06-unresolved-safe-guard-{candidate.candidate_id}"

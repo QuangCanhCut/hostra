@@ -1,0 +1,33 @@
+# Cấu hình Track 2B Formal Benchmark — HOSTRA AI P06-E01-T09 (Large Window Sensitivity: W=10 vs W=20)
+# Trạng thái: AWAITING_FINAL_TRACK2_EXECUTION_APPROVAL — Free Tier, 0 USD, SYNTHETIC only, Global Cap 400 requests.
+
+batch_id: "p06_e01_formal_track2b_stress_lag12_s42"
+experiment_id: "P06-E01"
+provider: "gemini"
+model_id: "gemini-3.5-flash-lite"
+model_config_path: "configs/models/gemini_3.5_flash_lite_free.yaml"
+billing_tier: "free_tier"
+max_cost_usd: 0.0
+data_classification: "SYNTHETIC"
+
+dataset_profile: "e01_formal_v1"
+scenario: "window_stress_12lag_3sku"
+seed: 42
+min_chunks_per_topic: 2
+max_chunk_duration_sec: 8.0
+max_turns: 120
+
+max_requests_per_run: 200
+global_max_requests: 400
+min_request_interval_sec: 6.0
+stop_on_rate_limit: true
+
+output_dir: "runs/P06-E01/formal_benchmark_v1/track2b_large_window_lag12_s42"
+
+runs:
+  - label: "langgraph_w10"
+    method: "langgraph_structured_story"
+    history_window: 10
+  - label: "langgraph_w20"
+    method: "langgraph_structured_story"
+    history_window: 20

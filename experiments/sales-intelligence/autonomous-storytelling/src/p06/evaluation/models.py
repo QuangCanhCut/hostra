@@ -58,6 +58,14 @@ class MetricProvenance(str, Enum):
     UNAVAILABLE = "UNAVAILABLE"
 
 
+class GateStatus(str, Enum):
+    """Trạng thái thẩm định cổng an toàn (không bao giờ đánh đồng `NOT_EVALUATED` thành `PASS`)."""
+
+    PASS = "PASS"
+    FAIL = "FAIL"
+    NOT_EVALUATED = "NOT_EVALUATED"
+
+
 class MetricResult(BaseModel):
     """Kết quả chuẩn hóa của một metric đơn lẻ kèm công thức/ngữ cảnh nguồn gốc.
 
@@ -236,6 +244,7 @@ class ProviderCallRecord(BaseModel):
     is_simulated_metric: StrictBool
     input_tokens: Optional[StrictNonNegInt] = None
     output_tokens: Optional[StrictNonNegInt] = None
+    thinking_tokens: Optional[StrictNonNegInt] = None
     token_usage_source: NonBlankStr
     finish_reason: NonBlankStr
     raw_response_valid: StrictBool
@@ -328,6 +337,10 @@ class EvaluationReport(BaseModel):
     performance: dict[str, MetricResult] = Field(default_factory=dict)
     human_eval_placeholders: dict[str, MetricResult] = Field(default_factory=dict)
     hard_gates_passed: StrictBool
+    structural_hard_gates_status: GateStatus = GateStatus.PASS
+    factual_safety_gate_status: GateStatus = GateStatus.NOT_EVALUATED
+    overall_gate_status: GateStatus = GateStatus.NOT_EVALUATED
+    not_evaluated_gates: tuple[str, ...] = ()
     hard_gate_failures: tuple[str, ...] = ()
     limitations: tuple[str, ...] = ()
     metric_provenance: dict[str, str] = Field(default_factory=dict)
@@ -358,6 +371,9 @@ class ComparisonRow(BaseModel):
     history_window: Optional[StrictPositiveInt] = None
     termination_reason: NonBlankStr
     hard_gates_passed: StrictBool
+    structural_hard_gates_status: GateStatus = GateStatus.PASS
+    factual_safety_gate_status: GateStatus = GateStatus.NOT_EVALUATED
+    overall_gate_status: GateStatus = GateStatus.NOT_EVALUATED
     mandatory_topic_coverage: Optional[float] = None
     duration_fulfillment: Optional[float] = None
     exact_chunk_replay_count: Optional[int] = None
@@ -427,3 +443,6 @@ class HumanEvalBlindMapping(BaseModel):
     model_id: NonBlankStr
     history_window: Optional[StrictPositiveInt] = None
     scenario: NonBlankStr
+    dataset_profile: OptionalNonBlankStr = None
+    prompt_versions: dict[str, str] = Field(default_factory=dict)
+    exported_at_utc: OptionalNonBlankStr = None

@@ -4,7 +4,7 @@
 
 **Module:** P06 · **Rủi ro:** R05, R08, R13 · **Gate:** G2, G4, G6 · **Mốc tham chiếu:** M4.
 
-**Tiến độ khởi tạo:** NOT STARTED — chưa có evidence chạy thí nghiệm trong thư mục tại lần kiểm kê này. **Quyết định công nghệ:** SELECTED FOR PoC; tính khả thi và các kết quả vẫn TO VALIDATE. Owner/reviewer cần nhóm phân công.
+**Tiến độ hiện tại:** `P06-E01` đã hoàn tất thực nghiệm theo phạm vi rút gọn (`10` formal runs, `317` requests trên `gemini-3.5-flash-lite` Free Tier) kèm AI-assisted Evaluation (`ChatGPT — Rubric v0.1`) với quyết định **`CHANGE`** ([Báo cáo cuối](reports/E01/p06_e01_research_report.md) · [Sign-off](docs/E01/18-e01-t09-final-research-report-and-signoff.md)). `Human Blind Evaluation`, `Calibration` và `GoldFactualLabel` giữ trạng thái **`PENDING`** (`overall_gate_status = NOT_EVALUATED`, **`NOT VALIDATED`**). Handoff tiếp theo: **`P06-E04`**.
 
 ## 1. Tổng quan bài toán
 
@@ -104,33 +104,34 @@ Các liên kết ngoài sau được lấy từ hồ sơ Stage 03; đây là đi
 
 ## 11. Checklist tiến độ nghiên cứu
 
-- [ ] Đọc nguồn và chốt câu hỏi/phạm vi P06, owner và reviewer.
-- [ ] Xác minh quyền dữ liệu/model; chuẩn bị bộ test và baseline.
-- [ ] Khóa cấu hình, cách đo, rubric và các ngưỡng cần nhóm phê duyệt.
-- [ ] Chạy P06-E01, lưu output/metrics/evidence và ghi cả trường hợp thất bại.
+- [x] Đọc nguồn và chốt câu hỏi/phạm vi P06, owner và reviewer *(Ownership `PENDING ASSIGNMENT` bảo lưu)*.
+- [x] Xác minh quyền dữ liệu/model; chuẩn bị bộ test và baseline *(dữ liệu `SYNTHETIC` only, `0 USD` Free Tier)*.
+- [x] Khóa cấu hình, cách đo, rubric và các ngưỡng cần nhóm phê duyệt *(`docs/E01/11-...`, `docs/E01/14-...`)*.
+- [x] Chạy P06-E01 *(phạm vi rút gọn)*, lưu output/metrics/evidence, thất bại và kết luận `CHANGE` (`Human/Gold PENDING`, `overall_gate_status = NOT_EVALUATED`).
+- [ ] Chạy P06-E04 *(nhiệm vụ nghiên cứu tiếp theo — chưa triển khai)*.
 - [ ] Chạy P06-E02, lưu output/metrics/evidence và ghi cả trường hợp thất bại.
 - [ ] Chạy P06-E03, lưu output/metrics/evidence và ghi cả trường hợp thất bại.
-- [ ] Chạy P06-E04, lưu output/metrics/evidence và ghi cả trường hợp thất bại.
 - [ ] Kiểm tra hard gates và đối chiếu dependency/contract với nhóm liên quan.
-- [ ] Chạy lại được kết quả, review giới hạn và ghi quyết định có bằng chứng.
+- [ ] Chạy lại được kết quả, review giới hạn và ghi quyết định có bằng chứng *(E01 đã đóng `CHANGE`; E02–E04 còn mở)*.
 
 ## 12. Cấu trúc thư mục nghiên cứu & Điều hướng tài liệu
 
-**Trạng thái hiện tại:** `E01-T01..T08: COMPLETED` (`249/249` offline Mock pytest tests pass: Core Schemas, 3-Tier Providers, Datasets/P05/Harness, 4-Part Memory + `ScriptFirstBaseline` + 8-Node LangGraph Core, và **Phase 4 Evaluation Metrics + Reproducible Experiment Runner**); `E01-T09` (Ollama CPU smoke, Gemini formal benchmark, Human Blind Pilot Calibration) và các lượt chạy thực nghiệm live `P06-E01`..`P06-E04` vẫn ở trạng thái `NOT STARTED` (`TO VALIDATE`).
+**Trạng thái hiện tại:** **`E01_RESEARCH_CLOSED_CHANGE — AWAITING_FINAL_GIT_CHECKPOINT`** — `P06-E01` hoàn tất theo phạm vi rút gọn (`10` formal runs / `317` requests + Pilot v1/v2 `40` requests), [`notebooks/E01/06_e01_results_analysis.ipynb`](notebooks/E01/06_e01_results_analysis.ipynb), [`reports/E01/p06_e01_research_report.md`](reports/E01/p06_e01_research_report.md) (`12` tables trong `reports/tables/E01/` + `8` PNG figures trong `reports/figures/E01/`) và [`docs/E01/18-...`](docs/E01/18-e01-t09-final-research-report-and-signoff.md) (Decision **`CHANGE`**, `overall_gate_status = NOT_EVALUATED`, `Human Blind / Gold = PENDING`, **`NOT VALIDATED`**). Cấu trúc thư mục đã được chuẩn hóa theo từng experiment (`{docs,notebooks,reports,reports/figures,reports/tables}/<EXPERIMENT_ID>/`), sẵn sàng `E02/`, `E03/`, `E04/`. Nhiệm vụ tiếp theo là **`P06-E04`** (chưa bắt đầu). `P06-E02`, `P06-E03` ở trạng thái `NOT STARTED`.
 
 > **Chạy thử ngoại tuyến (`E01-T08`, Mock only):**  
 > `python experiments/p06_e01_no_comments/run_e01.py --provider mock --sweep --scenario product_education_10m --export-human-eval`
 
 - **Quy tắc chung repository:** [AGENTS.md](../../../AGENTS.md) · **Quy tắc module P06:** [P06 AGENTS.md](AGENTS.md)
-- **Tài liệu báo cáo & Hướng dẫn dự án (`docs/`):**
+- **Tài liệu báo cáo & Hướng dẫn dự án (`docs/` chung & `docs/E01/`):**
   - [Mục lục tài liệu P06](docs/README.md) (`docs/README.md`)
   - [Báo cáo bối cảnh & khởi tạo khung (Session 01)](docs/00-context-and-scaffolding-report.md) (`00-context-and-scaffolding-report.md`)
   - [Hướng dẫn nhiệm vụ & cấu trúc thư mục P06](docs/01-p06-structure-and-mission-guide.md) (`01-p06-structure-and-mission-guide.md`)
   - [Đồng bộ `P06-OPEN-1..6`, Kiến trúc 3 tầng LLM & Kế hoạch `P06-E01` (Session 02)](docs/02-open-decisions-alignment-and-e01-plan.md) (`02-open-decisions-alignment-and-e01-plan.md`)
-  - [Báo cáo Phase 1 — Môi trường (`E01-T01`) & Core Schemas `p06-mock-v0.1` (`E01-T02`)](docs/03-phase1-foundation-e01-t01-t02-report.md) (`03-phase1-foundation-e01-t01-t02-report.md`)
-  - [Báo cáo Kiểm toán Phase 1 & Hạ tầng Phase 2 (`E01-T03..E01-T05`)](docs/04-phase2-research-infrastructure-e01-t03-t05-report.md) (`04-phase2-research-infrastructure-e01-t03-t05-report.md`)
-  - [Báo cáo Phase 3 — AI Agent Core, Memory System & 8-Node LangGraph (`E01-T06..E01-T07`)](docs/05-phase3-agent-core-e01-t06-t07-report.md) (`05-phase3-agent-core-e01-t06-t07-report.md`)
-  - [Báo cáo Phase 4 — Hệ thống Đánh giá & Experiment Runner (`E01-T08`)](docs/06-phase4-evaluation-runner-e01-t08-report.md) (`06-phase4-evaluation-runner-e01-t08-report.md`)
+  - [Báo cáo Phase 1 — Môi trường (`E01-T01`) & Core Schemas `p06-mock-v0.1` (`E01-T02`)](docs/E01/03-phase1-foundation-e01-t01-t02-report.md) (`E01/03-phase1-foundation-e01-t01-t02-report.md`)
+  - [Báo cáo Kiểm toán Phase 1 & Hạ tầng Phase 2 (`E01-T03..E01-T05`)](docs/E01/04-phase2-research-infrastructure-e01-t03-t05-report.md) (`E01/04-phase2-research-infrastructure-e01-t03-t05-report.md`)
+  - [Báo cáo Phase 3 — AI Agent Core, Memory System & 8-Node LangGraph (`E01-T06..E01-T07`)](docs/E01/05-phase3-agent-core-e01-t06-t07-report.md) (`E01/05-phase3-agent-core-e01-t06-t07-report.md`)
+  - [Báo cáo Phase 4 — Hệ thống Đánh giá & Experiment Runner (`E01-T08`)](docs/E01/06-phase4-evaluation-runner-e01-t08-report.md) (`E01/06-phase4-evaluation-runner-e01-t08-report.md`)
+  - [Báo cáo Nghiên cứu Cuối `P06-E01`](reports/E01/p06_e01_research_report.md) · [Tổng kết & Sign-Off `P06-E01`](docs/E01/18-e01-t09-final-research-report-and-signoff.md) (`E01/18-e01-t09-final-research-report-and-signoff.md`)
 - **Tài liệu nghiên cứu (`research/`):**
   - [Định nghĩa bài toán](research/problem_definition.md) (`problem_definition.md`)
   - [Câu hỏi nghiên cứu](research/research_questions.md) (`research_questions.md`)

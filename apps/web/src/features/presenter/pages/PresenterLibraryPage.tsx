@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { AlertTriangle, Plus, Search, ShieldAlert, Sparkles } from 'lucide-react'
 import { Button, ButtonLink } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
+import { PageHeader } from '@/components/ui/PageHeader'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
@@ -73,26 +74,21 @@ export function PresenterLibraryPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-[var(--text-primary)]">
-            Thư viện AI Presenter
-          </h1>
-          <p className="mt-1 text-sm text-[var(--text-secondary)]">
-            Duyệt người dẫn AI, theo dõi quyền sử dụng độc lập và quản lý các phiên bản đã tạo.
-          </p>
-        </div>
-
-        {canManage ? (
-          <ButtonLink
-            to="/studio/presenters/new"
-            variant="primary"
-            leftIcon={<Plus className="h-4 w-4" />}
-          >
-            Tạo Presenter mới
-          </ButtonLink>
-        ) : null}
-      </div>
+      <PageHeader
+        title="Thư viện AI Presenter"
+        subtitle="Duyệt người dẫn AI, theo dõi quyền sử dụng độc lập và quản lý các phiên bản đã tạo."
+        actions={
+          canManage ? (
+            <ButtonLink
+              to="/studio/presenters/new"
+              variant="primary"
+              leftIcon={<Plus className="h-4 w-4" />}
+            >
+              Tạo Presenter mới
+            </ButtonLink>
+          ) : null
+        }
+      />
 
       {revokedCount > 0 ? (
         <Banner
@@ -113,7 +109,7 @@ export function PresenterLibraryPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Tìm theo tên hoặc phong cách..."
-            className="h-10 w-full rounded-[8px] border border-[var(--border-strong)] bg-[var(--bg-surface)] pl-9 pr-3 text-sm text-[var(--text-primary)]"
+            className="min-h-[42px] w-full rounded-[8px] border border-[var(--border-default)] bg-[var(--bg-canvas)] pl-9 pr-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)]/70 focus:border-[var(--border-strong)]"
           />
         </div>
 
@@ -133,8 +129,8 @@ export function PresenterLibraryPage() {
               onClick={() => setFilter(key)}
               className={
                 filter === key
-                  ? 'h-9 rounded-full bg-[var(--brand-navy)] px-3.5 text-xs font-semibold text-white cursor-pointer'
-                  : 'h-9 rounded-full border border-[var(--border-default)] bg-[var(--bg-surface)] px-3.5 text-xs font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] cursor-pointer'
+                  ? 'min-h-9 rounded-[8px] border border-[var(--border-strong)] bg-[var(--bg-raised)] px-3.5 text-xs font-semibold text-[var(--accent-gold)] cursor-pointer'
+                  : 'min-h-9 rounded-[8px] border border-[var(--border-default)] bg-[var(--bg-surface)] px-3.5 text-xs font-medium text-[var(--text-muted)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)] cursor-pointer'
               }
             >
               {label}

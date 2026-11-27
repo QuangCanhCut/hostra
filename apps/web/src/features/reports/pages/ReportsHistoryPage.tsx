@@ -4,6 +4,7 @@ import { BarChart3, ChevronRight, FileText, Radio, Search } from 'lucide-react'
 import { useScenario } from '@/hooks/useScenario'
 import { useSessions } from '@/features/live-session/hooks/useSessions'
 import { Card } from '@/components/ui/Card'
+import { PageHeader } from '@/components/ui/PageHeader'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { Button, ButtonLink } from '@/components/ui/Button'
 import { Skeleton } from '@/components/ui/Skeleton'
@@ -61,25 +62,20 @@ export function ReportsHistoryPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">
-            Báo cáo & Lịch sử phiên livestream
-          </h1>
-          <p className="mt-1 text-sm text-[var(--text-secondary)]">
-            Theo dõi thời lượng phát thực, lượt vào phòng, câu AI đã phát xác nhận theo Playback ACK
-            và xuất báo cáo kiểm toán.
-          </p>
-        </div>
-        <StatusBadge
-          tone={role === 'OWNER' ? 'info' : 'neutral'}
-          label={
-            role === 'OWNER'
-              ? 'Chủ sở hữu · Toàn quyền xem & xuất CSV/PDF'
-              : 'Vận hành viên · Bản rút gọn các phiên được phân công'
-          }
-        />
-      </div>
+      <PageHeader
+        title="Báo cáo & Lịch sử phiên livestream"
+        subtitle="Theo dõi thời lượng phát thực, lượt vào phòng, câu AI đã phát xác nhận theo Playback ACK và xuất báo cáo kiểm toán."
+        actions={
+          <StatusBadge
+            tone={role === 'OWNER' ? 'info' : 'neutral'}
+            label={
+              role === 'OWNER'
+                ? 'Chủ sở hữu · Toàn quyền xem & xuất CSV/PDF'
+                : 'Vận hành viên · Bản rút gọn các phiên được phân công'
+            }
+          />
+        }
+      />
 
       <Card className="p-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -91,7 +87,7 @@ export function ReportsHistoryPage() {
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Tìm theo mã phiên, tiêu đề hoặc AI Presenter..."
               aria-label="Tìm kiếm báo cáo phiên"
-              className="h-10 w-full rounded-[var(--radius-input)] border border-[var(--border-default)] bg-[var(--bg-surface)] pl-9 pr-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--brand-amber)] focus:outline-none"
+              className="h-10 w-full rounded-[var(--radius-input)] border border-[var(--border-default)] bg-[var(--bg-surface)] pl-9 pr-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent-gold)] focus:outline-none"
             />
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -109,7 +105,7 @@ export function ReportsHistoryPage() {
                 onClick={() => setLifecycleFilter(f.id)}
                 className={`min-h-9 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] ${
                   lifecycleFilter === f.id
-                    ? 'bg-[var(--brand-navy)] text-white dark:bg-[var(--brand-amber)] dark:text-[var(--brand-navy)]'
+                    ? 'border border-[var(--border-strong)] bg-[var(--bg-raised)] text-[var(--accent-gold)]'
                     : 'border border-[var(--border-default)] bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)]'
                 }`}
               >

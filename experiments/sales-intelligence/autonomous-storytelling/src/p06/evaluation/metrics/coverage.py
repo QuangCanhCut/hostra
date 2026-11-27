@@ -119,25 +119,43 @@ def compute_coverage_metrics(evidence: RunEvidence) -> dict[str, MetricResult]:
         ev for ev in accepted_events if ev.turn_id not in fallback_turn_ids
     ]
 
+    raw_min_chunks = evidence.manifest.get("min_chunks_per_topic", 1)
+    min_chunks_per_topic = max(1, int(raw_min_chunks)) if raw_min_chunks is not None else 1
+
+    played_chunk_counts_by_topic: dict[str, int] = {}
+    for ev in accepted_non_fallback_events:
+        for tid in set(ev.confirmed_topic_ids):
+            played_chunk_counts_by_topic[tid] = played_chunk_counts_by_topic.get(tid, 0) + 1
+
     completed_topic_ids: set[str] = {
-        tid for ev in accepted_non_fallback_events for tid in ev.confirmed_topic_ids
+        tid for tid, count in played_chunk_counts_by_topic.items() if count >= min_chunks_per_topic
     }
+    partially_covered_topic_ids = sorted(
+        tid for tid, count in played_chunk_counts_by_topic.items() if 0 < count < min_chunks_per_topic
+    )
 
     # Đối chiếu chéo giữa transcript và playback_events để phát hiện sai lệch nhật ký.
     accepted_turn_ids = {ev.turn_id for ev in accepted_events}
     transcript_turn_ids = {entry.turn_id for entry in evidence.transcript}
     transcript_only_turns = sorted(transcript_turn_ids - accepted_turn_ids)
     playback_only_turns = sorted(accepted_turn_ids - transcript_turn_ids)
+    transcript_chunk_counts_by_topic: dict[str, int] = {}
+    for entry in evidence.transcript:
+        if not entry.is_fallback and entry.origin != "PREAPPROVED_FALLBACK":
+            for tid in set(entry.confirmed_topic_ids):
+                transcript_chunk_counts_by_topic[tid] = (
+                    transcript_chunk_counts_by_topic.get(tid, 0) + 1
+                )
     transcript_confirmed_topics = {
         tid
-        for entry in evidence.transcript
-        if not entry.is_fallback and entry.origin != "PREAPPROVED_FALLBACK"
-        for tid in entry.confirmed_topic_ids
+        for tid, count in transcript_chunk_counts_by_topic.items()
+        if count >= min_chunks_per_topic
     }
     cross_check_consistent = (
         not transcript_only_turns
         and not playback_only_turns
         and transcript_confirmed_topics == completed_topic_ids
+        and transcript_chunk_counts_by_topic == played_chunk_counts_by_topic
     )
 
     results["planned_mandatory_topic_count"] = MetricResult(
@@ -179,6 +197,9 @@ def compute_coverage_metrics(evidence: RunEvidence) -> dict[str, MetricResult]:
         is_simulated=False,
         metadata={
             "completed_topic_ids": sorted(completed_topic_ids),
+            "min_chunks_per_topic": min_chunks_per_topic,
+            "played_chunk_counts_by_topic": dict(sorted(played_chunk_counts_by_topic.items())),
+            "partially_covered_topic_ids": partially_covered_topic_ids,
             "cross_check_consistent": cross_check_consistent,
             "transcript_only_turn_ids": transcript_only_turns,
             "playback_only_turn_ids": playback_only_turns,
@@ -211,8 +232,11 @@ def compute_coverage_metrics(evidence: RunEvidence) -> dict[str, MetricResult]:
             provenance=MetricProvenance.DERIVED_FROM_EVIDENCE,
             is_simulated=False,
             metadata={
+                "min_chunks_per_topic": min_chunks_per_topic,
                 "completed_mandatory_topic_ids": sorted(covered_mandatory_ids),
                 "remaining_topic_ids": remaining_mandatory_ids,
+                "partially_covered_topic_ids": partially_covered_topic_ids,
+                "played_chunk_counts_by_topic": dict(sorted(played_chunk_counts_by_topic.items())),
             },
         )
 
@@ -392,16 +416,20 @@ def compute_coverage_metrics(evidence: RunEvidence) -> dict[str, MetricResult]:
             ),
         )
     else:
-        seen_mandatory: set[str] = set()
+        seen_mandatory_counts: dict[str, int] = {}
+        completed_mandatory: set[str] = set()
         cumulative_ms = 0
         completion_event = None
         for ev in accepted_events:
             cumulative_ms += ev.actual_duration_ms or 0
             if ev.turn_id not in fallback_turn_ids:
-                seen_mandatory.update(
-                    tid for tid in ev.confirmed_topic_ids if tid in expected_mandatory_ids
-                )
-            if len(seen_mandatory) == planned_mandatory_count:
+                for tid in set(ev.confirmed_topic_ids):
+                    if tid in expected_mandatory_ids:
+                        new_count = seen_mandatory_counts.get(tid, 0) + 1
+                        seen_mandatory_counts[tid] = new_count
+                        if new_count >= min_chunks_per_topic:
+                            completed_mandatory.add(tid)
+            if len(completed_mandatory) == planned_mandatory_count:
                 completion_event = ev
                 break
 

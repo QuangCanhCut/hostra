@@ -105,7 +105,9 @@ export function ProductDetailPage() {
             <ProductThumb skuId={product.skuId} name={product.name} className="h-14 w-14" />
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-2xl font-bold text-[var(--text-primary)]">{product.name}</h1>
+                <h1 className="font-display text-[26px] sm:text-[32px] font-bold leading-[1.16] tracking-[-0.02em] text-[var(--text-primary)]">
+                  {product.name}
+                </h1>
                 <StatusBadge label={ocop.label} tone={ocop.tone} />
               </div>
               <p className="mt-0.5 text-sm text-[var(--text-secondary)]">

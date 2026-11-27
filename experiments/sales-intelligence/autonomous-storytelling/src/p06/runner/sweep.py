@@ -40,6 +40,7 @@ from p06.evaluation.models import (
 )
 from p06.providers.base import ProviderConfigError
 from p06.runner.config import (
+    DEFAULT_DATASET_PROFILE,
     DEFAULT_RUNS_OUTPUT_DIR,
     LIVE_PROVIDERS,
     ExperimentMethod,
@@ -53,6 +54,14 @@ DEFAULT_E01_SCENARIOS: Final[tuple[str, ...]] = (
     "product_education_10m",
     "brand_storytelling_10m",
     "sales_presentation_30m",
+)
+DEFAULT_E01_EXT_V1_SCENARIOS: Final[tuple[str, ...]] = (
+    "product_education_10m_ext",
+    "brand_storytelling_10m_ext",
+    "sales_presentation_30m_ext",
+)
+DEFAULT_E01_FORMAL_V1_SCENARIOS: Final[tuple[str, ...]] = (
+    "window_stress_12lag_3sku",
 )
 DEFAULT_E01_METHODS: Final[tuple[ExperimentMethod, ...]] = (
     ExperimentMethod.SCRIPT_FIRST_DETERMINISTIC,
@@ -194,13 +203,17 @@ def _write_comparison_artifacts(
 
 def run_e01_sweep(
     *,
-    scenarios: Sequence[str] = DEFAULT_E01_SCENARIOS,
+    scenarios: Optional[Sequence[str]] = None,
     methods: Sequence[ExperimentMethod | str] = DEFAULT_E01_METHODS,
     history_windows: Sequence[int] = HISTORY_WINDOW_SWEEP,
+    dataset_profile: str = DEFAULT_DATASET_PROFILE,
     provider: str = "mock",
     model_config_path: Optional[Path] = None,
+    min_chunks_per_topic: Optional[int] = None,
     seed: int = 42,
     max_turns: int = 500,
+    max_llm_calls: Optional[int] = None,
+    max_estimated_cost_usd: Optional[float] = None,
     output_dir: Optional[Path] = None,
     allow_live_provider: bool = False,
     export_human_eval: bool = False,
@@ -238,7 +251,20 @@ def run_e01_sweep(
             f"Offline Guard: từ chối chạy sweep với provider '{normalized_provider}' "
             f"vì allow_live_provider=False."
         )
-    if not scenarios:
+    resolved_scenarios: tuple[str, ...] = (
+        tuple(scenarios)
+        if scenarios is not None
+        else (
+            DEFAULT_E01_EXT_V1_SCENARIOS
+            if dataset_profile.strip() == "e01_ext_v1"
+            else (
+                DEFAULT_E01_FORMAL_V1_SCENARIOS
+                if dataset_profile.strip() == "e01_formal_v1"
+                else DEFAULT_E01_SCENARIOS
+            )
+        )
+    )
+    if not resolved_scenarios:
         raise ValueError("Danh sách scenarios trong run_e01_sweep không được rỗng.")
     if not methods:
         raise ValueError("Danh sách methods trong run_e01_sweep không được rỗng.")
@@ -255,7 +281,7 @@ def run_e01_sweep(
     sweep_id = f"sweep_{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"
 
     run_results: list[ExperimentRunnerResult] = []
-    for scenario in scenarios:
+    for scenario in resolved_scenarios:
         for method in resolved_methods:
             if method == ExperimentMethod.LANGGRAPH:
                 windows_to_run: tuple[Optional[int], ...] = tuple(history_windows)
@@ -267,11 +293,15 @@ def run_e01_sweep(
                 run_cfg = load_experiment_run_config(
                     scenario=scenario,
                     method=method,
+                    dataset_profile=dataset_profile,
                     provider=normalized_provider,
                     model_config_path=model_config_path,
                     history_window=window_val,
+                    min_chunks_per_topic=min_chunks_per_topic,
                     seed=seed,
                     max_turns=max_turns,
+                    max_llm_calls=max_llm_calls,
+                    max_estimated_cost_usd=max_estimated_cost_usd,
                     output_dir=resolved_output_dir,
                     allow_live_provider=allow_live_provider,
                 )
@@ -291,9 +321,9 @@ def run_e01_sweep(
     )
 
     per_scenario_paths: dict[str, dict[str, Path]] = {}
-    if len(scenarios) > 1:
+    if len(resolved_scenarios) > 1:
         # Khi chạy nhiều kịch bản, xuất thêm báo cáo đối chiếu riêng từng kịch bản để bảo đảm compatible=True nội bộ.
-        for sc_name in scenarios:
+        for sc_name in resolved_scenarios:
             sc_results = [r for r in run_results if r.manifest.get("scenario") == sc_name]
             if not sc_results:
                 continue

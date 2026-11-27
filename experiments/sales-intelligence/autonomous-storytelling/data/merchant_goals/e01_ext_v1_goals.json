@@ -1,0 +1,70 @@
+{
+  "dataset_id": "p06-e01-ext-merchant-goals-v1.0",
+  "version": "1.0.0",
+  "base_dataset_id": "p06-e01-merchant-goals-v0.1",
+  "is_synthetic": true,
+  "tenant_id": "tenant-p06-poc-01",
+  "pinned_sku_ids": [
+    "SKU-HONEY-01",
+    "SKU-TEA-02",
+    "SKU-MACADAMIA-03"
+  ],
+  "note": "Bộ mục tiêu mở rộng v1.0 cho E01-T09 (tách biệt pilot, kịch bản 10m/30m mở rộng và kịch bản stress cửa sổ W=5/10/20).",
+  "goals": {
+    "goal_e01_ext_product_education": {
+      "goal_id": "goal_e01_ext_product_education",
+      "story_plan_key": "product_education_10m_ext",
+      "duration_minutes": 10,
+      "tenant_id": "tenant-p06-poc-01",
+      "pinned_sku_ids": ["SKU-HONEY-01", "SKU-TEA-02", "SKU-MACADAMIA-03"],
+      "session_goal": "Phiên 10 phút mở rộng hướng dẫn sử dụng chi tiết, cảm quan sản phẩm, gợi ý kết hợp, đóng gói và lưu ý an toàn cho 3 SKU.",
+      "mandatory_topics_count": 12,
+      "supporting_topics_count": 6,
+      "total_topics": 18
+    },
+    "goal_e01_ext_brand_storytelling": {
+      "goal_id": "goal_e01_ext_brand_storytelling",
+      "story_plan_key": "brand_storytelling_10m_ext",
+      "duration_minutes": 10,
+      "tenant_id": "tenant-p06-poc-01",
+      "pinned_sku_ids": ["SKU-HONEY-01", "SKU-TEA-02", "SKU-MACADAMIA-03"],
+      "session_goal": "Phiên 10 phút mở rộng kể chuyện vùng nguyên liệu, quy trình thu hoạch chế biến thủ công, cảm quan tự nhiên và hồ sơ OCOP mô phỏng cho 3 SKU.",
+      "mandatory_topics_count": 12,
+      "supporting_topics_count": 6,
+      "total_topics": 18
+    },
+    "goal_e01_ext_sales_presentation": {
+      "goal_id": "goal_e01_ext_sales_presentation",
+      "story_plan_key": "sales_presentation_30m_ext",
+      "duration_minutes": 30,
+      "tenant_id": "tenant-p06-poc-01",
+      "pinned_sku_ids": ["SKU-HONEY-01", "SKU-TEA-02", "SKU-MACADAMIA-03"],
+      "session_goal": "Phiên 30 phút mở rộng bao phủ đủ 8 góc độ nội dung thực tế cho mỗi SKU (24 chủ đề): giá trị vùng trồng, chế biến, cảm quan, sử dụng, kết hợp, đóng gói, lưu ý an toàn và chính sách giá/đổi trả.",
+      "mandatory_topics_count": 15,
+      "supporting_topics_count": 9,
+      "total_topics": 24
+    },
+    "goal_e01_ext_pilot_short": {
+      "goal_id": "goal_e01_ext_pilot_short",
+      "story_plan_key": "pilot_short_3sku_ext",
+      "duration_minutes": 3,
+      "tenant_id": "tenant-p06-poc-01",
+      "pinned_sku_ids": ["SKU-HONEY-01", "SKU-TEA-02", "SKU-MACADAMIA-03"],
+      "session_goal": "Kịch bản pilot ngắn 6 chủ đề tách biệt hoàn toàn khỏi tập đánh giá chính thức để hiệu chỉnh prompt và rubric pilot calibration.",
+      "mandatory_topics_count": 6,
+      "supporting_topics_count": 0,
+      "total_topics": 6
+    },
+    "goal_e01_ext_window_stress": {
+      "goal_id": "goal_e01_ext_window_stress",
+      "story_plan_key": "window_sensitivity_stress_24t",
+      "duration_minutes": 10,
+      "tenant_id": "tenant-p06-poc-01",
+      "pinned_sku_ids": ["SKU-HONEY-01", "SKU-TEA-02", "SKU-MACADAMIA-03"],
+      "session_goal": "Kịch bản kiểm tra độ nhạy cửa sổ nhớ W ∈ {5, 10, 20} với 24 chủ đề độc lập (hỗ trợ 24–72 lượt khi kết hợp min_chunks_per_topic).",
+      "mandatory_topics_count": 24,
+      "supporting_topics_count": 0,
+      "total_topics": 24
+    }
+  }
+}

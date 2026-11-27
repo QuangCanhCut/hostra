@@ -1,0 +1,5 @@
+﻿batch_code,full_label,config_name,sample_id,planned_revisits,played_revisits,EXACT_REPETITION,exact_verbatim_pairs,UNWANTED_SEMANTIC_REPETITION,LEGITIMATE_CONTINUATION,DELIBERATE_RECURRENCE,UNSURE,NO_OUTPUT,unwanted_or_exact_played_pct,provenance,csv_sha256
+2A,2A LangGraph W=10,LangGraph W=10,SAMPLE_001,18,0,0,0,0,0,0,0,18,,AI-assisted non-blind evaluation — ChatGPT — Rubric v0.1,5f42a76f5b9a6565447e75f48d843564f18d0074d5178c4e1e4cf2c5f982b560
+2A,2A LangGraph W=5,LangGraph W=5,SAMPLE_002,18,18,5,2,4,7,2,0,0,50.0,AI-assisted non-blind evaluation — ChatGPT — Rubric v0.1,5f42a76f5b9a6565447e75f48d843564f18d0074d5178c4e1e4cf2c5f982b560
+2B,2B LangGraph W=20,LangGraph W=20,SAMPLE_001,36,0,0,0,0,0,0,0,36,,AI-assisted non-blind evaluation — ChatGPT — Rubric v0.1,ce28170d44aeff4ccffc79527112745d56b3fa6b94e2679f3a0fe3eca2d9c77c
+2B,2B LangGraph W=10,LangGraph W=10,SAMPLE_002,36,36,14,1,12,6,3,1,0,72.22,AI-assisted non-blind evaluation — ChatGPT — Rubric v0.1,ce28170d44aeff4ccffc79527112745d56b3fa6b94e2679f3a0fe3eca2d9c77c

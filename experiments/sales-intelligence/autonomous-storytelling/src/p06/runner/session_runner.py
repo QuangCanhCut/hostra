@@ -47,11 +47,19 @@ from p06.memory.repetition_detector import RepetitionDetector
 from p06.memory.semantic_memory import NoOpSemanticMemory
 from p06.memory.topic_coverage import GlobalTopicCoverage
 from p06.memory.viewer_context import SessionViewerContext
-from p06.providers.base import LLMProvider, ProviderConfigError, ProviderTier
+from p06.guardrails.fallback_selector import normalize_fallback_text
+from p06.guardrails.spoken_text_hygiene import check_spoken_text_hygiene
+from p06.providers.base import (
+    LLMProvider,
+    ProviderConfigError,
+    ProviderRateLimitError,
+    ProviderTier,
+    TokenUsageSource,
+)
 from p06.providers.factory import ProviderFactory
 from p06.providers.mock_provider import DEFAULT_MOCK_MODEL_ID
 from p06.runner.config import (
-    DEFAULT_E01_VERIFIED_SKUS_PATH,
+    DEFAULT_MAX_CHUNK_DURATION_SEC,
     DEFAULT_PROMPTS_DIR,
     LIVE_PROVIDERS,
     ExperimentMethod,
@@ -59,6 +67,7 @@ from p06.runner.config import (
     RunTerminationReason,
     load_e01_story_plan,
     load_yaml_mapping,
+    resolve_dataset_profile,
 )
 from p06.runner.evidence_collector import EvidenceCollector
 from p06.runner.manifest import (
@@ -79,10 +88,10 @@ from p06.schemas.events import PlaybackOutcomeStatus, StoryCheckpoint
 from p06.schemas.state import DEFAULT_PLAYED_HISTORY_WINDOW, AgentTurnOutcome
 from p06.schemas.story import NonBlankStr, StoryPlan
 from p06.simulation.playback_harness import SimulatedPlaybackHarness
-from p06.simulation.virtual_clock import VirtualClock
+from p06.simulation.virtual_clock import DEFAULT_SPEECH_WORDS_PER_SEC, VirtualClock
 
 _MS_PER_SECOND: Final[float] = 1000.0
-_MAX_FALLBACK_WORDS: Final[int] = 16
+_MAX_FALLBACK_WORDS: Final[int] = int(DEFAULT_MAX_CHUNK_DURATION_SEC * DEFAULT_SPEECH_WORDS_PER_SEC)
 
 
 class ExperimentRunnerResult(BaseModel):
@@ -142,6 +151,48 @@ def _all_mandatory_topics_completed(
     return mandatory_ids.issubset(completed_topic_ids)
 
 
+def _select_complete_fallback_texts(evidence: SkuEvidenceView, price_display: str) -> list[str]:
+    """Tạo tối đa 2 câu dự phòng tiếng Việt hoàn chỉnh, không cắt cụt giữa câu và vừa trần 8 giây.
+
+    Mỗi mẫu đều giữ đủ tên SKU + giá niêm yết đã kiểm chứng để P05 xác thực, đồng thời
+    khác nhau ở thông tin quy cách/xuất xứ nhằm tránh lặp nguyên văn khi có 2 lần fallback.
+    """
+    primary_candidates = (
+        f"{evidence.sku_name} hiện có giá niêm yết {price_display}.",
+        f"{evidence.sku_name}: giá niêm yết {price_display}.",
+    )
+    secondary_candidates = (
+        f"{evidence.sku_name}, nguồn gốc {evidence.origin}, giá {price_display}."
+        if evidence.origin
+        else "",
+        f"{evidence.sku_name}, quy cách {evidence.weight_display}, giá {price_display}."
+        if evidence.weight_display
+        else "",
+        f"Giá niêm yết của {evidence.sku_name} là {price_display}.",
+    )
+
+    selected: list[str] = []
+    seen_norm: set[str] = set()
+    for group in (primary_candidates, secondary_candidates):
+        for raw_sentence in group:
+            sentence = raw_sentence.strip()
+            if not sentence:
+                continue
+            word_count = len(sentence.split())
+            duration_sec = VirtualClock.estimate_raw_speech_duration_ms(sentence) / _MS_PER_SECOND
+            if (
+                word_count <= _MAX_FALLBACK_WORDS
+                and duration_sec <= DEFAULT_MAX_CHUNK_DURATION_SEC
+                and check_spoken_text_hygiene(sentence).passed
+            ):
+                norm = normalize_fallback_text(sentence)
+                if norm not in seen_norm:
+                    seen_norm.add(norm)
+                    selected.append(sentence)
+                break
+    return selected
+
+
 def _build_default_fallbacks_by_sku(
     *,
     story_plan: StoryPlan,
@@ -149,7 +200,7 @@ def _build_default_fallbacks_by_sku(
     at_time: datetime,
     session_epoch: int = 1,
 ) -> dict[str, tuple[SpeechCandidate, ...]]:
-    """Tạo tối đa một câu dự phòng `PREAPPROVED_FALLBACK` hợp lệ cho từng SKU trong kế hoạch."""
+    """Tạo các câu dự phòng `PREAPPROVED_FALLBACK` hoàn chỉnh, hợp lệ cho từng SKU trong kế hoạch."""
     fallbacks_by_sku: dict[str, tuple[SpeechCandidate, ...]] = {}
     for sku_id in story_plan.pinned_sku_ids:
         try:
@@ -171,39 +222,44 @@ def _build_default_fallbacks_by_sku(
             evidence.approved_chunks[0],
         )
         price_display = f"{evidence.price_vnd:,}".replace(",", ".") + "đ"
-        raw_text = f"{evidence.sku_name}, giá niêm yết {price_display}, thông tin đã được kiểm chứng."
-        words = raw_text.split()
-        if len(words) > _MAX_FALLBACK_WORDS:
-            raw_text = " ".join(words[:_MAX_FALLBACK_WORDS]).rstrip(",;:") + "."
-        duration_sec = VirtualClock.estimate_raw_speech_duration_ms(raw_text) / _MS_PER_SECOND
+        fallback_texts = _select_complete_fallback_texts(evidence, price_display)
+        if not fallback_texts:
+            fallbacks_by_sku[sku_id] = ()
+            continue
 
-        binding = evidence.to_version_binding(
-            cited_evidence_ids=[shipping_chunk["evidence_id"]],
-            stated_price_vnd=evidence.price_vnd,
-            mentions_ocop=False,
-        )
-        candidate = SpeechCandidate(
-            candidate_id=f"fb-{sku_id.lower()}-e{session_epoch}",
-            tenant_id=story_plan.tenant_id,
-            session_id=story_plan.session_id,
-            session_epoch=session_epoch,
-            origin=CandidateOrigin.PREAPPROVED_FALLBACK,
-            scope_mode=TargetScopeMode.SINGLE_SKU,
-            sku_refs=[sku_id],
-            sku_bindings=[binding],
-            session_rights_version=1,
-            intent="FALLBACK_SAFE_INFO",
-            text=raw_text,
-            estimated_duration_sec=duration_sec,
-            proposed_coverage=ProposedResponseCoverage(
-                covered_topic_ids=[],
-                covered_intents=["Thông tin sản phẩm an toàn"],
-                coverage_mode=CoverageMode.FULL,
-                is_authoritative=False,
-            ),
-            verification_status=CandidateVerificationStatus.DRAFT,
-        )
-        fallbacks_by_sku[sku_id] = (candidate,)
+        candidates: list[SpeechCandidate] = []
+        for idx, sentence in enumerate(fallback_texts):
+            duration_sec = VirtualClock.estimate_raw_speech_duration_ms(sentence) / _MS_PER_SECOND
+            binding = evidence.to_version_binding(
+                cited_evidence_ids=[shipping_chunk["evidence_id"]],
+                stated_price_vnd=evidence.price_vnd,
+                mentions_ocop=False,
+            )
+            suffix = "" if idx == 0 else f"-v{idx + 1}"
+            candidates.append(
+                SpeechCandidate(
+                    candidate_id=f"fb-{sku_id.lower()}-e{session_epoch}{suffix}",
+                    tenant_id=story_plan.tenant_id,
+                    session_id=story_plan.session_id,
+                    session_epoch=session_epoch,
+                    origin=CandidateOrigin.PREAPPROVED_FALLBACK,
+                    scope_mode=TargetScopeMode.SINGLE_SKU,
+                    sku_refs=[sku_id],
+                    sku_bindings=[binding],
+                    session_rights_version=1,
+                    intent="FALLBACK_SAFE_INFO",
+                    text=sentence,
+                    estimated_duration_sec=duration_sec,
+                    proposed_coverage=ProposedResponseCoverage(
+                        covered_topic_ids=[],
+                        covered_intents=["Thông tin sản phẩm an toàn"],
+                        coverage_mode=CoverageMode.FULL,
+                        is_authoritative=False,
+                    ),
+                    verification_status=CandidateVerificationStatus.DRAFT,
+                )
+            )
+        fallbacks_by_sku[sku_id] = tuple(candidates)
     return fallbacks_by_sku
 
 
@@ -226,9 +282,43 @@ def _resolve_default_evaluator() -> Optional[Callable[[RunEvidence], EvaluationR
         return None
 
 
+def _budget_limit_reached(
+    config: ExperimentRunConfig,
+    collector: EvidenceCollector,
+    model_yaml: Mapping[str, Any],
+) -> bool:
+    """Kiểm tra ngưỡng an toàn chi phí (`max_llm_calls`, `max_estimated_cost_usd`)."""
+    if config.max_llm_calls is None and config.max_estimated_cost_usd is None:
+        return False
+    usage = collector.build_token_usage_summary()
+    if config.max_llm_calls is not None and usage["total_model_calls"] >= config.max_llm_calls:
+        return True
+    if config.max_estimated_cost_usd is not None:
+        pricing = model_yaml.get("pricing")
+        in_tok = usage.get("input_tokens")
+        out_tok = usage.get("output_tokens")
+        think_tok = int(usage.get("thinking_tokens") or 0)
+        if (
+            isinstance(pricing, Mapping)
+            and isinstance(in_tok, int)
+            and isinstance(out_tok, int)
+            and isinstance(pricing.get("input_per_1m_usd"), (int, float))
+            and not isinstance(pricing.get("input_per_1m_usd"), bool)
+            and isinstance(pricing.get("output_per_1m_usd"), (int, float))
+            and not isinstance(pricing.get("output_per_1m_usd"), bool)
+        ):
+            est_cost = (in_tok / 1_000_000.0) * float(pricing["input_per_1m_usd"]) + (
+                (out_tok + think_tok) / 1_000_000.0
+            ) * float(pricing["output_per_1m_usd"])
+            if est_cost >= config.max_estimated_cost_usd:
+                return True
+    return False
+
+
 def _run_script_first_loop(
     *,
     config: ExperimentRunConfig,
+    model_yaml: Mapping[str, Any],
     story_plan: StoryPlan,
     evidence_adapter: P05KnowledgeAdapter,
     playback_bus: MockPlaybackAckBus,
@@ -252,6 +342,9 @@ def _run_script_first_loop(
     extra_prompt_sha256: Optional[str] = None
 
     for sku_idx, sku_id in enumerate(story_plan.pinned_sku_ids):
+        if _budget_limit_reached(config, collector, model_yaml):
+            termination_reason = RunTerminationReason.BUDGET_LIMIT_REACHED
+            break
         if consecutive_aborts >= config.max_consecutive_aborts:
             termination_reason = RunTerminationReason.MAX_CONSECUTIVE_ABORTS
             break
@@ -279,6 +372,7 @@ def _run_script_first_loop(
             script_source=script_source,
             seed=config.seed,
             max_chunk_duration_sec=config.max_chunk_duration_sec,
+            min_chunks_per_topic=config.min_chunks_per_topic,
         )
 
         local_overrides: Optional[dict[int, PlaybackOutcomeStatus]] = None
@@ -377,6 +471,17 @@ def _run_script_first_loop(
             session_result=session_res,
             active_sku_id=sku_id,
         )
+        rate_or_budget_hit = any(
+            marker in msg
+            for marker in ("ProviderRateLimitError", "GLOBAL_REQUEST_BUDGET_EXCEEDED")
+            for msg in (
+                *[str(err.get("message", "")) for err in session_res.errors],
+                *[t.failure_reason or "" for t in session_res.turns],
+            )
+        )
+        if rate_or_budget_hit:
+            termination_reason = RunTerminationReason.BUDGET_LIMIT_REACHED
+            break
         if termination_reason is not None:
             break
 
@@ -453,6 +558,7 @@ def _reconstruct_candidate_stub_for_evidence(
 def _run_langgraph_loop(
     *,
     config: ExperimentRunConfig,
+    model_yaml: Mapping[str, Any],
     story_plan: StoryPlan,
     evidence_adapter: P05KnowledgeAdapter,
     playback_bus: MockPlaybackAckBus,
@@ -485,6 +591,8 @@ def _run_langgraph_loop(
     consecutive_aborts = 0
 
     while True:
+        if _budget_limit_reached(config, collector, model_yaml):
+            return RunTerminationReason.BUDGET_LIMIT_REACHED
         if clock.elapsed_sec() >= config.target_duration_sec:
             return RunTerminationReason.TIME_BUDGET_EXHAUSTED
         if turn_index >= config.max_turns:
@@ -528,6 +636,11 @@ def _run_langgraph_loop(
                 sku_id=active_sku_id,
                 topic_id=turn_res.final_state.selected_topic_id,
             )
+            if (
+                "ProviderRateLimitError" in turn_res.non_retryable_failure
+                or "GLOBAL_REQUEST_BUDGET_EXCEEDED" in turn_res.non_retryable_failure
+            ):
+                return RunTerminationReason.BUDGET_LIMIT_REACHED
 
         if turn_res.should_terminate:
             sku_index += 1
@@ -690,13 +803,23 @@ def run_experiment(
     started_at_utc = datetime.now(timezone.utc)
     run_t0 = time.perf_counter()
 
-    resolved_seed_path = (evidence_seed_path or DEFAULT_E01_VERIFIED_SKUS_PATH).resolve()
+    profile_cfg = resolve_dataset_profile(config.dataset_profile)
+    resolved_seed_path = (
+        evidence_seed_path
+        or config.evidence_seed_path
+        or Path(profile_cfg["evidence_seed_path"])
+    ).resolve()
+    resolved_plans_path_override = (
+        story_plans_path
+        or config.story_plans_path
+        or Path(profile_cfg["story_plans_path"])
+    )
     dataset_files: list[Path] = [resolved_seed_path]
     dataset_meta: dict[str, Any] = {}
     if story_plan is None:
         loaded_plan, dataset_meta, resolved_plans_path = load_e01_story_plan(
             config.scenario,
-            story_plans_path=story_plans_path,
+            story_plans_path=resolved_plans_path_override,
         )
         resolved_plan = loaded_plan
         dataset_files.append(resolved_plans_path)
@@ -738,7 +861,10 @@ def run_experiment(
         session_id=resolved_plan.session_id,
         session_epoch=1,
     )
-    topic_coverage = GlobalTopicCoverage(resolved_plan)
+    topic_coverage = GlobalTopicCoverage(
+        resolved_plan,
+        min_chunks_per_topic=config.min_chunks_per_topic,
+    )
     viewer_context = SessionViewerContext(
         tenant_id=resolved_plan.tenant_id,
         session_id=resolved_plan.session_id,
@@ -753,6 +879,7 @@ def run_experiment(
         topic_coverage=topic_coverage,
         viewer_context=viewer_context,
         semantic_memory=NoOpSemanticMemory(),
+        min_chunks_per_topic=config.min_chunks_per_topic,
     )
     playback_bus = MockPlaybackAckBus(clock=clock, simulation_run_id=resolved_run_id)
 
@@ -783,9 +910,13 @@ def run_experiment(
             model_id=configured_model_id,
             at_time=clock.now(),
             include_claim_ids=(config.method == ExperimentMethod.LANGGRAPH),
+            min_chunks_per_topic=config.min_chunks_per_topic,
         )
     else:
-        llm_provider = ProviderFactory.from_yaml(config.model_config_path)
+        llm_provider = ProviderFactory.from_yaml(
+            config.model_config_path,
+            allow_live_client=config.allow_live_provider,
+        )
 
     collector = EvidenceCollector(
         resolved_plan,
@@ -799,6 +930,7 @@ def run_experiment(
             assert llm_provider is not None
             termination_reason = _run_langgraph_loop(
                 config=config,
+                model_yaml=model_yaml,
                 story_plan=resolved_plan,
                 evidence_adapter=evidence_adapter,
                 playback_bus=playback_bus,
@@ -817,6 +949,7 @@ def run_experiment(
                 extra_prompt_sha256,
             ) = _run_script_first_loop(
                 config=config,
+                model_yaml=model_yaml,
                 story_plan=resolved_plan,
                 evidence_adapter=evidence_adapter,
                 playback_bus=playback_bus,

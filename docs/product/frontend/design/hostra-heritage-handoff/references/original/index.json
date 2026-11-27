@@ -1,0 +1,262 @@
+[
+  {
+    "file": "01.png",
+    "caption": "Dashboard chủ sở hữu, điểm bắt đầu của hành trình sử dụng"
+  },
+  {
+    "file": "02.png",
+    "caption": "Màn hình chọn vai trò đăng nhập"
+  },
+  {
+    "file": "03.png",
+    "caption": "Dashboard – công việc, phiên gần nhất và đường dẫn nhanh"
+  },
+  {
+    "file": "04.png",
+    "caption": "Các thẻ tài nguyên và lịch sử phiên gần đây"
+  },
+  {
+    "file": "05.png",
+    "caption": "Thư viện Presenter và các trạng thái quyền/QC"
+  },
+  {
+    "file": "06.png",
+    "caption": "Bước 1: thông tin Presenter và ảnh chân dung"
+  },
+  {
+    "file": "07.png",
+    "caption": "Bước 2: phạm vi quyền"
+  },
+  {
+    "file": "08.png",
+    "caption": "Bước 3: phong cách và giọng"
+  },
+  {
+    "file": "09.png",
+    "caption": "Bước 4: xác nhận bản nháp"
+  },
+  {
+    "file": "10.png",
+    "caption": "Presenter mới chờ xác nhận quyền"
+  },
+  {
+    "file": "11.png",
+    "caption": "Màn hình so sánh hai gói clip và QC"
+  },
+  {
+    "file": "12.png",
+    "caption": "Gói clip candidate sau khi tạo"
+  },
+  {
+    "file": "13.png",
+    "caption": "Danh mục sản phẩm, giá và ba trạng thái độc lập"
+  },
+  {
+    "file": "14.png",
+    "caption": "Bước 1: Thông tin sản phẩm"
+  },
+  {
+    "file": "15.png",
+    "caption": "Bước 2: Tài liệu OCOP"
+  },
+  {
+    "file": "16.png",
+    "caption": "Bước 3: Chứng từ thực phẩm"
+  },
+  {
+    "file": "17.png",
+    "caption": "Tổng quan sản phẩm Mứt Mận Mường Lát"
+  },
+  {
+    "file": "18.png",
+    "caption": "Hồ sơ OCOP đã xác minh với 2 tài liệu"
+  },
+  {
+    "file": "19.png",
+    "caption": "Lịch sử sản phẩm v1/v2"
+  },
+  {
+    "file": "20.png",
+    "caption": "Liên kết sang Tri thức & Claims"
+  },
+  {
+    "file": "21.png",
+    "caption": "Thư viện gói tri thức có nguồn tài liệu và trạng thái"
+  },
+  {
+    "file": "22.png",
+    "caption": "Màn hình đối chiếu nguồn với các thông tin cần duyệt"
+  },
+  {
+    "file": "23.png",
+    "caption": "Claim bị chặn và gói tri thức 4/4 mục bắt buộc"
+  },
+  {
+    "file": "24.png",
+    "caption": "Bước 1: tên phiên, Presenter và kho SKU"
+  },
+  {
+    "file": "25.png",
+    "caption": "Phần cuối Bước 1: danh sách SKU và nút Tiếp tục"
+  },
+  {
+    "file": "26.png",
+    "caption": "Bước 2: mục tiêu và ràng buộc"
+  },
+  {
+    "file": "27.png",
+    "caption": "Bước 3: giới thiệu quy trình Story Arcs"
+  },
+  {
+    "file": "28.png",
+    "caption": "Bước 4: xác nhận cấu hình phiên"
+  },
+  {
+    "file": "29.png",
+    "caption": "Story Planner v1 với 3 Story Arcs"
+  },
+  {
+    "file": "30.png",
+    "caption": "Đề xuất chỉnh sửa với so sánh Trước/Sau"
+  },
+  {
+    "file": "31.png",
+    "caption": "Đã áp dụng đề xuất và tạo bản nháp mới"
+  },
+  {
+    "file": "32.png",
+    "caption": "3/3 đoạn đã được rà soát"
+  },
+  {
+    "file": "33.png",
+    "caption": "Kịch bản v5 được phê duyệt"
+  },
+  {
+    "file": "34.png",
+    "caption": "Readiness của phiên #017 – các điều kiện hiển thị đã đạt"
+  },
+  {
+    "file": "35.png",
+    "caption": "START đã ACCEPTED, chưa LIVE"
+  },
+  {
+    "file": "36.png",
+    "caption": "Media xác nhận APPLIED và chuyển LIVE"
+  },
+  {
+    "file": "37.png",
+    "caption": "Danh sách phiên, gồm LIVE và PREPARING"
+  },
+  {
+    "file": "38.png",
+    "caption": "Chi tiết phiên #017"
+  },
+  {
+    "file": "39.png",
+    "caption": "Live Control Room: preview, bình luận, AI và thanh điều khiển"
+  },
+  {
+    "file": "40.png",
+    "caption": "AI tạm dừng, live giữ cảnh an toàn"
+  },
+  {
+    "file": "41.png",
+    "caption": "Sau khi tiếp tục, giao diện Presenter trở lại bình thường"
+  },
+  {
+    "file": "42.png",
+    "caption": "Ngăn chuyển SKU và trạng thái chờ áp dụng"
+  },
+  {
+    "file": "43.png",
+    "caption": "Đã chuyển Active SKU sang ML-002"
+  },
+  {
+    "file": "44.png",
+    "caption": "Nội dung AI sắp nói và danh sách câu hỏi"
+  },
+  {
+    "file": "45.png",
+    "caption": "Hàng đợi giảm sau khi bỏ qua một câu hỏi"
+  },
+  {
+    "file": "46.png",
+    "caption": "Hộp thoại xác nhận kết thúc"
+  },
+  {
+    "file": "47.png",
+    "caption": "Trạng thái sau STOP với nút Xem báo cáo"
+  },
+  {
+    "file": "48.png",
+    "caption": "Danh sách lời mời và QR của phiên #014"
+  },
+  {
+    "file": "49.png",
+    "caption": "Biểu mẫu tạo lời mời"
+  },
+  {
+    "file": "50.png",
+    "caption": "Lời mời và mã QR sau khi tạo thành công"
+  },
+  {
+    "file": "51.png",
+    "caption": "Trang nhập tên trước khi vào Viewer Room"
+  },
+  {
+    "file": "52.png",
+    "caption": "Viewer Room: người dẫn, SKU, bình luận"
+  },
+  {
+    "file": "53.png",
+    "caption": "Bình luận Hello xuất hiện trong Viewer Room"
+  },
+  {
+    "file": "54.png",
+    "caption": "Thư viện báo cáo và các trạng thái dữ liệu"
+  },
+  {
+    "file": "55.png",
+    "caption": "KPI và các biểu đồ trong báo cáo #014"
+  },
+  {
+    "file": "56.png",
+    "caption": "Biểu đồ người xem đồng thời và phần AI/Bình luận"
+  },
+  {
+    "file": "57.png",
+    "caption": "Khối thống kê AI & Bình luận"
+  },
+  {
+    "file": "58.png",
+    "caption": "Không ghi nhận suy giảm media trong dữ liệu mẫu"
+  },
+  {
+    "file": "59.png",
+    "caption": "Nhật ký sự kiện: CREATE_INVITE, INVITE_OPERATOR, STOP, START_SESSION"
+  },
+  {
+    "file": "60.png",
+    "caption": "Hộp thoại lựa chọn CSV kiểm toán và PDF tổng hợp"
+  },
+  {
+    "file": "61.png",
+    "caption": "Danh bạ Owner và Operator"
+  },
+  {
+    "file": "62.png",
+    "caption": "Hộp thoại mời Operator qua email"
+  },
+  {
+    "file": "63.png",
+    "caption": "Danh sách lời mời Operator và trạng thái"
+  },
+  {
+    "file": "64.png",
+    "caption": "Drawer phân công N:N Operator – Session"
+  },
+  {
+    "file": "65.png",
+    "caption": "Nhật ký thao tác phân quyền"
+  }
+]

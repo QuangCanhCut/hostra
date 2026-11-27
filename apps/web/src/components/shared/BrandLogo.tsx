@@ -3,26 +3,42 @@ import { cn } from '@/lib/cn'
 export interface BrandLogoProps {
   collapsed?: boolean
   subtitle?: string
+  tone?: 'on-dark' | 'adaptive'
   className?: string
 }
 
 export function BrandLogo({
   collapsed = false,
   subtitle = 'MERCHANT STUDIO',
+  tone = 'on-dark',
   className,
 }: BrandLogoProps) {
+  const isOnDark = tone === 'on-dark'
+
   return (
     <div className={cn('flex items-center gap-2.5 select-none', className)}>
-      <div
+      <img
+        src="/heritage/logo.svg"
+        alt=""
         aria-hidden="true"
-        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] bg-[var(--brand-amber)] text-[var(--brand-navy)] font-bold text-base shadow-xs"
-      >
-        H
-      </div>
+        className="h-9 w-9 shrink-0 object-contain"
+      />
       {!collapsed ? (
         <div className="min-w-0 leading-tight">
-          <div className="text-sm font-bold tracking-wide text-white">HOSTRA</div>
-          <div className="text-[10px] font-medium tracking-[0.12em] text-slate-400">
+          <div
+            className={cn(
+              'text-[18px] font-bold tracking-[0.06em]',
+              isOnDark ? 'text-[#f7d7a1]' : 'text-[var(--accent-gold)]',
+            )}
+          >
+            HOSTRA
+          </div>
+          <div
+            className={cn(
+              'text-[10px] font-medium tracking-[0.12em]',
+              isOnDark ? 'text-[#e6d8c5]' : 'text-[var(--text-muted)]',
+            )}
+          >
             {subtitle}
           </div>
         </div>

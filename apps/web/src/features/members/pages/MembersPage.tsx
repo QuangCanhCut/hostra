@@ -2,6 +2,13 @@ import { useState } from 'react'
 import { Lock, MailPlus, ShieldCheck, Users } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
+import { PageHeader } from '@/components/ui/PageHeader'
+import {
+  DataTable,
+  TABLE_BODY_CLASS,
+  TABLE_HEAD_ROW_CLASS,
+  TABLE_ROW_HOVER_CLASS,
+} from '@/components/ui/DataTable'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { Banner } from '@/components/ui/Banner'
 import { Modal } from '@/components/ui/Modal'
@@ -109,24 +116,19 @@ export function MembersPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-[var(--text-primary)]">
-            Thành viên & Phân quyền
-          </h1>
-          <p className="mt-1 text-sm text-[var(--text-secondary)]">
-            Phân công nhiều Vận hành viên cho cùng một phiên (N:N). Quyền Chủ thể hình ảnh (Rights Subject) được quản lý độc lập.
-          </p>
-        </div>
-
-        <Button
-          variant="primary"
-          leftIcon={<MailPlus className="h-4 w-4" />}
-          onClick={() => setInviteOpen(true)}
-        >
-          Mời Vận hành viên
-        </Button>
-      </div>
+      <PageHeader
+        title="Thành viên & Phân quyền"
+        subtitle="Phân công nhiều Vận hành viên cho cùng một phiên (N:N). Quyền Chủ thể hình ảnh (Rights Subject) được quản lý độc lập."
+        actions={
+          <Button
+            variant="primary"
+            leftIcon={<MailPlus className="h-4 w-4" />}
+            onClick={() => setInviteOpen(true)}
+          >
+            Mời Vận hành viên
+          </Button>
+        }
+      />
 
       {notice ? <Banner severity="info" title="Cập nhật phân quyền" description={notice} /> : null}
       {errorMsg ? <Banner severity="danger" title="Không thể thực hiện" description={errorMsg} /> : null}
@@ -143,10 +145,10 @@ export function MembersPage() {
 
       {tab === 'directory' ? (
         <>
-          <Card padding="none" className="hidden xl:block overflow-hidden">
+          <DataTable className="hidden xl:block">
             <table className="w-full border-collapse text-left text-sm">
               <thead>
-                <tr className="border-b border-[var(--border-default)] bg-[var(--bg-subtle)] text-xs font-semibold text-[var(--text-secondary)]">
+                <tr className={TABLE_HEAD_ROW_CLASS}>
                   <th className="px-5 py-3">Thành viên</th>
                   <th className="px-4 py-3">Vai trò</th>
                   <th className="px-4 py-3">Trạng thái</th>
@@ -154,12 +156,12 @@ export function MembersPage() {
                   <th className="px-5 py-3 text-right">Thao tác</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[var(--border-default)]">
+              <tbody className={TABLE_BODY_CLASS}>
                 {members.map((m) => (
-                  <tr key={m.id} className="hover:bg-[var(--bg-subtle)]/60">
+                  <tr key={m.id} className={TABLE_ROW_HOVER_CLASS}>
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-3">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--brand-navy)] text-xs font-bold text-white">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#e5b875] text-xs font-bold text-[#25170d]">
                           {m.initials}
                         </div>
                         <div>
@@ -201,14 +203,14 @@ export function MembersPage() {
                 ))}
               </tbody>
             </table>
-          </Card>
+          </DataTable>
 
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:hidden">
             {members.map((m) => (
               <Card key={m.id} padding="sm" className="space-y-3">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2.5">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--brand-navy)] text-xs font-bold text-white">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#e5b875] text-xs font-bold text-[#25170d]">
                       {m.initials}
                     </div>
                     <div>
@@ -337,7 +339,7 @@ export function MembersPage() {
                         type="checkbox"
                         checked={checked}
                         onChange={() => toggleSession(s.id)}
-                        className="h-4 w-4 accent-[var(--brand-amber)]"
+                        className="h-4 w-4 accent-[var(--accent-gold)]"
                       />
                       <div className="min-w-0">
                         <p className="text-sm font-semibold truncate">

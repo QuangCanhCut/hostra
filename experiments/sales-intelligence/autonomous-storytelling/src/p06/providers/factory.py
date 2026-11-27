@@ -31,7 +31,11 @@ import yaml
 from pydantic import ValidationError
 
 from p06.providers.base import LLMProvider, ProviderConfigError, ProviderTier
-from p06.providers.gemini_provider import GeminiAPIProvider, GeminiProviderConfig
+from p06.providers.gemini_provider import (
+    GeminiAPIProvider,
+    GeminiProviderConfig,
+    GeminiRestClient,
+)
 from p06.providers.mock_provider import MockLLMProvider
 from p06.providers.ollama_provider import OllamaLocalProvider, OllamaProviderConfig
 
@@ -123,6 +127,9 @@ class ProviderFactory:
             "seeded_variants_by_schema",
             "http_client",
             "client",
+            "allow_live_client",
+            "live_http_client",
+            "max_requests",
         }
         runtime_args: dict[str, Any] = {}
         for key, value in overrides.items():
@@ -225,6 +232,7 @@ class ProviderFactory:
                 "quantization",
                 "context_window",
                 "sampling",
+                "think",
                 "timeout_sec",
                 "hardware_profile",
             )
@@ -270,6 +278,9 @@ class ProviderFactory:
                 "data_classification_allowed",
                 "merchant_dpa_status",
                 "sampling",
+                "thinking_budget",
+                "thinking_level",
+                "min_request_interval_sec",
                 "timeout_sec",
             )
             if key in merged
@@ -279,7 +290,18 @@ class ProviderFactory:
         except ValidationError as exc:
             raise ProviderConfigError(f"Cấu hình Gemini không hợp lệ: {exc}") from exc
 
+        client = runtime_args.get("client")
+        if client is None and bool(runtime_args.get("allow_live_client", False)):
+            client = GeminiRestClient(
+                api_key_env=gemini_config.api_key_env,
+                thinking_budget=gemini_config.thinking_budget,
+                thinking_level=gemini_config.thinking_level,
+                min_request_interval_sec=gemini_config.min_request_interval_sec,
+                max_requests=runtime_args.get("max_requests"),
+                http_client=runtime_args.get("live_http_client"),
+            )
+
         return GeminiAPIProvider(
             config=gemini_config,
-            client=runtime_args.get("client"),
+            client=client,
         )

@@ -23,6 +23,7 @@
 from __future__ import annotations
 
 import csv
+import json
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Any, Optional
@@ -33,6 +34,7 @@ from p06.evaluation.models import (
     ComparisonRow,
     CompatibilityIssue,
     EvaluationReport,
+    GateStatus,
     MetricResult,
     MetricStatus,
     RunEvidence,
@@ -174,14 +176,112 @@ def compare_runs(run_dirs: Sequence[Path]) -> ComparisonReport:
 
     target_durations = sorted({float(ev.target_duration_sec) for ev in evidences})
     if len(target_durations) > 1:
+        compatible = False
         issues.append(
             CompatibilityIssue(
-                severity="WARNING",
+                severity="ERROR",
                 code="TARGET_DURATION_MISMATCH",
                 message=f"target_duration_sec khác nhau giữa các lần chạy: {target_durations}.",
                 run_ids=run_ids,
             )
         )
+
+    manifests = [ev.manifest for ev in evidences]
+
+    def _check_optional_manifest_equal(
+        key: str,
+        code: str,
+        label: str,
+        *,
+        subset_indices: Optional[list[int]] = None,
+        normalize_dict_drop_keys: tuple[str, ...] = (),
+    ) -> None:
+        indices = subset_indices if subset_indices is not None else list(range(len(manifests)))
+        seen: set[str] = set()
+        raw_vals: list[Any] = []
+        for idx in indices:
+            val = manifests[idx].get(key)
+            if val is None:
+                continue
+            if isinstance(val, dict) and normalize_dict_drop_keys:
+                val = {k: v for k, v in val.items() if k not in normalize_dict_drop_keys}
+            sig = json.dumps(val, sort_keys=True, ensure_ascii=False)
+            if sig not in seen:
+                seen.add(sig)
+                raw_vals.append(val)
+        if len(seen) > 1:
+            nonlocal compatible
+            compatible = False
+            issues.append(
+                CompatibilityIssue(
+                    severity="ERROR",
+                    code=code,
+                    message=f"{label} không đồng nhất giữa các lần chạy: {raw_vals}.",
+                    run_ids=tuple(reports[i].run_id for i in indices),
+                )
+            )
+
+    _check_optional_manifest_equal("story_plan_sha256", "STORY_PLAN_SHA256_MISMATCH", "story_plan_sha256")
+    _check_optional_manifest_equal("max_chunk_duration_sec", "MAX_CHUNK_DURATION_MISMATCH", "max_chunk_duration_sec")
+    _check_optional_manifest_equal("sku_scheduling_policy", "SKU_SCHEDULING_POLICY_MISMATCH", "sku_scheduling_policy")
+    _check_optional_manifest_equal("min_chunks_per_topic", "MIN_CHUNKS_PER_TOPIC_MISMATCH", "min_chunks_per_topic")
+    _check_optional_manifest_equal(
+        "simulator_assumptions",
+        "SIMULATOR_ASSUMPTIONS_MISMATCH",
+        "simulator_assumptions",
+        normalize_dict_drop_keys=("virtual_clock_start_utc",),
+    )
+    _check_optional_manifest_equal("seed", "SEED_MISMATCH", "seed")
+    _check_optional_manifest_equal("repetition_config", "SAFETY_REPETITION_CONFIG_MISMATCH", "repetition_config")
+
+    langgraph_indices = [
+        idx for idx, rep in enumerate(reports) if rep.method == "langgraph_structured_story"
+    ]
+    if len(langgraph_indices) > 1:
+        _check_optional_manifest_equal(
+            "rewrite_budget",
+            "SAFETY_REPETITION_CONFIG_MISMATCH",
+            "rewrite_budget (LangGraph)",
+            subset_indices=langgraph_indices,
+        )
+
+    # Đối với các phương pháp dùng LLM, bắt buộc cùng provider_name, model_id và sampling_params;
+    # miễn trừ riêng `script_first_deterministic` vì baseline này không gọi LLM.
+    llm_indices = [
+        idx
+        for idx, rep in enumerate(reports)
+        if rep.method != "script_first_deterministic"
+        and rep.provider_name.strip().lower() != "deterministic"
+    ]
+    if len(llm_indices) > 1:
+        llm_models = sorted(
+            {(reports[i].provider_name.strip().lower(), reports[i].model_id) for i in llm_indices}
+        )
+        if len(llm_models) > 1:
+            compatible = False
+            issues.append(
+                CompatibilityIssue(
+                    severity="ERROR",
+                    code="LLM_PROVIDER_OR_MODEL_MISMATCH",
+                    message=f"Các lượt dùng LLM không chạy trên cùng model: {llm_models}.",
+                    run_ids=tuple(reports[i].run_id for i in llm_indices),
+                )
+            )
+        non_empty_sampling = {
+            json.dumps(manifests[i].get("sampling_params"), sort_keys=True, ensure_ascii=False)
+            for i in llm_indices
+            if isinstance(manifests[i].get("sampling_params"), dict) and manifests[i].get("sampling_params")
+        }
+        if len(non_empty_sampling) > 1:
+            compatible = False
+            issues.append(
+                CompatibilityIssue(
+                    severity="ERROR",
+                    code="SAMPLING_PARAMS_MISMATCH",
+                    message="sampling_params khác nhau giữa các lượt chạy dùng LLM.",
+                    run_ids=tuple(reports[i].run_id for i in llm_indices),
+                )
+            )
 
     rows: list[ComparisonRow] = []
     for rep in reports:
@@ -196,6 +296,9 @@ def compare_runs(run_dirs: Sequence[Path]) -> ComparisonReport:
                 history_window=rep.history_window,
                 termination_reason=rep.termination_reason,
                 hard_gates_passed=rep.hard_gates_passed,
+                structural_hard_gates_status=rep.structural_hard_gates_status,
+                factual_safety_gate_status=rep.factual_safety_gate_status,
+                overall_gate_status=rep.overall_gate_status,
                 mandatory_topic_coverage=_computed_float(
                     rep.coverage, "mandatory_topic_coverage"
                 ),
@@ -319,7 +422,8 @@ def export_comparison_markdown(report: ComparisonReport, output_path: Path) -> P
         "tier",
         "model_id",
         "W",
-        "hard_gates",
+        "struct_gates",
+        "overall_gates",
         "topic_cov",
         "dur_fulfill",
         "chunk_replay",
@@ -344,7 +448,8 @@ def export_comparison_markdown(report: ComparisonReport, output_path: Path) -> P
             row.provider_tier,
             row.model_id,
             _fmt_cell(row.history_window, digits=0),
-            _fmt_cell(row.hard_gates_passed),
+            row.structural_hard_gates_status.value,
+            row.overall_gate_status.value,
             _fmt_cell(row.mandatory_topic_coverage),
             _fmt_cell(row.duration_fulfillment),
             _fmt_cell(row.exact_chunk_replay_count, digits=0),

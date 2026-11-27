@@ -26,6 +26,11 @@ import { Modal } from '@/components/ui/Modal'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
 import {
+  TABLE_BODY_CLASS,
+  TABLE_HEAD_ROW_CLASS,
+  TABLE_ROW_HOVER_CLASS,
+} from '@/components/ui/DataTable'
+import {
   buildSanitizedAuditCsv,
   buildSummaryPdfBlob,
   triggerBrowserDownload,
@@ -51,11 +56,11 @@ const TIMELINE_TONE: Record<
   ReportTimelineSegment['kind'],
   { dot: string; badge: BadgeTone; label: string }
 > = {
-  LIVE: { dot: 'bg-[var(--status-success)]', badge: 'success', label: 'Phát trực tiếp' },
-  AI_PAUSED: { dot: 'bg-[var(--status-warning)]', badge: 'warning', label: 'AI tạm dừng' },
-  MEDIA_DEGRADED: { dot: 'bg-[var(--status-warning)]', badge: 'warning', label: 'Media suy giảm' },
+  LIVE: { dot: 'bg-[var(--status-success-fg)]', badge: 'success', label: 'Phát trực tiếp' },
+  AI_PAUSED: { dot: 'bg-[var(--status-warning-fg)]', badge: 'warning', label: 'AI tạm dừng' },
+  MEDIA_DEGRADED: { dot: 'bg-[var(--status-warning-fg)]', badge: 'warning', label: 'Media suy giảm' },
   STOPPED: { dot: 'bg-[var(--text-muted)]', badge: 'neutral', label: 'Đã kết thúc' },
-  EMERGENCY: { dot: 'bg-[var(--status-danger)]', badge: 'danger', label: 'Dừng khẩn cấp' },
+  EMERGENCY: { dot: 'bg-[var(--status-danger-fg)]', badge: 'danger', label: 'Dừng khẩn cấp' },
 }
 
 export function SessionReportPage() {
@@ -166,7 +171,7 @@ export function SessionReportPage() {
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">
+          <h1 className="font-display text-[24px] font-bold leading-[1.16] tracking-[-0.02em] text-[var(--text-primary)] sm:text-[30px]">
             Báo cáo: {report.sessionTitle}
           </h1>
           <p className="mt-1 text-sm text-[var(--text-secondary)]">
@@ -210,13 +215,13 @@ export function SessionReportPage() {
             <Button
               variant="primary"
               size="sm"
+              leftIcon={<Download className="h-4 w-4" />}
               onClick={() => {
                 setExportState('IDLE')
                 setExportMessage(null)
                 setExportOpen(true)
               }}
             >
-              <Download className="h-4 w-4" />
               Xuất báo cáo (CSV / PDF)
             </Button>
           ) : null}
@@ -316,6 +321,12 @@ export function SessionReportPage() {
                 role="img"
                 aria-label="Biểu đồ lượt vào phòng theo khung thời gian"
               >
+                <defs>
+                  <linearGradient id="heritageBarGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#e7bd78" />
+                    <stop offset="100%" stopColor="#8d613a" />
+                  </linearGradient>
+                </defs>
                 {[0, 0.25, 0.5, 0.75, 1].map((ratio) => {
                   const y = 165 - ratio * 135
                   return (
@@ -345,7 +356,7 @@ export function SessionReportPage() {
                         width={barWidth}
                         height={Math.max(4, h)}
                         rx="6"
-                        fill="#F5C430"
+                        fill="url(#heritageBarGrad)"
                       />
                       <text
                         x={x + barWidth / 2}
@@ -395,7 +406,7 @@ export function SessionReportPage() {
               >
                 <polyline
                   fill="none"
-                  stroke="#0EA5E9"
+                  stroke="var(--status-info-fg)"
                   strokeWidth="2.5"
                   points={report.intervalChart
                     .map((pt, idx) => {
@@ -414,7 +425,7 @@ export function SessionReportPage() {
                   const y = 85 - (v / maxConcurrent) * 65
                   return (
                     <g key={`cv-${pt.bucketLabel}`}>
-                      <circle cx={x} cy={y} r="4" fill="#0EA5E9" />
+                      <circle cx={x} cy={y} r="4" fill="var(--status-info-fg)" />
                       <text
                         x={x}
                         y={y - 8}
@@ -501,7 +512,7 @@ export function SessionReportPage() {
                 onClick={() => setActiveTab(tab.id)}
                 className={`inline-flex min-h-10 items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-semibold transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] ${
                   active
-                    ? 'border-[var(--brand-amber)] text-[var(--text-primary)]'
+                    ? 'border-[var(--accent-gold)] text-[var(--accent-gold)]'
                     : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                 }`}
               >
@@ -539,7 +550,7 @@ export function SessionReportPage() {
                     key={step.label}
                     className={`rounded-[var(--radius-input)] border p-3.5 ${
                       step.highlight
-                        ? 'border-[var(--brand-amber)] bg-[var(--brand-amber)]/10'
+                        ? 'border-[var(--accent-gold)] bg-[var(--bg-raised)]'
                         : 'border-[var(--border-default)] bg-[var(--bg-surface)]'
                     }`}
                   >
@@ -606,18 +617,18 @@ export function SessionReportPage() {
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[640px] border-collapse text-left text-xs">
                   <thead>
-                    <tr className="border-b border-[var(--border-default)] text-[var(--text-muted)]">
-                      <th className="py-2.5 pr-4 font-semibold">Thời điểm</th>
-                      <th className="py-2.5 pr-4 font-semibold">Người thực hiện</th>
-                      <th className="py-2.5 pr-4 font-semibold">Hành động</th>
-                      <th className="py-2.5 pr-4 font-semibold">Kết quả</th>
-                      <th className="py-2.5 font-semibold">Lý do / Ghi chú</th>
+                    <tr className={TABLE_HEAD_ROW_CLASS}>
+                      <th className="py-2.5 pl-3 pr-4">Thời điểm</th>
+                      <th className="py-2.5 pr-4">Người thực hiện</th>
+                      <th className="py-2.5 pr-4">Hành động</th>
+                      <th className="py-2.5 pr-4">Kết quả</th>
+                      <th className="py-2.5 pr-3">Lý do / Ghi chú</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[var(--border-default)]">
+                  <tbody className={TABLE_BODY_CLASS}>
                     {report.auditEvents.map((ev) => (
-                      <tr key={ev.id}>
-                        <td className="py-2.5 pr-4 font-mono text-[var(--text-muted)] whitespace-nowrap">
+                      <tr key={ev.id} className={TABLE_ROW_HOVER_CLASS}>
+                        <td className="py-2.5 pl-3 pr-4 font-mono text-[var(--text-muted)] whitespace-nowrap">
                           {formatShortTime(ev.occurredAt)}
                         </td>
                         <td className="py-2.5 pr-4 font-medium text-[var(--text-primary)] whitespace-nowrap">
@@ -632,7 +643,7 @@ export function SessionReportPage() {
                             label={ev.decision}
                           />
                         </td>
-                        <td className="py-2.5 text-[var(--text-secondary)]">{ev.reason}</td>
+                        <td className="py-2.5 pr-3 text-[var(--text-secondary)]">{ev.reason}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -662,7 +673,7 @@ export function SessionReportPage() {
               onClick={() => handleStartExport('CSV')}
               className={`flex items-start gap-3 rounded-[var(--radius-input)] border p-3.5 text-left transition-colors cursor-pointer ${
                 exportFormat === 'CSV' && exportState !== 'IDLE'
-                  ? 'border-[var(--brand-amber)] bg-[var(--brand-amber)]/10'
+                  ? 'border-[var(--accent-gold)] bg-[var(--bg-raised)]'
                   : 'border-[var(--border-default)] hover:bg-[var(--bg-subtle)]'
               }`}
             >
@@ -682,7 +693,7 @@ export function SessionReportPage() {
               onClick={() => handleStartExport('PDF')}
               className={`flex items-start gap-3 rounded-[var(--radius-input)] border p-3.5 text-left transition-colors cursor-pointer ${
                 exportFormat === 'PDF' && exportState !== 'IDLE'
-                  ? 'border-[var(--brand-amber)] bg-[var(--brand-amber)]/10'
+                  ? 'border-[var(--accent-gold)] bg-[var(--bg-raised)]'
                   : 'border-[var(--border-default)] hover:bg-[var(--bg-subtle)]'
               }`}
             >
@@ -721,14 +732,18 @@ export function SessionReportPage() {
                   <p className="text-xs text-[var(--text-secondary)]">
                     Tệp đã sẵn sàng để tải xuống trình duyệt.
                   </p>
-                  <Button variant="primary" size="sm" onClick={handleDownloadReadyFile}>
-                    <Download className="h-4 w-4" />
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    leftIcon={<Download className="h-4 w-4" />}
+                    onClick={handleDownloadReadyFile}
+                  >
                     Tải tệp {exportFormat}
                   </Button>
                 </div>
               ) : (
                 <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)]">
-                  <Loader2 className="h-4 w-4 animate-spin text-[var(--brand-amber)]" />
+                  <Loader2 className="h-4 w-4 animate-spin text-[var(--accent-gold)]" />
                   {exportState === 'EXPORT_REQUESTED'
                     ? 'Đang khởi tạo yêu cầu xuất báo cáo...'
                     : 'Đang đóng gói dữ liệu và kiểm tra an toàn định dạng...'}

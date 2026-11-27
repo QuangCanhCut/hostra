@@ -41,7 +41,7 @@ export function SessionDetailPage() {
             Quay lại Phiên livestream
           </Link>
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-2xl font-bold text-[var(--text-primary)]">
+            <h1 className="font-display text-[26px] sm:text-[32px] font-bold leading-[1.16] tracking-[-0.02em] text-[var(--text-primary)]">
               {session.code} · {session.title}
             </h1>
             <StatusBadge label={lc.label} tone={lc.tone} pulse={lc.pulse} />

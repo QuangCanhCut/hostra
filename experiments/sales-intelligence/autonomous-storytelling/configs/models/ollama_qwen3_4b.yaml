@@ -13,6 +13,8 @@ sampling:
   top_p: 0.9
   max_tokens: 1024
   seed: 42
+# Tắt thinking mode mặc định của Qwen3 để JSON schema smoke test ổn định trên CPU.
+think: false
 timeout_sec: 180
 resource_note: "CPU-only execution without dGPU requires sufficient host RAM (~4-8 GB free depending on quantization tag) and incurs high per-chunk latency; record actual cpu_model, ram_gb, and quantization in run telemetry."
 notes: "Local CPU exploration, prompt iteration & LangGraph smoke testing only; never assume production latency or pool with Gemini benchmarks."

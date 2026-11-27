@@ -90,7 +90,7 @@ export function ReadinessPage() {
             Quay lại {readiness.sessionCode}
           </Link>
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-2xl font-bold text-[var(--text-primary)]">
+            <h1 className="font-display text-[26px] sm:text-[32px] font-bold leading-[1.16] tracking-[-0.02em] text-[var(--text-primary)]">
               Kiểm tra sẵn sàng · {readiness.sessionCode}
             </h1>
             <StatusBadge label={lc.label} tone={lc.tone} pulse={lc.pulse} />
@@ -149,7 +149,7 @@ export function ReadinessPage() {
       {errorMsg ? <Banner severity="danger" title="Lệnh START bị từ chối" description={errorMsg} /> : null}
 
       {commandResult ? (
-        <Card padding="md" className="border-[var(--brand-amber)] bg-[var(--bg-hero)] space-y-3">
+        <Card padding="md" featured className="border-[var(--accent-gold)] space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <ShieldAlert className="h-4 w-4 text-[var(--text-primary)]" />

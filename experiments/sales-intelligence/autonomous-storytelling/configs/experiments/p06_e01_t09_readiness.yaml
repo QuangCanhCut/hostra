@@ -1,0 +1,55 @@
+# Cấu hình Chuẩn bị Thực nghiệm P06-E01-T09 (Chờ Phê duyệt Thực thi Real Provider)
+experiment_id: "P06-E01"
+phase: "E01-T09"
+status: "AWAITING_EXECUTION_APPROVAL"
+
+dataset_profile: "e01_ext_v1"
+min_chunks_per_topic: 2
+
+budget_guardrails:
+  max_llm_calls_pilot_per_run: 25
+  max_estimated_cost_usd_per_run: 0.25
+  max_total_formal_sweep_budget_usd: 5.00
+  require_explicit_allow_live_flag: true
+
+pilot_stage:
+  tier_2_local_smoke:
+    provider: "ollama"
+    recommended_config: "configs/models/ollama_qwen2.5_3b.yaml"
+    alternate_config: "configs/models/ollama_qwen3_1.7b.yaml"
+    scenario: "pilot_short_3sku_ext"
+    min_chunks_per_topic: 1
+    max_turns: 8
+    max_llm_calls: 12
+    prerequisites:
+      - "Giải phóng RAM hệ thống >= 3.5 GB trống trước khi nạp mô hình CPU (~1.4-1.9 GB)."
+      - "Chạy với --allow-live-provider chỉ sau khi được User phê duyệt."
+  tier_3_gemini_pilot:
+    provider: "gemini"
+    model_selection_rule: "Phải chọn exact model_id đã xác minh (ví dụ gemini-2.5-flash-lite hoặc gemini-3.1-flash-lite-preview) với pricing & Tier rõ ràng."
+    scenario: "pilot_short_3sku_ext"
+    min_chunks_per_topic: 1
+    max_turns: 8
+    max_llm_calls: 12
+    data_classification_allowed:
+      - "SYNTHETIC"
+
+formal_sweep_matrix:
+  dataset_profile: "e01_ext_v1"
+  scenarios:
+    - "product_education_10m_ext"
+    - "brand_storytelling_10m_ext"
+    - "sales_presentation_30m_ext"
+  stress_scenario: "window_sensitivity_stress_24t"
+  min_chunks_per_topic: 2
+  methods:
+    - "script_first_deterministic"
+    - "script_first_upfront_llm"
+    - "langgraph_structured_story"
+  history_windows_for_langgraph: [5, 10, 20]
+  seed: 42
+  export_human_eval: true
+
+human_eval:
+  rubric: "evaluation/rubrics/human_eval_rubric_v0.1.md"
+  requires_gold_factual_labels: true

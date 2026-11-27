@@ -17,14 +17,30 @@
 
 from __future__ import annotations
 
+from p06.guardrails.evidence_attribution import (
+    EvidenceAttributionResult,
+    TopicObjectiveCheckResult,
+    check_topic_objective_alignment,
+    validate_draft_evidence_attribution,
+)
 from p06.guardrails.fallback_selector import SafeFallbackSelector
 from p06.guardrails.prohibited_echo_guard import (
     ProhibitedEchoGuard,
     ProhibitedEchoResult,
 )
+from p06.guardrails.spoken_text_hygiene import (
+    SpokenTextHygieneResult,
+    check_spoken_text_hygiene,
+)
 
 __all__ = [
+    "EvidenceAttributionResult",
     "ProhibitedEchoGuard",
     "ProhibitedEchoResult",
     "SafeFallbackSelector",
+    "SpokenTextHygieneResult",
+    "TopicObjectiveCheckResult",
+    "check_spoken_text_hygiene",
+    "check_topic_objective_alignment",
+    "validate_draft_evidence_attribution",
 ]

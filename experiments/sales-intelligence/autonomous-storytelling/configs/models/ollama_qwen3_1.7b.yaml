@@ -13,5 +13,7 @@ sampling:
   top_p: 0.9
   max_tokens: 1024
   seed: 42
+# Tắt thinking mode mặc định của Qwen3 để JSON schema smoke test ổn định trên CPU.
+think: false
 timeout_sec: 120
 notes: "Local CPU exploration, prompt iteration & LangGraph smoke testing only; never assume production latency or pool with Gemini benchmarks."

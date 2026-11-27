@@ -184,6 +184,7 @@ class EvidenceCollector:
             is_simulated_metric=telemetry.is_simulated_metric,
             input_tokens=telemetry.input_tokens,
             output_tokens=telemetry.output_tokens,
+            thinking_tokens=telemetry.thinking_tokens,
             token_usage_source=telemetry.token_usage_source.value,
             finish_reason=telemetry.finish_reason,
             raw_response_valid=telemetry.raw_response_valid,
@@ -537,6 +538,7 @@ class EvidenceCollector:
         if has_unavailable:
             input_tokens: Optional[int] = None
             output_tokens: Optional[int] = None
+            thinking_tokens: Optional[int] = None
             total_tokens: Optional[int] = None
             wasted_input_tokens: Optional[int] = None
             wasted_output_tokens: Optional[int] = None
@@ -549,7 +551,9 @@ class EvidenceCollector:
             output_tokens = sum(
                 call.output_tokens for call in self._provider_calls if call.output_tokens is not None
             )
-            total_tokens = input_tokens + output_tokens
+            thinking_vals = [call.thinking_tokens for call in self._provider_calls if call.thinking_tokens is not None]
+            thinking_tokens = sum(thinking_vals) if thinking_vals else 0
+            total_tokens = input_tokens + output_tokens + thinking_tokens
             wasted_input_tokens = sum(
                 call.input_tokens
                 for call in self._provider_calls
@@ -560,7 +564,12 @@ class EvidenceCollector:
                 for call in self._provider_calls
                 if call.is_wasted and call.output_tokens is not None
             )
-            wasted_tokens = wasted_input_tokens + wasted_output_tokens
+            wasted_thinking_tokens = sum(
+                call.thinking_tokens
+                for call in self._provider_calls
+                if call.is_wasted and call.thinking_tokens is not None
+            )
+            wasted_tokens = wasted_input_tokens + wasted_output_tokens + wasted_thinking_tokens
             has_simulated = any(
                 call.token_usage_source == TokenUsageSource.SIMULATED.value
                 for call in self._provider_calls
@@ -576,6 +585,7 @@ class EvidenceCollector:
             "wasted_model_calls": wasted_calls,
             "input_tokens": input_tokens,
             "output_tokens": output_tokens,
+            "thinking_tokens": thinking_tokens,
             "total_tokens": total_tokens,
             "wasted_input_tokens": wasted_input_tokens,
             "wasted_output_tokens": wasted_output_tokens,

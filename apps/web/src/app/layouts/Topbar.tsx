@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ChevronDown, HelpCircle, LogOut, Menu, Settings } from 'lucide-react'
+import { ChevronDown, HelpCircle, Home, LogOut, Menu, Settings } from 'lucide-react'
 import { ThemeToggle } from '@/components/shared/ThemeToggle'
 import type { ActorProfile, WorkspaceSummary } from '@/types/auth'
 
@@ -68,23 +68,27 @@ export function Topbar({
   const workspaceName = workspace?.displayName ?? 'Merchant Studio'
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-3 border-b border-[var(--border-default)] bg-[var(--bg-surface)] px-4 sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-30 flex h-[60px] items-center justify-between gap-3 border-b border-[var(--border-default)] bg-[var(--bg-canvas)]/95 px-4 backdrop-blur-xs sm:px-6 lg:px-7">
       <div className="flex min-w-0 items-center gap-3">
         <button
           type="button"
           onClick={onOpenMobileMenu}
           aria-label="Mở menu điều hướng"
-          className="inline-flex h-10 w-10 items-center justify-center rounded-[8px] border border-[var(--border-default)] text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] md:hidden cursor-pointer"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-[8px] border border-[var(--border-default)] bg-[var(--bg-surface)] text-[var(--text-primary)] hover:border-[var(--border-strong)] hover:bg-[var(--bg-raised)] md:hidden cursor-pointer"
         >
           <Menu className="h-5 w-5" />
         </button>
 
-        <nav aria-label="Đường dẫn trang" className="flex min-w-0 items-center gap-1.5 text-sm">
+        <nav aria-label="Đường dẫn trang" className="flex min-w-0 items-center gap-2 text-xs sm:text-sm">
+          <Home
+            className="hidden sm:inline h-3.5 w-3.5 shrink-0 text-[var(--text-muted)]"
+            aria-hidden="true"
+          />
           <span className="hidden sm:inline text-[var(--text-muted)] truncate">
             {workspaceName}
           </span>
-          <span className="hidden sm:inline text-[var(--text-muted)]">/</span>
-          <span className="font-semibold text-[var(--text-primary)] truncate">
+          <span className="hidden sm:inline text-[var(--text-muted)]/70">/</span>
+          <span className="font-semibold text-[var(--accent-gold)] truncate">
             {pageLabel}
           </span>
         </nav>
@@ -96,7 +100,7 @@ export function Topbar({
           to="/auth/sign-in"
           aria-label="Chuyển tài khoản mô phỏng"
           title="Chuyển tài khoản mô phỏng"
-          className="inline-flex h-10 w-10 items-center justify-center rounded-[8px] border border-[var(--border-default)] bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-[8px] border border-[var(--border-default)] bg-[var(--bg-surface)] text-[var(--text-muted)] transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--bg-raised)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
         >
           <HelpCircle className="h-4 w-4" aria-hidden="true" />
         </Link>
@@ -110,12 +114,12 @@ export function Topbar({
             aria-expanded={accountMenuOpen}
             aria-label={`Menu tài khoản ${displayName}`}
             onClick={() => setAccountMenuOpen((prev) => !prev)}
-            className="inline-flex min-h-10 items-center gap-2 rounded-full border border-[var(--border-default)] bg-[var(--bg-subtle)] py-1 pl-1.5 pr-2 sm:pr-3 text-left transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--bg-surface)] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
+            className="inline-flex min-h-10 items-center gap-2 rounded-full border border-[var(--border-default)] bg-[var(--bg-surface)] py-1 pl-1.5 pr-2 sm:pr-3 text-left transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--bg-raised)] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
           >
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--brand-navy)] text-[11px] font-bold text-white">
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#e5b875] text-[11px] font-bold text-[#25170d]">
               {actor?.initials ?? 'H'}
             </span>
-            <span className="hidden sm:inline max-w-[140px] truncate text-xs font-medium text-[var(--text-primary)]">
+            <span className="hidden sm:inline max-w-[150px] truncate text-xs font-medium text-[var(--text-primary)]">
               {displayName}
             </span>
             <ChevronDown
@@ -130,7 +134,7 @@ export function Topbar({
             <div
               role="menu"
               aria-label="Tùy chọn tài khoản"
-              className="absolute right-0 mt-2 w-64 origin-top-right rounded-[12px] border border-[var(--border-default)] bg-[var(--bg-surface)] p-1.5 shadow-lg z-40"
+              className="heritage-card absolute right-0 mt-2 w-64 origin-top-right rounded-[12px] border border-[var(--border-strong)] p-1.5 shadow-[var(--shadow-elevated)] z-40"
             >
               {/* Thông tin tài khoản hiện tại */}
               <div className="border-b border-[var(--border-default)] px-3 py-2.5">
@@ -140,7 +144,7 @@ export function Topbar({
                 <p className="mt-0.5 truncate text-xs text-[var(--text-secondary)]">
                   {emailOrRole}
                 </p>
-                <p className="mt-1 truncate text-[11px] font-medium text-[var(--text-muted)]">
+                <p className="mt-1 truncate text-[11px] font-medium text-[var(--accent-gold)]">
                   {roleLabel} · {workspaceName}
                 </p>
               </div>
@@ -152,7 +156,7 @@ export function Topbar({
                   onClick={handleOpenWorkspaceSetup}
                   className="flex min-h-10 w-full items-center gap-2.5 rounded-[8px] px-3 py-2 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-subtle)] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
                 >
-                  <Settings className="h-4 w-4 shrink-0 text-[var(--text-secondary)]" aria-hidden="true" />
+                  <Settings className="h-4 w-4 shrink-0 text-[var(--accent-gold)]" aria-hidden="true" />
                   <span>Thiết lập không gian làm việc</span>
                 </button>
               </div>
