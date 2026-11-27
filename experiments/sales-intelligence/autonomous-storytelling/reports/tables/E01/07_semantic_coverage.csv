@@ -1,0 +1,11 @@
+﻿batch_code,track,full_label,config_name,sample_id,coverage_unit,all_denominator,all_FULL,all_PARTIAL,all_MISS,all_FULL_pct,mandatory_denominator,mandatory_FULL,mandatory_PARTIAL,mandatory_MISS,mandatory_FULL_pct,missing_output_rows,missing_required_slots,topics_both_chunks_FULL,provenance
+1A,Track 1 (Natural),1A LangGraph W=20,LangGraph W=20,SAMPLE_001,topic_level_m1,18,5,13,0,27.78,12,3,9,0,25.0,0,0,,AI-assisted non-blind evaluation — ChatGPT — Rubric v0.1
+1A,Track 1 (Natural),1A LangGraph W=10,LangGraph W=10,SAMPLE_002,topic_level_m1,18,7,11,0,38.89,12,3,9,0,25.0,0,0,,AI-assisted non-blind evaluation — ChatGPT — Rubric v0.1
+1A,Track 1 (Natural),1A Script-first,Script-first,SAMPLE_003,topic_level_m1,18,4,6,8,22.22,12,2,5,5,16.67,3,3,,AI-assisted non-blind evaluation — ChatGPT — Rubric v0.1
+1A,Track 1 (Natural),1A LangGraph W=5,LangGraph W=5,SAMPLE_004,topic_level_m1,18,7,11,0,38.89,12,3,9,0,25.0,0,0,,AI-assisted non-blind evaluation — ChatGPT — Rubric v0.1
+1B,Track 1 (Natural),1B LangGraph W=5,LangGraph W=5,SAMPLE_001,topic_level_m1,18,12,6,0,66.67,12,7,5,0,58.33,0,0,,AI-assisted non-blind evaluation — ChatGPT — Rubric v0.1
+1B,Track 1 (Natural),1B Script-first,Script-first,SAMPLE_002,topic_level_m1,18,7,5,6,38.89,12,5,4,3,41.67,1,1,,AI-assisted non-blind evaluation — ChatGPT — Rubric v0.1
+2A,Track 2 (Window Stress),2A LangGraph W=10,LangGraph W=10,SAMPLE_001,required_slot_m2,36,1,5,30,2.78,24,0,4,20,0.0,18,30,0/18,AI-assisted non-blind evaluation — ChatGPT — Rubric v0.1
+2A,Track 2 (Window Stress),2A LangGraph W=5,LangGraph W=5,SAMPLE_002,required_slot_m2,36,9,27,0,25.0,24,4,20,0,16.67,0,0,3/18,AI-assisted non-blind evaluation — ChatGPT — Rubric v0.1
+2B,Track 2 (Window Stress),2B LangGraph W=20,LangGraph W=20,SAMPLE_001,required_slot_m2,72,8,4,60,11.11,72,8,4,60,11.11,36,60,0/36,AI-assisted non-blind evaluation — ChatGPT — Rubric v0.1
+2B,Track 2 (Window Stress),2B LangGraph W=10,LangGraph W=10,SAMPLE_002,required_slot_m2,72,59,13,0,81.94,72,59,13,0,81.94,0,0,28/36,AI-assisted non-blind evaluation — ChatGPT — Rubric v0.1

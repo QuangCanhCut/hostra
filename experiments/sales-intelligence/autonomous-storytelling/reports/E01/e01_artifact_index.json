@@ -1,0 +1,244 @@
+{
+  "experiment_id": "P06-E01",
+  "final_research_decision": "CHANGE",
+  "closure_status": {
+    "research_execution_reduced_scope": "COMPLETE",
+    "ai_assisted_evaluation": "COMPLETE",
+    "human_blind_evaluation": "PENDING",
+    "human_calibration": "DEFERRED / PENDING",
+    "gold_factual_assessment": "PENDING",
+    "overall_acceptance_gate": "NOT_EVALUATED",
+    "research_decision": "CHANGE",
+    "production_validation": "NOT VALIDATED",
+    "additional_e01_benchmark": "NOT REQUIRED under approved scope"
+  },
+  "git_context": {
+    "branch": "research/p06-autonomous-storytelling",
+    "head_before_closure_commit": "c7d03e0"
+  },
+  "gitignore_raw_runs_notice": "Thư mục `runs/*/*` nằm trong `.gitignore` của P06 nên toàn bộ raw run logs & `ai_assisted_eval/` KHÔNG được lưu trực tiếp trong Git commit.",
+  "model_locked": "gemini-3.5-flash-lite (Free Tier, 0 USD, SYNTHETIC only)",
+  "prompt_versions": {
+    "story_planner.txt": "v0.1",
+    "story_generation.txt": "v0.2.1",
+    "rewrite.txt": "v0.2.1",
+    "baseline_upfront": "baseline-script-first-v0.2.2"
+  },
+  "dataset_versions": {
+    "e01_ext_v1": "1.0.1 / 1.0.2",
+    "e01_formal_v1": "1.1.1"
+  },
+  "locked_source_sha256": {
+    "data/products/e01_ext_v1_verified_skus.json": "6ab12c62f3545d804b55ba5e23477f7b610313f81775cdd5452a783916518c64",
+    "data/story_plans/e01_ext_v1_story_plans.json": "42c446c4f0c36293b48f985a78079360abd7db243bc66ca532e058f47047f020",
+    "data/products/e01_formal_v1_verified_skus.json": "bd70430b9f5dfa34fc5ea13560aa437f9dd994ce92159f9000106ca7eb1a71c6",
+    "data/story_plans/e01_formal_v1_story_plans.json": "f969ec242b30578275cac01c2d10eaf602b57a3b6a3bbf12a42dcdc924f055f3",
+    "prompts/story_planner.txt": "f07514cc307bff4a3332d419a539f843bb18510722bdc7774a26a9ff98ddd118",
+    "prompts/story_generation.txt": "0f1eb7e856654d9565a9e6dbe468f59180c3dc20bc4cb723cd1441d5000d5912",
+    "prompts/rewrite.txt": "1126789faaf84f547a455b677af4b025103e3a1b60513e1fc0910cc14a5c61d5",
+    "configs/models/gemini_3.5_flash_lite_free.yaml": "c836c82baee490a4b4d728e2877d19e4fd15c16a87c64372a9af3692a7ab344b",
+    "configs/experiments/p06_e01_formal_batch1a.yaml": "3792162ed9c7b3e0b35054575e82804f00615f759efe44c42968fc825716cfdc",
+    "configs/experiments/p06_e01_formal_batch1b.yaml": "f380892c137606f0277aafa809a4623a904a9f262c10797cf0cb897b42079fd2",
+    "configs/experiments/p06_e01_formal_track2a_w5_w10.yaml": "d52a17b1c832093490e5b0092921c56d2e09488e8d7335088156ae41a23e5ae7",
+    "configs/experiments/p06_e01_formal_track2b_w10_w20.yaml": "b4e6c539e1f316219e86d35532c3e0dde0e3a993c41c7ffd1897d287221354b4"
+  },
+  "formal_batches": [
+    {
+      "batch_code": "1A",
+      "batch_dir": "runs/P06-E01/formal_benchmark_v1/track1_product_edu_s42",
+      "yaml_global_cap": 120,
+      "operational_global_cap": 120,
+      "total_requests_used": 94,
+      "budget_ledger_sha256": "8aba74911be30a489801855bbe2c6dc0d21ef2fe21d28788daa686459d969a4f",
+      "operational_cap_note": "Matches locked YAML cap."
+    },
+    {
+      "batch_code": "1B",
+      "batch_dir": "runs/P06-E01/formal_benchmark_v1/track1_brand_storytelling_s42",
+      "yaml_global_cap": 60,
+      "operational_global_cap": 60,
+      "total_requests_used": 41,
+      "budget_ledger_sha256": "ff39d2d9f9824ae7c62d8fc2b3f94cf1e8586d93a3fd3f7e882b43bdccb0b6d8",
+      "operational_cap_note": "Matches locked YAML cap."
+    },
+    {
+      "batch_code": "2A",
+      "batch_dir": "runs/P06-E01/formal_benchmark_v1/track2a_small_window_lag6_s42",
+      "yaml_global_cap": 240,
+      "operational_global_cap": 240,
+      "total_requests_used": 71,
+      "budget_ledger_sha256": "dd20a2f9d5d411dd82c62305ca007e918d8f2dbc91876c2714925781e2687146",
+      "operational_cap_note": "Matches locked YAML cap."
+    },
+    {
+      "batch_code": "2B",
+      "batch_dir": "runs/P06-E01/formal_benchmark_v1/track2b_large_window_lag12_s42",
+      "yaml_global_cap": 400,
+      "operational_global_cap": 200,
+      "total_requests_used": 111,
+      "budget_ledger_sha256": "d79aef159ba945ee50e49e56eeb055ca9c55c2fe250a85e963f3649a3a6d18b6",
+      "operational_cap_note": "User approved operational cap <= 200 applied at ledger initialization without altering locked YAML (cap 400)."
+    }
+  ],
+  "formal_run_ids": [
+    {
+      "batch_code": "1A",
+      "full_label": "1A Script-first",
+      "run_id": "P06-E01__product_education_10m_ext__script_first_upfront_llm__noW__20261126T211445Z__3103d050",
+      "requests_attempted": 18,
+      "termination_reason": "CONTENT_EXHAUSTED"
+    },
+    {
+      "batch_code": "1A",
+      "full_label": "1A LangGraph W=5",
+      "run_id": "P06-E01__product_education_10m_ext__langgraph_structured_story__w5__20261126T211629Z__b0e6e86e",
+      "requests_attempted": 22,
+      "termination_reason": "EARLY_COMPLETION"
+    },
+    {
+      "batch_code": "1A",
+      "full_label": "1A LangGraph W=10",
+      "run_id": "P06-E01__product_education_10m_ext__langgraph_structured_story__w10__20261126T211841Z__71bed1ea",
+      "requests_attempted": 27,
+      "termination_reason": "EARLY_COMPLETION"
+    },
+    {
+      "batch_code": "1A",
+      "full_label": "1A LangGraph W=20",
+      "run_id": "P06-E01__product_education_10m_ext__langgraph_structured_story__w20__20261126T212124Z__f93dd907",
+      "requests_attempted": 27,
+      "termination_reason": "EARLY_COMPLETION"
+    },
+    {
+      "batch_code": "1B",
+      "full_label": "1B Script-first",
+      "run_id": "P06-E01__brand_storytelling_10m_ext__script_first_upfront_llm__noW__20261126T215734Z__d96d8d65",
+      "requests_attempted": 18,
+      "termination_reason": "CONTENT_EXHAUSTED"
+    },
+    {
+      "batch_code": "1B",
+      "full_label": "1B LangGraph W=5",
+      "run_id": "P06-E01__brand_storytelling_10m_ext__langgraph_structured_story__w5__20261126T215918Z__0382f316",
+      "requests_attempted": 23,
+      "termination_reason": "EARLY_COMPLETION"
+    },
+    {
+      "batch_code": "2A",
+      "full_label": "2A LangGraph W=5",
+      "run_id": "P06-E01__product_education_10m_ext__langgraph_structured_story__w5__20261126T231540Z__cba0dd8b",
+      "requests_attempted": 48,
+      "termination_reason": "EARLY_COMPLETION"
+    },
+    {
+      "batch_code": "2A",
+      "full_label": "2A LangGraph W=10",
+      "run_id": "P06-E01__product_education_10m_ext__langgraph_structured_story__w10__20261126T232023Z__a2ecd346",
+      "requests_attempted": 23,
+      "termination_reason": "MAX_CONSECUTIVE_ABORTS"
+    },
+    {
+      "batch_code": "2B",
+      "full_label": "2B LangGraph W=10",
+      "run_id": "P06-E01__window_stress_12lag_3sku__langgraph_structured_story__w10__20261127T032957Z__601e3e7a",
+      "requests_attempted": 83,
+      "termination_reason": "EARLY_COMPLETION"
+    },
+    {
+      "batch_code": "2B",
+      "full_label": "2B LangGraph W=20",
+      "run_id": "P06-E01__window_stress_12lag_3sku__langgraph_structured_story__w20__20261127T033812Z__c0cbfff5",
+      "requests_attempted": 28,
+      "termination_reason": "MAX_CONSECUTIVE_ABORTS"
+    }
+  ],
+  "ai_assisted_eval_hashes": {
+    "track1_product_edu_s42/ai_assisted_eval/batch1a_ai_assisted_quality.csv": {
+      "sha256": "1cdcf2a44adee0d2f6a79f607e89298c9b15ad0975257bfc5334d01ec9cb662a",
+      "provenance": "AI-assisted non-blind evaluation — ChatGPT — Rubric v0.1"
+    },
+    "track1_product_edu_s42/ai_assisted_eval/batch1a_ai_assisted_factual_semantic.csv": {
+      "sha256": "2f581d4c0185e02c325af01f31822ab54aa43cdd46151bdd664710ed3ad52f85",
+      "provenance": "AI-assisted non-blind evaluation — ChatGPT — Rubric v0.1"
+    },
+    "track1_brand_storytelling_s42/ai_assisted_eval/batch1b_ai_assisted_quality.csv": {
+      "sha256": "e761827cb3de7d9110d580e6ae72cab73518e894b42939960edd280466e95868",
+      "provenance": "AI-assisted non-blind evaluation — ChatGPT — Rubric v0.1"
+    },
+    "track1_brand_storytelling_s42/ai_assisted_eval/batch1b_ai_assisted_factual_semantic.csv": {
+      "sha256": "eccd63110a45eee8f9fa309eba9ed9ddd9af839e04f00117fcc911809052260b",
+      "provenance": "AI-assisted non-blind evaluation — ChatGPT — Rubric v0.1"
+    },
+    "track2a_small_window_lag6_s42/ai_assisted_eval/track2a_ai_assisted_quality.csv": {
+      "sha256": "392c8d4e38fbe0fdfffa07259cdbc758ecb34b8abca1397cb32fa17ab176b2ea",
+      "provenance": "AI-assisted non-blind evaluation — ChatGPT — Rubric v0.1"
+    },
+    "track2a_small_window_lag6_s42/ai_assisted_eval/track2a_ai_assisted_factual_semantic.csv": {
+      "sha256": "3dee89839e7067bbe663d5545a73f154902f09698f732694c49727e42ffa80c4",
+      "provenance": "AI-assisted non-blind evaluation — ChatGPT — Rubric v0.1"
+    },
+    "track2a_small_window_lag6_s42/ai_assisted_eval/track2a_ai_assisted_repetition.csv": {
+      "sha256": "5f42a76f5b9a6565447e75f48d843564f18d0074d5178c4e1e4cf2c5f982b560",
+      "provenance": "AI-assisted non-blind evaluation — ChatGPT — Rubric v0.1"
+    },
+    "track2b_large_window_lag12_s42/ai_assisted_eval/track2b_ai_assisted_quality.csv": {
+      "sha256": "1f6e03d57be140d6b56d9b5cd8fa03c328733d268f96e512af576d6b2012fbe3",
+      "provenance": "AI-assisted non-blind evaluation — ChatGPT — Rubric v0.1"
+    },
+    "track2b_large_window_lag12_s42/ai_assisted_eval/track2b_ai_assisted_factual_semantic.csv": {
+      "sha256": "a5c02f5e18cabe60a702b88fa712a977865237574266130e9b1f7a34ca0e2863",
+      "provenance": "AI-assisted non-blind evaluation — ChatGPT — Rubric v0.1"
+    },
+    "track2b_large_window_lag12_s42/ai_assisted_eval/track2b_ai_assisted_repetition.csv": {
+      "sha256": "ce28170d44aeff4ccffc79527112745d56b3fa6b94e2679f3a0fe3eca2d9c77c",
+      "provenance": "AI-assisted non-blind evaluation — ChatGPT — Rubric v0.1"
+    },
+    "combined_track2_ai_assisted_eval/track2_ai_assisted_summary.json": {
+      "sha256": "8122f0d49e8fdcac4b5db637daed8d7bbaaf196806c212547fe618660c744162",
+      "provenance": "AI-assisted non-blind evaluation — ChatGPT — Rubric v0.1"
+    },
+    "combined_track2_ai_assisted_eval/track2_final_evaluation_README.md": {
+      "sha256": "f879b39c611517e8c28825452da0c828ffbf101e205fffd5b6209a5df842f088",
+      "provenance": "AI-assisted non-blind evaluation — ChatGPT — Rubric v0.1"
+    }
+  },
+  "deliverables": {
+    "notebook": "notebooks/E01/06_e01_results_analysis.ipynb",
+    "analysis_utility": "notebooks/E01/e01_analysis_utils.py",
+    "research_report": "reports/E01/p06_e01_research_report.md",
+    "signoff_doc": "docs/E01/18-e01-t09-final-research-report-and-signoff.md",
+    "tables": {
+      "01_formal_experiment_inventory": "reports/tables/E01/01_formal_experiment_inventory.csv",
+      "01b_pilot_and_mock_inventory": "reports/tables/E01/01b_pilot_and_mock_inventory.csv",
+      "02_natural_benchmark_comparison": "reports/tables/E01/02_natural_benchmark_comparison.csv",
+      "03_cross_scenario_comparison": "reports/tables/E01/03_cross_scenario_comparison.csv",
+      "04_track2_comparison": "reports/tables/E01/04_track2_comparison.csv",
+      "05_mock_vs_live_comparison": "reports/tables/E01/05_mock_vs_live_comparison.csv",
+      "06_ai_assisted_quality_scores": "reports/tables/E01/06_ai_assisted_quality_scores.csv",
+      "07_semantic_coverage": "reports/tables/E01/07_semantic_coverage.csv",
+      "08_factual_and_evidence_assessment": "reports/tables/E01/08_factual_and_evidence_assessment.csv",
+      "09_revisit_repetition_distribution": "reports/tables/E01/09_revisit_repetition_distribution.csv",
+      "10_budget_and_reliability": "reports/tables/E01/10_budget_and_reliability.csv",
+      "11_acceptance_criteria_assessment": "reports/tables/E01/11_acceptance_criteria_assessment.csv"
+    },
+    "figures": {
+      "fig01_natural_mandatory_coverage": "reports/figures/E01/fig01_natural_mandatory_coverage.png",
+      "fig02_structural_vs_semantic_coverage": "reports/figures/E01/fig02_structural_vs_semantic_coverage.png",
+      "fig03_ai_assisted_storytelling_quality": "reports/figures/E01/fig03_ai_assisted_storytelling_quality.png",
+      "fig04_window_completion_vs_repetition_tradeoff": "reports/figures/E01/fig04_window_completion_vs_repetition_tradeoff.png",
+      "fig05_actual_lag_and_window_membership": "reports/figures/E01/fig05_actual_lag_and_window_membership.png",
+      "fig06_semantic_repetition_distribution": "reports/figures/E01/fig06_semantic_repetition_distribution.png",
+      "fig07_factual_and_evidence_assessment": "reports/figures/E01/fig07_factual_and_evidence_assessment.png",
+      "fig08_reliability_waste_and_duration": "reports/figures/E01/fig08_reliability_waste_and_duration.png"
+    }
+  },
+  "path_migration_mapping": {
+    "docs/03..18-*.md": "docs/E01/03..18-*.md",
+    "notebooks/06_e01_results_analysis.ipynb": "notebooks/E01/06_e01_results_analysis.ipynb",
+    "notebooks/e01_analysis_utils.py": "notebooks/E01/e01_analysis_utils.py",
+    "reports/p06_e01_research_report.md": "reports/E01/p06_e01_research_report.md",
+    "reports/e01_artifact_index.json": "reports/E01/e01_artifact_index.json",
+    "reports/tables/*.csv": "reports/tables/E01/*.csv",
+    "reports/figures/*.png": "reports/figures/E01/*.png"
+  }
+}

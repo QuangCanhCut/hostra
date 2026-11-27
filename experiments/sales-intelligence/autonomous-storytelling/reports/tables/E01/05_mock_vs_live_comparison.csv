@@ -1,0 +1,9 @@
+﻿batch_code,planned_lag,history_window,provider_tier,model_id,total_calls,http_503,facts_rejects,lexical_rejects,exact_rejects,rewrite_count_sum_retries,fallback_count,safe_abort_count,completed_topics_ge2,mandatory_topic_coverage,termination_reason
+2A,6,5,unit_test_mock,deterministic-mock-v0.1,42,0,0,2,4,6,0,0,18/18,1.0,EARLY_COMPLETION
+2A,6,5,formal_experiment_gemini_live,gemini-3.5-flash-lite,48,0,0,0,0,12,0,0,18/18,1.0,EARLY_COMPLETION
+2A,6,10,unit_test_mock,deterministic-mock-v0.1,52,0,10,2,4,12,6,0,18/18,1.0,EARLY_COMPLETION
+2A,6,10,formal_experiment_gemini_live,gemini-3.5-flash-lite,23,1,8,6,0,12,2,3,0/18,0.0,MAX_CONSECUTIVE_ABORTS
+2B,12,10,unit_test_mock,deterministic-mock-v0.1,102,0,0,23,7,28,2,0,36/36,1.0,EARLY_COMPLETION
+2B,12,10,formal_experiment_gemini_live,gemini-3.5-flash-lite,83,0,0,0,0,11,0,0,36/36,1.0,EARLY_COMPLETION
+2B,12,20,unit_test_mock,deterministic-mock-v0.1,156,0,33,44,8,58,6,21,35/36,0.9722,MAX_CONSECUTIVE_ABORTS
+2B,12,20,formal_experiment_gemini_live,gemini-3.5-flash-lite,28,1,11,2,0,11,2,3,0/36,0.0,MAX_CONSECUTIVE_ABORTS
