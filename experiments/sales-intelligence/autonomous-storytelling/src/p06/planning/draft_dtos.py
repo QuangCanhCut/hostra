@@ -131,6 +131,21 @@ class StoryPlanDraftLLMOutput(BaseModel):
         return self
 
 
+def _require_citation_fields_in_json_schema(schema: dict[str, object]) -> None:
+    """Đưa `cited_evidence_ids` và `covered_claim_ids` vào danh sách `required` trên OpenAPI schema.
+
+    Lý do kỹ thuật: Giữ `default_factory=list` trên Python DTO để tương thích các test tạo trực tiếp
+    trong bộ nhớ, đồng thời ép Gemini Structured Output (`responseSchema`) phải xuất tường minh
+    hai trường trích dẫn bằng chứng/claim thay vì bỏ qua khi chạy `thinkingLevel=MINIMAL`.
+    """
+    raw_required = schema.get("required")
+    required: list[str] = list(raw_required) if isinstance(raw_required, list) else []
+    for field_name in ("text", "role", "cited_evidence_ids", "covered_claim_ids"):
+        if field_name not in required:
+            required.append(field_name)
+    schema["required"] = required
+
+
 class ChunkDraftLLMOutput(BaseModel):
     """Bản nháp không tin cậy cho một đoạn thoại ngắn (`StoryChunk` / `SpeechCandidate`) từ LLM.
 
@@ -146,7 +161,12 @@ class ChunkDraftLLMOutput(BaseModel):
         rationale: Giải thích ngắn gọn phục vụ truy vết/gỡ lỗi.
     """
 
-    model_config = ConfigDict(extra="forbid", frozen=True, revalidate_instances="always")
+    model_config = ConfigDict(
+        extra="forbid",
+        frozen=True,
+        revalidate_instances="always",
+        json_schema_extra=_require_citation_fields_in_json_schema,
+    )
 
     text: NonBlankStr
     role: StoryChunkRole = StoryChunkRole.PRODUCT_STORY

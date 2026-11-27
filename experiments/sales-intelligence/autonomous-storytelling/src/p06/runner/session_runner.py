@@ -47,10 +47,19 @@ from p06.memory.repetition_detector import RepetitionDetector
 from p06.memory.semantic_memory import NoOpSemanticMemory
 from p06.memory.topic_coverage import GlobalTopicCoverage
 from p06.memory.viewer_context import SessionViewerContext
-from p06.providers.base import LLMProvider, ProviderConfigError, ProviderTier
+from p06.guardrails.fallback_selector import normalize_fallback_text
+from p06.guardrails.spoken_text_hygiene import check_spoken_text_hygiene
+from p06.providers.base import (
+    LLMProvider,
+    ProviderConfigError,
+    ProviderRateLimitError,
+    ProviderTier,
+    TokenUsageSource,
+)
 from p06.providers.factory import ProviderFactory
 from p06.providers.mock_provider import DEFAULT_MOCK_MODEL_ID
 from p06.runner.config import (
+    DEFAULT_MAX_CHUNK_DURATION_SEC,
     DEFAULT_PROMPTS_DIR,
     LIVE_PROVIDERS,
     ExperimentMethod,
@@ -79,10 +88,10 @@ from p06.schemas.events import PlaybackOutcomeStatus, StoryCheckpoint
 from p06.schemas.state import DEFAULT_PLAYED_HISTORY_WINDOW, AgentTurnOutcome
 from p06.schemas.story import NonBlankStr, StoryPlan
 from p06.simulation.playback_harness import SimulatedPlaybackHarness
-from p06.simulation.virtual_clock import VirtualClock
+from p06.simulation.virtual_clock import DEFAULT_SPEECH_WORDS_PER_SEC, VirtualClock
 
 _MS_PER_SECOND: Final[float] = 1000.0
-_MAX_FALLBACK_WORDS: Final[int] = 16
+_MAX_FALLBACK_WORDS: Final[int] = int(DEFAULT_MAX_CHUNK_DURATION_SEC * DEFAULT_SPEECH_WORDS_PER_SEC)
 
 
 class ExperimentRunnerResult(BaseModel):
@@ -142,6 +151,48 @@ def _all_mandatory_topics_completed(
     return mandatory_ids.issubset(completed_topic_ids)
 
 
+def _select_complete_fallback_texts(evidence: SkuEvidenceView, price_display: str) -> list[str]:
+    """Tạo tối đa 2 câu dự phòng tiếng Việt hoàn chỉnh, không cắt cụt giữa câu và vừa trần 8 giây.
+
+    Mỗi mẫu đều giữ đủ tên SKU + giá niêm yết đã kiểm chứng để P05 xác thực, đồng thời
+    khác nhau ở thông tin quy cách/xuất xứ nhằm tránh lặp nguyên văn khi có 2 lần fallback.
+    """
+    primary_candidates = (
+        f"{evidence.sku_name} hiện có giá niêm yết {price_display}.",
+        f"{evidence.sku_name}: giá niêm yết {price_display}.",
+    )
+    secondary_candidates = (
+        f"{evidence.sku_name}, nguồn gốc {evidence.origin}, giá {price_display}."
+        if evidence.origin
+        else "",
+        f"{evidence.sku_name}, quy cách {evidence.weight_display}, giá {price_display}."
+        if evidence.weight_display
+        else "",
+        f"Giá niêm yết của {evidence.sku_name} là {price_display}.",
+    )
+
+    selected: list[str] = []
+    seen_norm: set[str] = set()
+    for group in (primary_candidates, secondary_candidates):
+        for raw_sentence in group:
+            sentence = raw_sentence.strip()
+            if not sentence:
+                continue
+            word_count = len(sentence.split())
+            duration_sec = VirtualClock.estimate_raw_speech_duration_ms(sentence) / _MS_PER_SECOND
+            if (
+                word_count <= _MAX_FALLBACK_WORDS
+                and duration_sec <= DEFAULT_MAX_CHUNK_DURATION_SEC
+                and check_spoken_text_hygiene(sentence).passed
+            ):
+                norm = normalize_fallback_text(sentence)
+                if norm not in seen_norm:
+                    seen_norm.add(norm)
+                    selected.append(sentence)
+                break
+    return selected
+
+
 def _build_default_fallbacks_by_sku(
     *,
     story_plan: StoryPlan,
@@ -149,7 +200,7 @@ def _build_default_fallbacks_by_sku(
     at_time: datetime,
     session_epoch: int = 1,
 ) -> dict[str, tuple[SpeechCandidate, ...]]:
-    """Tạo tối đa một câu dự phòng `PREAPPROVED_FALLBACK` hợp lệ cho từng SKU trong kế hoạch."""
+    """Tạo các câu dự phòng `PREAPPROVED_FALLBACK` hoàn chỉnh, hợp lệ cho từng SKU trong kế hoạch."""
     fallbacks_by_sku: dict[str, tuple[SpeechCandidate, ...]] = {}
     for sku_id in story_plan.pinned_sku_ids:
         try:
@@ -171,39 +222,44 @@ def _build_default_fallbacks_by_sku(
             evidence.approved_chunks[0],
         )
         price_display = f"{evidence.price_vnd:,}".replace(",", ".") + "đ"
-        raw_text = f"{evidence.sku_name}, giá niêm yết {price_display}, thông tin đã được kiểm chứng."
-        words = raw_text.split()
-        if len(words) > _MAX_FALLBACK_WORDS:
-            raw_text = " ".join(words[:_MAX_FALLBACK_WORDS]).rstrip(",;:") + "."
-        duration_sec = VirtualClock.estimate_raw_speech_duration_ms(raw_text) / _MS_PER_SECOND
+        fallback_texts = _select_complete_fallback_texts(evidence, price_display)
+        if not fallback_texts:
+            fallbacks_by_sku[sku_id] = ()
+            continue
 
-        binding = evidence.to_version_binding(
-            cited_evidence_ids=[shipping_chunk["evidence_id"]],
-            stated_price_vnd=evidence.price_vnd,
-            mentions_ocop=False,
-        )
-        candidate = SpeechCandidate(
-            candidate_id=f"fb-{sku_id.lower()}-e{session_epoch}",
-            tenant_id=story_plan.tenant_id,
-            session_id=story_plan.session_id,
-            session_epoch=session_epoch,
-            origin=CandidateOrigin.PREAPPROVED_FALLBACK,
-            scope_mode=TargetScopeMode.SINGLE_SKU,
-            sku_refs=[sku_id],
-            sku_bindings=[binding],
-            session_rights_version=1,
-            intent="FALLBACK_SAFE_INFO",
-            text=raw_text,
-            estimated_duration_sec=duration_sec,
-            proposed_coverage=ProposedResponseCoverage(
-                covered_topic_ids=[],
-                covered_intents=["Thông tin sản phẩm an toàn"],
-                coverage_mode=CoverageMode.FULL,
-                is_authoritative=False,
-            ),
-            verification_status=CandidateVerificationStatus.DRAFT,
-        )
-        fallbacks_by_sku[sku_id] = (candidate,)
+        candidates: list[SpeechCandidate] = []
+        for idx, sentence in enumerate(fallback_texts):
+            duration_sec = VirtualClock.estimate_raw_speech_duration_ms(sentence) / _MS_PER_SECOND
+            binding = evidence.to_version_binding(
+                cited_evidence_ids=[shipping_chunk["evidence_id"]],
+                stated_price_vnd=evidence.price_vnd,
+                mentions_ocop=False,
+            )
+            suffix = "" if idx == 0 else f"-v{idx + 1}"
+            candidates.append(
+                SpeechCandidate(
+                    candidate_id=f"fb-{sku_id.lower()}-e{session_epoch}{suffix}",
+                    tenant_id=story_plan.tenant_id,
+                    session_id=story_plan.session_id,
+                    session_epoch=session_epoch,
+                    origin=CandidateOrigin.PREAPPROVED_FALLBACK,
+                    scope_mode=TargetScopeMode.SINGLE_SKU,
+                    sku_refs=[sku_id],
+                    sku_bindings=[binding],
+                    session_rights_version=1,
+                    intent="FALLBACK_SAFE_INFO",
+                    text=sentence,
+                    estimated_duration_sec=duration_sec,
+                    proposed_coverage=ProposedResponseCoverage(
+                        covered_topic_ids=[],
+                        covered_intents=["Thông tin sản phẩm an toàn"],
+                        coverage_mode=CoverageMode.FULL,
+                        is_authoritative=False,
+                    ),
+                    verification_status=CandidateVerificationStatus.DRAFT,
+                )
+            )
+        fallbacks_by_sku[sku_id] = tuple(candidates)
     return fallbacks_by_sku
 
 

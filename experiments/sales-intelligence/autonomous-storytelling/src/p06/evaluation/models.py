@@ -443,3 +443,6 @@ class HumanEvalBlindMapping(BaseModel):
     model_id: NonBlankStr
     history_window: Optional[StrictPositiveInt] = None
     scenario: NonBlankStr
+    dataset_profile: OptionalNonBlankStr = None
+    prompt_versions: dict[str, str] = Field(default_factory=dict)
+    exported_at_utc: OptionalNonBlankStr = None

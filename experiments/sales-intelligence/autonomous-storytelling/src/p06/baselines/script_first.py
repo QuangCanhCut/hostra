@@ -45,7 +45,9 @@ from p06.adapters.interfaces import (
     PlaybackAckResult,
     SkuEvidenceView,
 )
-from p06.guardrails.fallback_selector import SafeFallbackSelector
+from p06.guardrails.evidence_attribution import validate_draft_evidence_attribution
+from p06.guardrails.fallback_selector import SafeFallbackSelector, normalize_fallback_text
+from p06.guardrails.spoken_text_hygiene import check_spoken_text_hygiene
 from p06.providers.base import (
     GenerationRequest,
     LLMProvider,
@@ -79,20 +81,38 @@ from p06.schemas.story import (
     StrictPositivePriceVnd,
 )
 from p06.simulation.playback_harness import SimulatedPlaybackHarness
-from p06.simulation.virtual_clock import DEFAULT_SPEECH_WORDS_PER_SEC, VirtualClock
+from p06.simulation.virtual_clock import (
+    DEFAULT_SPEECH_WORDS_PER_SEC,
+    VirtualClock,
+    compute_chunk_word_budget,
+)
 
 # Giới hạn số từ mục tiêu khi ghép kịch bản tất định để thời lượng đọc luôn nằm gọn dưới ngưỡng 30s.
 _DETERMINISTIC_MAX_WORDS: Final[int] = int(MAX_CHUNK_DURATION_SEC * DEFAULT_SPEECH_WORDS_PER_SEC) - 6
-_UPFRONT_PROMPT_VERSION: Final[str] = "baseline-script-first-v0.1"
+_UPFRONT_PROMPT_VERSION: Final[str] = "baseline-script-first-v0.2.2"
 _UPFRONT_SYSTEM_PROMPT_TEMPLATE: Final[str] = (
-    "Bạn là trợ lý viết kịch bản livestream tiếng Việt trung thực với dữ liệu. "
-    "Chỉ sử dụng thông tin trong `sku_evidence` và `topic`, giữ độ dài dưới {max_words} từ "
-    "(<= {max_duration_sec} giây đọc), trích dẫn đúng `evidence_id` từ `approved_chunks`, không bịa giá "
-    "hoặc công dụng chữa bệnh, và tuyệt đối không nhắc tên SKU khác."
+    "Bạn là trợ lý viết kịch bản livestream tiếng Việt tự nhiên, trung thực với dữ liệu. "
+    "Chỉ sử dụng thông tin trong `sku_evidence` và `topic`, giữ khung độ dài khuyến nghị {target_words_range}, "
+    "tuyệt đối không vượt quá {hard_max_words} từ (<= {max_duration_sec} giây đọc), bám sát `talking_points` của `topic` "
+    "và KHÔNG cần lặp lại tên sản phẩm đầy đủ hay giá niêm yết nếu chủ đề không yêu cầu. "
+    "Khi nêu chính sách đổi trả, không lược bỏ điều kiện áp dụng quan trọng (như khi nhận hàng kèm video mở hộp hoặc khi mở hộp) chỉ để rút ngắn câu; không suy diễn quan hệ nhân quả không có trực tiếp trong dữ liệu. "
+    "Tách biệt lời nói và metadata: TUYỆT ĐỐI không đưa mã `ev-...`, `clm-...`, `SKU-...`, `topic-...`, "
+    "dấu ngoặc trích ID hay mảnh JSON vào trường `text`; chỉ khai báo `evidence_id` và `claim_id` hợp lệ "
+    "vào `cited_evidence_ids` và `covered_claim_ids`. Không bịa công dụng chữa bệnh và không nhắc SKU khác."
 )
 _UPFRONT_PROMPT_SHA256: Final[str] = hashlib.sha256(
     _UPFRONT_SYSTEM_PROMPT_TEMPLATE.encode("utf-8")
 ).hexdigest()
+
+
+def _require_upfront_citation_fields_in_json_schema(schema: dict[str, object]) -> None:
+    """Đưa `cited_evidence_ids` và `covered_claim_ids` vào `required` trong schema OpenAPI."""
+    raw_required = schema.get("required")
+    required: list[str] = list(raw_required) if isinstance(raw_required, list) else []
+    for field_name in ("text", "role", "cited_evidence_ids", "covered_claim_ids"):
+        if field_name not in required:
+            required.append(field_name)
+    schema["required"] = required
 
 
 class BaselineScriptSource(str, Enum):
@@ -115,11 +135,17 @@ class UpfrontChunkDraftLLMOutput(BaseModel):
     hay `tenant_id` nhằm bảo đảm bất biến `Generated != Verified` (`I-02`).
     """
 
-    model_config = ConfigDict(extra="forbid", frozen=True, revalidate_instances="always")
+    model_config = ConfigDict(
+        extra="forbid",
+        frozen=True,
+        revalidate_instances="always",
+        json_schema_extra=_require_upfront_citation_fields_in_json_schema,
+    )
 
     text: NonBlankStr
     role: StoryChunkRole = StoryChunkRole.PRODUCT_STORY
     cited_evidence_ids: list[NonBlankStr] = Field(default_factory=list)
+    covered_claim_ids: list[NonBlankStr] = Field(default_factory=list)
     stated_price_vnd: Optional[StrictPositivePriceVnd] = None
     mentions_ocop: StrictBool = False
     semantic_breakpoint: StrictBool = True
@@ -272,6 +298,7 @@ class UpfrontPlannedItem(BaseModel):
     planned_chunk_id: NonBlankStr
     chunk: Optional[StoryChunk] = None
     candidate: Optional[SpeechCandidate] = None
+    declared_claim_ids: tuple[str, ...] = ()
     generation_error: OptionalNonBlankStr = None
 
     @model_validator(mode="after")
@@ -538,11 +565,12 @@ class ScriptFirstBaseline:
         self._seed = seed
         self._max_chunk_duration_sec: float = numeric_duration
         self._min_chunks_per_topic: int = min_chunks_per_topic
-        margin_words = 6 if numeric_duration >= 20.0 else 3
-        self._max_words: int = max(
-            6,
-            int(numeric_duration * DEFAULT_SPEECH_WORDS_PER_SEC) - margin_words,
+        rec_max_words, hard_max_words, target_words_range = compute_chunk_word_budget(
+            numeric_duration
         )
+        self._max_words: int = rec_max_words
+        self._hard_max_words: int = hard_max_words
+        self._target_words_range: str = target_words_range
 
     def prepare_upfront_script(
         self,
@@ -787,7 +815,7 @@ class ScriptFirstBaseline:
                 next_arc_id = item.arc.arc_id
 
             turn_claim_ids = (
-                tuple(item.topic.allowed_claim_ids)
+                item.declared_claim_ids
                 if outcome == AgentTurnOutcome.VERIFIED_READY
                 else ()
             )
@@ -973,6 +1001,34 @@ class ScriptFirstBaseline:
                 semantic_breakpoint = llm_out.semantic_breakpoint
                 breakpoint_type = llm_out.breakpoint_type
                 rationale = llm_out.rationale
+
+                hygiene = check_spoken_text_hygiene(text)
+                if not hygiene.passed:
+                    return UpfrontPlannedItem(
+                        arc=arc,
+                        topic=topic,
+                        planned_chunk_id=planned_chunk_id,
+                        generation_error="; ".join(hygiene.violations),
+                    )
+
+                attr_res = validate_draft_evidence_attribution(
+                    text=text,
+                    role=role,
+                    cited_evidence_ids=cited_evidence_ids,
+                    covered_claim_ids=llm_out.covered_claim_ids,
+                    evidence=evidence_view,
+                    topic=topic,
+                    stated_price_vnd=stated_price_vnd,
+                    mentions_ocop=mentions_ocop,
+                )
+                if not attr_res.passed:
+                    return UpfrontPlannedItem(
+                        arc=arc,
+                        topic=topic,
+                        planned_chunk_id=planned_chunk_id,
+                        generation_error="; ".join(attr_res.failure_reasons),
+                    )
+                declared_claim_ids = attr_res.validated_claim_ids
             except ProviderError as exc:
                 telemetry_acc.record(exc.telemetry)
                 return UpfrontPlannedItem(
@@ -994,19 +1050,27 @@ class ScriptFirstBaseline:
                 arc.breakpoint_hint if is_last_in_arc else BreakpointType.TOPIC_END
             )
             rationale = f"Ghép tất định từ talking_points của chủ đề '{topic.topic_id}'."
+            allowed_claim_set = {
+                c["claim_id"] for c in evidence_view.allowed_claims if c.get("claim_id")
+            }
+            declared_claim_ids = tuple(
+                cid for cid in topic.allowed_claim_ids if cid in allowed_claim_set
+            )
 
         estimated_duration_sec = VirtualClock.estimate_raw_speech_duration_ms(text) / 1000.0
         if (
             self._script_source == BaselineScriptSource.UPFRONT_LLM
             and estimated_duration_sec > self._max_chunk_duration_sec
         ):
+            actual_words = len(text.split())
             return UpfrontPlannedItem(
                 arc=arc,
                 topic=topic,
                 planned_chunk_id=planned_chunk_id,
                 generation_error=(
                     f"OVER_MAX_DURATION_SEC: Thời lượng ước lượng {estimated_duration_sec:.2f}s "
-                    f"vượt quá giới hạn {self._max_chunk_duration_sec:.2f}s."
+                    f"({actual_words} từ) vượt quá giới hạn {self._max_chunk_duration_sec:.2f}s "
+                    f"(tối đa {self._hard_max_words} từ; khuyến nghị {self._target_words_range})."
                 ),
             )
         intent = f"story_topic:{topic.topic_id}"
@@ -1074,6 +1138,7 @@ class ScriptFirstBaseline:
             planned_chunk_id=planned_chunk_id,
             chunk=chunk,
             candidate=candidate,
+            declared_claim_ids=declared_claim_ids,
         )
 
     def _build_upfront_llm_request(
@@ -1088,7 +1153,8 @@ class ScriptFirstBaseline:
     ) -> GenerationRequest:
         """Tạo `GenerationRequest` có cấu trúc cho lượt gọi LLM chuẩn bị đầu phiên."""
         system_prompt = _UPFRONT_SYSTEM_PROMPT_TEMPLATE.format(
-            max_words=self._max_words,
+            target_words_range=self._target_words_range,
+            hard_max_words=self._hard_max_words,
             max_duration_sec=f"{self._max_chunk_duration_sec:g}",
         )
         user_payload: dict[str, Any] = {
@@ -1185,6 +1251,14 @@ class ScriptFirstBaseline:
             p05_reasons = tuple(ver_result.reasons) or ("P05_REJECTED_UNSPECIFIED",)
             primary_failure_reason = f"P05 REJECTED: {', '.join(p05_reasons)}"
 
+        excluded_texts = {
+            normalize_fallback_text(turn.spoken_text)
+            for turn in self._harness.played_history
+            if turn.intent == "FALLBACK_SAFE_INFO"
+        }
+        if self._harness.played_history:
+            excluded_texts.add(normalize_fallback_text(self._harness.played_history[-1].spoken_text))
+
         fallback = SafeFallbackSelector.select_safe_fallback(
             self._knowledge_verifier,
             self._fallback_candidates,
@@ -1193,6 +1267,7 @@ class ScriptFirstBaseline:
             session_id=story_plan.session_id,
             session_epoch=self._harness.checkpoint.session_epoch,
             require_empty_covered_topics=True,
+            excluded_normalized_texts=excluded_texts,
         )
         if fallback is not None:
             return (

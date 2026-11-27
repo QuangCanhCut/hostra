@@ -1,0 +1,39 @@
+# Cấu hình Batch 1A Formal Benchmark — HOSTRA AI P06-E01-T09
+# Trạng thái: LOCKED_FOR_APPROVAL — CHƯA TỰ CHẠY LIVE API (Free Tier, 0 USD, SYNTHETIC only).
+
+batch_id: "p06_e01_formal_batch1a_product_edu_s42"
+experiment_id: "P06-E01"
+provider: "gemini"
+model_id: "gemini-3.5-flash-lite"
+model_config_path: "configs/models/gemini_3.5_flash_lite_free.yaml"
+billing_tier: "free_tier"
+max_cost_usd: 0.0
+data_classification: "SYNTHETIC"
+
+dataset_profile: "e01_ext_v1"
+scenario: "product_education_10m_ext"
+seed: 42
+min_chunks_per_topic: 1
+max_chunk_duration_sec: 8.0
+max_turns: 40
+
+max_requests_per_run: 30
+global_max_requests: 120
+min_request_interval_sec: 6.0
+stop_on_rate_limit: true
+
+output_dir: "runs/P06-E01/formal_benchmark_v1/batch1a_product_edu_s42"
+
+runs:
+  - label: "script_first_upfront_llm"
+    method: "script_first_upfront_llm"
+    history_window: null
+  - label: "langgraph_w5"
+    method: "langgraph_structured_story"
+    history_window: 5
+  - label: "langgraph_w10"
+    method: "langgraph_structured_story"
+    history_window: 10
+  - label: "langgraph_w20"
+    method: "langgraph_structured_story"
+    history_window: 20

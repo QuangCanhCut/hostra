@@ -455,15 +455,41 @@ class TestScriptFirstBaselineExecution:
             ]
         )
 
-        # Fallback 1 hợp lệ ở v1; giả lập kịch bản chỉ có fallback cho tenant khác ở lượt thử khác bằng cách test 2 phiên.
+        # Mỗi fallback chỉ phát một lần để tránh lặp máy móc; khi có 2 fallback khác nhau -> dùng đủ 2,
+        # còn khi không còn fallback mới hợp lệ -> SAFE_ABORT_NO_CANDIDATE.
         valid_fallback = _make_preapproved_fallback(story_plan)
+        valid_fallback_2 = SpeechCandidate(
+            candidate_id="fb-safe-honey-02",
+            tenant_id=story_plan.tenant_id,
+            session_id=story_plan.session_id,
+            session_epoch=1,
+            origin=CandidateOrigin.PREAPPROVED_FALLBACK,
+            scope_mode=TargetScopeMode.SINGLE_SKU,
+            sku_refs=["SKU-HONEY-01"],
+            sku_bindings=[
+                adapter.get_sku_evidence(story_plan.tenant_id, "SKU-HONEY-01", at_time=START_AT).to_version_binding(
+                    cited_evidence_ids=["ev-e01-honey-origin"],
+                    stated_price_vnd=159000,
+                )
+            ],
+            session_rights_version=1,
+            intent="FALLBACK_SAFE_INFO",
+            text="Mật ong hoa cà phê Đắk Lắk thu hái chính vụ, chai 500ml giá niêm yết 159.000đ.",
+            estimated_duration_sec=5.5,
+            proposed_coverage=ProposedResponseCoverage(
+                covered_topic_ids=[],
+                covered_intents=["Thông tin nguồn gốc an toàn"],
+                coverage_mode=CoverageMode.FULL,
+            ),
+            verification_status=CandidateVerificationStatus.DRAFT,
+        )
         baseline_with_fb = ScriptFirstBaseline(
             knowledge_verifier=adapter,
             playback_bus=bus,
             harness=harness,
             clock=clock,
             llm_provider=mock_llm,
-            fallback_candidates=[valid_fallback],
+            fallback_candidates=[valid_fallback, valid_fallback_2],
             script_source=BaselineScriptSource.UPFRONT_LLM,
         )
         fb_result = baseline_with_fb.run_session(story_plan)
@@ -472,6 +498,7 @@ class TestScriptFirstBaselineExecution:
         assert fb_result.metrics.safe_abort_count == 0
         assert fb_result.metrics.playback_applied_count == 2
         assert all(t.outcome == AgentTurnOutcome.FALLBACK_PREAPPROVED for t in fb_result.turns)
+        assert fb_result.turns[0].spoken_text != fb_result.turns[1].spoken_text
         # Fallback không được tự ý đánh dấu chủ đề đã phủ (require_empty_covered_topics=True).
         assert fb_result.completed_topic_ids == frozenset()
 

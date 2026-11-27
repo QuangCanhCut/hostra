@@ -41,7 +41,10 @@ if str(_SRC_DIR) not in sys.path:
     sys.path.insert(0, str(_SRC_DIR))
 
 from p06.adapters.p05_knowledge_adapter import P05KnowledgeAdapter  # noqa: E402
-from p06.agent.nodes._common import format_untrusted_knowledge_block  # noqa: E402
+from p06.agent.nodes._common import (  # noqa: E402
+    _compute_word_budget,
+    format_untrusted_knowledge_block,
+)
 from p06.baselines.script_first import (  # noqa: E402
     _UPFRONT_PROMPT_VERSION,
     _UPFRONT_SYSTEM_PROMPT_TEMPLATE,
@@ -81,7 +84,7 @@ from p06.schemas.candidate import (  # noqa: E402
     SpeechCandidate,
     TargetScopeMode,
 )
-from p06.simulation.virtual_clock import VirtualClock  # noqa: E402
+from p06.simulation.virtual_clock import VirtualClock, compute_chunk_word_budget  # noqa: E402
 
 DEFAULT_MODEL_CONFIG_PATH: Final[Path] = (
     _MODULE_ROOT / "configs" / "models" / "gemini_3.5_flash_lite_free.yaml"
@@ -230,6 +233,18 @@ def _run_stage_a_smoke(output_dir: Path, config_path: Path) -> int:
         topic_honey = arc_honey.topics[0]
         ev_honey = adapter.get_sku_evidence(plan.tenant_id, "SKU-HONEY-01", at_time=clock.now())
         prompt_tpl = load_prompt_template("story_generation.txt", prompts_dir=DEFAULT_PROMPTS_DIR)
+        max_words_lg, target_range_lg = _compute_word_budget(8.0)
+        allowed_eids_lg = [
+            chunk["evidence_id"]
+            for chunk in ev_honey.approved_chunks
+            if not topic_honey.fact_refs or chunk["evidence_id"] in set(topic_honey.fact_refs)
+        ] or [chunk["evidence_id"] for chunk in ev_honey.approved_chunks]
+        allowed_cids_lg = [
+            claim["claim_id"]
+            for claim in ev_honey.allowed_claims
+            if claim.get("claim_id")
+            and (not topic_honey.allowed_claim_ids or claim["claim_id"] in set(topic_honey.allowed_claim_ids))
+        ] or [claim["claim_id"] for claim in ev_honey.allowed_claims if claim.get("claim_id")]
         user_prompt_lg = render_prompt_template(
             prompt_tpl,
             {
@@ -239,9 +254,13 @@ def _run_stage_a_smoke(output_dir: Path, config_path: Path) -> int:
                 "topic_id": topic_honey.topic_id,
                 "topic_title": topic_honey.title,
                 "talking_points": "; ".join(topic_honey.talking_points),
+                "allowed_evidence_ids": json.dumps(allowed_eids_lg, ensure_ascii=False),
+                "allowed_claim_ids": json.dumps(allowed_cids_lg, ensure_ascii=False),
                 "mandatory_messages": "; ".join(plan.mandatory_messages),
                 "prohibited_topics": "; ".join(plan.prohibited_topics),
                 "max_duration_sec": "8",
+                "max_words": str(max_words_lg),
+                "target_words_range": target_range_lg,
                 "played_history_summary": "(Chưa có lượt nào được phát trong phiên.)",
                 "untrusted_knowledge_block": format_untrusted_knowledge_block(ev_honey, topic_honey),
             },
@@ -323,7 +342,12 @@ def _run_stage_a_smoke(output_dir: Path, config_path: Path) -> int:
         arc_tea = plan.arcs[1]
         topic_tea = arc_tea.topics[0]
         ev_tea = adapter.get_sku_evidence(plan.tenant_id, "SKU-TEA-02", at_time=clock.now())
-        sys_prompt_sf = _UPFRONT_SYSTEM_PROMPT_TEMPLATE.format(max_words=21, max_duration_sec="8")
+        _, hard_max_sf, target_range_sf = compute_chunk_word_budget(8.0)
+        sys_prompt_sf = _UPFRONT_SYSTEM_PROMPT_TEMPLATE.format(
+            target_words_range=target_range_sf,
+            hard_max_words=hard_max_sf,
+            max_duration_sec="8",
+        )
         user_payload_sf = {
             "session_goal": plan.session_goal,
             "arc": {"arc_id": arc_tea.arc_id, "position": arc_tea.position, "title": arc_tea.title},
@@ -435,6 +459,37 @@ def _run_stage_a_smoke(output_dir: Path, config_path: Path) -> int:
         )
 
 
+def _summarize_partial_token_usage(run_dir: Path) -> dict[str, Any]:
+    """Tách bạch số token đo được từ các call thành công và phần thiếu do các call lỗi (R06).
+
+    Tuyệt đối không gọi tổng từng phần (`partial_measured_*`) là tổng token toàn phiên khi
+    vẫn còn `failed_calls_count > 0` hoặc `aggregate_token_usage_source == 'UNAVAILABLE'`.
+    """
+    token_path = run_dir / "token_usage.json"
+    token_doc = json.loads(token_path.read_text(encoding="utf-8")) if token_path.is_file() else {}
+    calls_path = run_dir / "provider_calls.jsonl"
+    call_rows: list[dict[str, Any]] = []
+    if calls_path.is_file():
+        call_rows = [
+            json.loads(line)
+            for line in calls_path.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+
+    measured_calls = [row for row in call_rows if row.get("token_usage_source") == "MEASURED"]
+    missing_calls = [row for row in call_rows if row.get("token_usage_source") != "MEASURED"]
+    return {
+        "aggregate_token_usage_source": token_doc.get("token_usage_source", "UNAVAILABLE"),
+        "aggregate_input_tokens": token_doc.get("input_tokens"),
+        "aggregate_output_tokens": token_doc.get("output_tokens"),
+        "measured_calls_count": len(measured_calls),
+        "failed_calls_count": len(missing_calls),
+        "missing_token_call_indices": [row.get("call_index") for row in missing_calls],
+        "partial_measured_input_tokens": sum(int(row.get("input_tokens") or 0) for row in measured_calls),
+        "partial_measured_output_tokens": sum(int(row.get("output_tokens") or 0) for row in measured_calls),
+    }
+
+
 def _run_stage_b_pilot(output_dir: Path, config_path: Path) -> int:
     output_dir.mkdir(parents=True, exist_ok=True)
     ledger_path = output_dir / "budget_ledger.json"
@@ -463,6 +518,7 @@ def _run_stage_b_pilot(output_dir: Path, config_path: Path) -> int:
 
     summary: dict[str, Any] = {
         "stage": "Stage B - Short Pilot Experiment",
+        "pilot_label": output_dir.name,
         "executed_at_utc": _now_utc_iso(),
         "model_id": gem_cfg.model_id,
         "dataset_profile": "e01_ext_v1",
@@ -500,6 +556,9 @@ def _run_stage_b_pilot(output_dir: Path, config_path: Path) -> int:
             "termination_reason": res_sf.termination_reason.value,
             "transcript_turns": len(res_sf.evidence.transcript),
             "api_requests_attempted": spent_after_sf,
+            "prompt_versions": dict(res_sf.manifest.get("prompt_versions") or {}),
+            "prompt_hashes": dict(res_sf.manifest.get("prompt_hashes") or {}),
+            "token_accounting": _summarize_partial_token_usage(res_sf.run_dir),
             "structural_hard_gates_status": (
                 res_sf.report.structural_hard_gates_status.value if res_sf.report else None
             ),
@@ -540,6 +599,9 @@ def _run_stage_b_pilot(output_dir: Path, config_path: Path) -> int:
             "termination_reason": res_lg.termination_reason.value,
             "transcript_turns": len(res_lg.evidence.transcript),
             "api_requests_attempted": spent_after_lg,
+            "prompt_versions": dict(res_lg.manifest.get("prompt_versions") or {}),
+            "prompt_hashes": dict(res_lg.manifest.get("prompt_hashes") or {}),
+            "token_accounting": _summarize_partial_token_usage(res_lg.run_dir),
             "structural_hard_gates_status": (
                 res_lg.report.structural_hard_gates_status.value if res_lg.report else None
             ),

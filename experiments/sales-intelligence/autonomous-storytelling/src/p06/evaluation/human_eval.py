@@ -27,6 +27,7 @@ import csv
 import json
 import random
 from collections.abc import Sequence
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -102,6 +103,7 @@ def export_blind_human_eval_sheets(
 
     entries: list[HumanEvalSheetEntry] = []
     mappings: list[HumanEvalBlindMapping] = []
+    exported_at_utc = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
     for sample_num, (_, ev) in enumerate(indexed_runs, start=1):
         manifest = ev.manifest
@@ -142,6 +144,8 @@ def export_blind_human_eval_sheets(
                 overall_notes="",
             )
         )
+        raw_dataset_profile = manifest.get("dataset_profile")
+        raw_prompt_versions = manifest.get("prompt_versions")
         mappings.append(
             HumanEvalBlindMapping(
                 sample_id=sample_id,
@@ -153,6 +157,17 @@ def export_blind_human_eval_sheets(
                 model_id=cfg_key[3],
                 history_window=cfg_key[4],
                 scenario=str(manifest["scenario"]).strip(),
+                dataset_profile=(
+                    str(raw_dataset_profile).strip()
+                    if isinstance(raw_dataset_profile, str) and raw_dataset_profile.strip()
+                    else None
+                ),
+                prompt_versions=(
+                    {str(k): str(v) for k, v in raw_prompt_versions.items()}
+                    if isinstance(raw_prompt_versions, dict)
+                    else {}
+                ),
+                exported_at_utc=exported_at_utc,
             )
         )
 

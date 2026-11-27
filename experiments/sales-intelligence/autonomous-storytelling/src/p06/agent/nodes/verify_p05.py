@@ -24,8 +24,11 @@ from typing import Any, Final
 from p06.agent.deps import GraphRuntimeDeps, P05AttemptTrace, TurnExecutionContext
 from p06.agent.nodes._common import validate_node_updates
 from p06.agent.routing import NODE_VERIFY_P05
+from p06.guardrails.evidence_attribution import validate_draft_evidence_attribution
+from p06.guardrails.spoken_text_hygiene import check_spoken_text_hygiene
 from p06.schemas.candidate import CandidateVerificationStatus
 from p06.schemas.state import AgentState, RewriteBudgetState
+from p06.schemas.story import StoryChunkRole
 
 _NON_RETRYABLE_EXACT_REASONS: Final[frozenset[str]] = frozenset(
     {
@@ -78,11 +81,43 @@ def run_verify_p05(
         candidate,
         verified_at=deps.clock.now(),
     )
+    extra_reasons: list[str] = []
+
+    # R01: Không bao giờ cho phép lời thoại làm rò rỉ evidence_id/claim_id/SKU_id hoặc mảnh JSON.
+    hygiene = check_spoken_text_hygiene(candidate.text)
+    if not hygiene.passed:
+        extra_reasons.extend(hygiene.violations)
+
+    # R02: Kiểm tra trích dẫn bằng chứng đầy đủ (`cited_evidence_ids` hợp lệ cho lời thoại factual).
+    # Lưu ý kiến trúc (R05): Không chặn cứng bằng đối chiếu từ khóa bề mặt tại cổng runtime để tránh
+    # từ chối oan các câu diễn giải tiếng Việt tự nhiên (paraphrase); dùng `check_topic_objective_alignment`
+    # như guardrail chẩn đoán và tăng cường prompt `v0.2` + phản hồi ngân sách từ.
+    if ctx.active_sku_evidence is not None and ctx.selected_topic is not None and candidate.sku_bindings:
+        binding = candidate.sku_bindings[0]
+        draft_role = (
+            state.draft_chunk.role
+            if state.draft_chunk is not None
+            else StoryChunkRole.PRODUCT_STORY
+        )
+        attr_res = validate_draft_evidence_attribution(
+            text=candidate.text,
+            role=draft_role,
+            cited_evidence_ids=binding.cited_evidence_ids,
+            covered_claim_ids=ctx.covered_claim_ids,
+            evidence=ctx.active_sku_evidence,
+            topic=ctx.selected_topic,
+            stated_price_vnd=binding.stated_price_vnd,
+            mentions_ocop=binding.mentions_ocop,
+        )
+        if not attr_res.passed:
+            extra_reasons.extend(attr_res.failure_reasons)
+
     ctx.last_verification_result = result
 
     if (
         result.status == CandidateVerificationStatus.VERIFIED
         and result.candidate.is_ready_for_tts()
+        and not extra_reasons
     ):
         ctx.p05_decisions.append(
             P05AttemptTrace(
@@ -106,7 +141,12 @@ def run_verify_p05(
             ),
         )
 
-    reasons = list(result.reasons) or ["P05_REJECTED_UNSPECIFIED"]
+    base_reasons = (
+        list(result.reasons)
+        if result.status != CandidateVerificationStatus.VERIFIED
+        else []
+    )
+    reasons = list(dict.fromkeys([*base_reasons, *extra_reasons])) or ["P05_REJECTED_UNSPECIFIED"]
     ctx.last_failed_draft_text = candidate.text
     non_retryable_matches = [r for r in reasons if _is_non_retryable_reason(r)]
     if non_retryable_matches:
@@ -115,17 +155,22 @@ def run_verify_p05(
         P05AttemptTrace(
             attempt=state.rewrite_budget.retries_used,
             candidate_id=candidate.candidate_id,
-            status=result.status.value,
-            gate_decision_id=result.gate_decision_id,
+            status="REJECTED",
+            gate_decision_id=None if extra_reasons else result.gate_decision_id,
             reasons=tuple(reasons),
             is_non_retryable=bool(non_retryable_matches),
         )
     )
 
+    updated_draft = (
+        result.candidate
+        if result.status == CandidateVerificationStatus.REJECTED
+        else candidate.mark_rejected(reasons)
+    )
     return validate_node_updates(
         state,
         NODE_VERIFY_P05,
-        draft_candidate=result.candidate,
+        draft_candidate=updated_draft,
         verified_candidate=None,
         rewrite_budget=RewriteBudgetState(
             max_retries=state.rewrite_budget.max_retries,

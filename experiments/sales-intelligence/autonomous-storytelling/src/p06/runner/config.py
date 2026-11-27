@@ -73,6 +73,12 @@ DEFAULT_E01_EXT_V1_STORY_PLANS_PATH: Final[Path] = (
 DEFAULT_E01_EXT_V1_VERIFIED_SKUS_PATH: Final[Path] = (
     DEFAULT_MODULE_ROOT / "data" / "products" / "e01_ext_v1_verified_skus.json"
 )
+DEFAULT_E01_FORMAL_V1_STORY_PLANS_PATH: Final[Path] = (
+    DEFAULT_MODULE_ROOT / "data" / "story_plans" / "e01_formal_v1_story_plans.json"
+)
+DEFAULT_E01_FORMAL_V1_VERIFIED_SKUS_PATH: Final[Path] = (
+    DEFAULT_MODULE_ROOT / "data" / "products" / "e01_formal_v1_verified_skus.json"
+)
 DEFAULT_PROMPTS_DIR: Final[Path] = DEFAULT_MODULE_ROOT / "prompts"
 DEFAULT_RUNS_OUTPUT_DIR: Final[Path] = DEFAULT_MODULE_ROOT / "runs" / "P06-E01"
 
@@ -94,12 +100,19 @@ EXT_V1_SCENARIO_DURATIONS_SEC: Final[dict[str, float]] = {
     "pilot_short_3sku_ext": 300.0,
     "window_sensitivity_stress_24t": 600.0,
 }
+FORMAL_V1_SCENARIO_DURATIONS_SEC: Final[dict[str, float]] = {
+    "window_stress_12lag_3sku": 600.0,
+}
 ALL_SCENARIO_DURATIONS_SEC: Final[dict[str, float]] = {
     **SCENARIO_DURATIONS_SEC,
     **EXT_V1_SCENARIO_DURATIONS_SEC,
+    **FORMAL_V1_SCENARIO_DURATIONS_SEC,
 }
 SUPPORTED_SCENARIOS: Final[frozenset[str]] = frozenset(SCENARIO_DURATIONS_SEC.keys())
 SUPPORTED_EXT_V1_SCENARIOS: Final[frozenset[str]] = frozenset(EXT_V1_SCENARIO_DURATIONS_SEC.keys())
+SUPPORTED_FORMAL_V1_SCENARIOS: Final[frozenset[str]] = frozenset(
+    FORMAL_V1_SCENARIO_DURATIONS_SEC.keys()
+)
 DATASET_PROFILES: Final[dict[str, dict[str, Any]]] = {
     "e01": {
         "story_plans_path": DEFAULT_E01_STORY_PLANS_PATH,
@@ -111,6 +124,12 @@ DATASET_PROFILES: Final[dict[str, dict[str, Any]]] = {
         "story_plans_path": DEFAULT_E01_EXT_V1_STORY_PLANS_PATH,
         "evidence_seed_path": DEFAULT_E01_EXT_V1_VERIFIED_SKUS_PATH,
         "scenario_durations": EXT_V1_SCENARIO_DURATIONS_SEC,
+        "default_min_chunks_per_topic": 1,
+    },
+    "e01_formal_v1": {
+        "story_plans_path": DEFAULT_E01_FORMAL_V1_STORY_PLANS_PATH,
+        "evidence_seed_path": DEFAULT_E01_FORMAL_V1_VERIFIED_SKUS_PATH,
+        "scenario_durations": FORMAL_V1_SCENARIO_DURATIONS_SEC,
         "default_min_chunks_per_topic": 1,
     },
 }
@@ -283,8 +302,11 @@ class ExperimentRunConfig(BaseModel):
         if isinstance(copied.get("provider"), str):
             copied["provider"] = copied["provider"].strip().lower()
         scenario_key = copied["scenario"].strip() if isinstance(copied.get("scenario"), str) else ""
-        if copied.get("dataset_profile") is None and scenario_key in EXT_V1_SCENARIO_DURATIONS_SEC:
-            copied["dataset_profile"] = "e01_ext_v1"
+        if copied.get("dataset_profile") is None:
+            if scenario_key in EXT_V1_SCENARIO_DURATIONS_SEC:
+                copied["dataset_profile"] = "e01_ext_v1"
+            elif scenario_key in FORMAL_V1_SCENARIO_DURATIONS_SEC:
+                copied["dataset_profile"] = "e01_formal_v1"
         if copied.get("target_duration_sec") is None and scenario_key in ALL_SCENARIO_DURATIONS_SEC:
             copied["target_duration_sec"] = ALL_SCENARIO_DURATIONS_SEC[scenario_key]
         return copied

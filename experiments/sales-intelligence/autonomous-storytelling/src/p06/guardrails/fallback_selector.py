@@ -24,7 +24,8 @@
 from __future__ import annotations
 
 import copy
-from collections.abc import Sequence
+import re
+from collections.abc import Collection, Sequence
 from datetime import datetime
 from typing import Optional
 
@@ -34,6 +35,14 @@ from p06.schemas.candidate import (
     CandidateVerificationStatus,
     SpeechCandidate,
 )
+
+_WS_RE = re.compile(r"\s+")
+
+
+def normalize_fallback_text(text: str) -> str:
+    """Chuẩn hóa câu dự phòng để phát hiện và chặn lặp lại máy móc giữa các lượt."""
+    collapsed = _WS_RE.sub(" ", text.strip().lower())
+    return collapsed.rstrip(".!?,;: ")
 
 
 def _reset_candidate_to_draft(candidate: SpeechCandidate) -> SpeechCandidate:
@@ -71,6 +80,7 @@ class SafeFallbackSelector:
         session_id: Optional[str] = None,
         session_epoch: Optional[int] = None,
         require_empty_covered_topics: bool = False,
+        excluded_normalized_texts: Collection[str] = (),
     ) -> Optional[SpeechCandidate]:
         """Chọn ứng viên dự phòng đầu tiên vượt qua kiểm định trực tiếp trên kho tri thức hiện hành.
 
@@ -82,11 +92,17 @@ class SafeFallbackSelector:
             session_id: Bộ lọc tùy chọn chỉ nhận fallback khớp đúng `session_id`.
             session_epoch: Bộ lọc tùy chọn chỉ nhận fallback khớp đúng `session_epoch`.
             require_empty_covered_topics: Nếu `True`, chỉ chọn fallback không tự đánh dấu phủ topic.
+            excluded_normalized_texts: Tập văn bản đã chuẩn hóa cần bỏ qua để không phát lặp máy móc.
 
         Returns:
             Optional[SpeechCandidate]: Ứng viên đã `VERIFIED` sẵn sàng phát TTS, hoặc `None` nếu
                 không có ứng viên hợp lệ nào (kích hoạt `SAFE_ABORT_NO_CANDIDATE` / P04 safe scene).
         """
+        excluded_set = {
+            normalize_fallback_text(item)
+            for item in excluded_normalized_texts
+            if isinstance(item, str) and item.strip()
+        }
         for candidate in candidates:
             # Chỉ cho phép ứng viên được đánh dấu rõ ràng là fallback đã duyệt trước.
             if candidate.origin != CandidateOrigin.PREAPPROVED_FALLBACK:
@@ -98,6 +114,8 @@ class SafeFallbackSelector:
             if session_epoch is not None and candidate.session_epoch != session_epoch:
                 continue
             if require_empty_covered_topics and candidate.proposed_coverage.covered_topic_ids:
+                continue
+            if excluded_set and normalize_fallback_text(candidate.text) in excluded_set:
                 continue
 
             fresh_draft = _reset_candidate_to_draft(candidate)

@@ -1,0 +1,5 @@
+﻿phase_dir,provider_tier,description,model_id,stage_a_requests,stage_b_requests,total_requests,max_budget,stage_a_all_passed,stage_b_runs,cost_usd,included_in_317_formal
+gemini_3.5_flash_lite_pilot,pre_formal_pilot_gemini_live,"Pilot v1 (Smoke + Short Pilot 3-SKU, prompt v0.1)",gemini-3.5-flash-lite,3,22,25,28,False,2,0.0,False
+gemini_3.5_flash_lite_pilot_v2,pre_formal_pilot_gemini_live,"Pilot v2 (Revalidation Post-R01..R06, prompt v0.2)",gemini-3.5-flash-lite,3,12,15,28,True,2,0.0,False
+post_fix_sweep_product_education_10m,unit_test_mock,Offline E01-T08 Sweep (MockLLMProvider),deterministic-mock-v0.1,0,0,0,0,True,6,0.0,False
+offline_ext_v1_dryrun,unit_test_mock,Offline E01-T09 Readiness Dry-Run (MockLLMProvider),deterministic-mock-v0.1,0,0,0,0,True,6,0.0,False

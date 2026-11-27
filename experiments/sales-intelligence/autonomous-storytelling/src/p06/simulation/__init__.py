@@ -28,6 +28,7 @@ from p06.simulation.virtual_clock import (
     MIN_SPEECH_DURATION_MS,
     SpeechDurationEstimate,
     VirtualClock,
+    compute_chunk_word_budget,
 )
 
 __all__ = [
@@ -39,4 +40,5 @@ __all__ = [
     "SimulatedPlaybackHarness",
     "SpeechDurationEstimate",
     "VirtualClock",
+    "compute_chunk_word_budget",
 ]

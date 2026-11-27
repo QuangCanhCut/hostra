@@ -249,3 +249,63 @@ class VirtualClock:
                 f"Thời lượng ước lượng ({raw_ms}ms) vượt quá giới hạn cho phép ({validated_limit}ms)."
             )
         return raw_ms
+
+
+def compute_chunk_word_budget(
+    max_duration_sec: float,
+    *,
+    words_per_sec: float = DEFAULT_SPEECH_WORDS_PER_SEC,
+) -> tuple[int, int, str]:
+    """Tính ngân sách từ nhất quán trực tiếp từ bộ ước lượng thời lượng `VirtualClock`.
+
+    Args:
+        max_duration_sec: Giới hạn thời lượng tối đa của một chunk (giây, `> 0`).
+        words_per_sec: Tốc độ đọc giả định (từ/giây, `> 0`).
+
+    Returns:
+        tuple[int, int, str]: `(recommended_max_words, hard_max_words, target_words_range)`
+            trong đó `hard_max_words` là số từ nguyên lớn nhất bảo đảm thời lượng ước lượng
+            `<= max_duration_sec`, còn `recommended_max_words` chừa biên an toàn `2` từ
+            (ví dụ với `8.0s` ở `2.6` từ/giây: `(18, 20, '12–18 từ')`).
+
+    Raises:
+        ValueError: Nếu `max_duration_sec` hoặc `words_per_sec` không phải số dương hữu hạn.
+    """
+    if (
+        isinstance(max_duration_sec, bool)
+        or not isinstance(max_duration_sec, (int, float))
+        or not math.isfinite(float(max_duration_sec))
+        or float(max_duration_sec) <= 0.0
+    ):
+        raise ValueError(
+            f"max_duration_sec phải là số dương hữu hạn, nhận được {max_duration_sec!r}."
+        )
+    if (
+        isinstance(words_per_sec, bool)
+        or not isinstance(words_per_sec, (int, float))
+        or not math.isfinite(float(words_per_sec))
+        or float(words_per_sec) <= 0.0
+    ):
+        raise ValueError(
+            f"words_per_sec phải là số dương hữu hạn, nhận được {words_per_sec!r}."
+        )
+
+    max_ms = int(round(float(max_duration_sec) * MS_PER_SECOND))
+    upper_bound = max(1, int(math.floor(float(max_duration_sec) * float(words_per_sec))) + 2)
+    hard_max_words = 1
+    for candidate_words in range(1, upper_bound + 1):
+        est_ms = max(
+            MIN_SPEECH_DURATION_MS,
+            int(round((candidate_words / float(words_per_sec)) * MS_PER_SECOND)),
+        )
+        if est_ms <= max_ms:
+            hard_max_words = candidate_words
+        else:
+            break
+
+    recommended_max_words = (
+        max(8, hard_max_words - 2) if hard_max_words >= 8 else hard_max_words
+    )
+    recommended_min_words = min(recommended_max_words, max(8, recommended_max_words - 6))
+    target_words_range = f"{recommended_min_words}–{recommended_max_words} từ"
+    return recommended_max_words, hard_max_words, target_words_range

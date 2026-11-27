@@ -60,6 +60,9 @@ DEFAULT_E01_EXT_V1_SCENARIOS: Final[tuple[str, ...]] = (
     "brand_storytelling_10m_ext",
     "sales_presentation_30m_ext",
 )
+DEFAULT_E01_FORMAL_V1_SCENARIOS: Final[tuple[str, ...]] = (
+    "window_stress_12lag_3sku",
+)
 DEFAULT_E01_METHODS: Final[tuple[ExperimentMethod, ...]] = (
     ExperimentMethod.SCRIPT_FIRST_DETERMINISTIC,
     ExperimentMethod.SCRIPT_FIRST_UPFRONT_LLM,
@@ -254,7 +257,11 @@ def run_e01_sweep(
         else (
             DEFAULT_E01_EXT_V1_SCENARIOS
             if dataset_profile.strip() == "e01_ext_v1"
-            else DEFAULT_E01_SCENARIOS
+            else (
+                DEFAULT_E01_FORMAL_V1_SCENARIOS
+                if dataset_profile.strip() == "e01_formal_v1"
+                else DEFAULT_E01_SCENARIOS
+            )
         )
     )
     if not resolved_scenarios:
